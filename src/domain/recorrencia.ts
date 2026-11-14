@@ -1,0 +1,35 @@
+/** Como uma tarefa se repete ao longo da semana. */
+export type Recorrencia =
+  | { tipo: 'diaria' }
+  | { tipo: 'vezes_por_semana'; vezes: number }
+  /** Dias da semana, 1 = segunda … 7 = domingo. */
+  | { tipo: 'dias'; dias: number[] };
+
+/** Quantas instâncias uma tarefa gera numa semana. Tarefa única = 1. */
+export function instanciasPorSemana(recorrencia: Recorrencia | null | undefined): number {
+  if (!recorrencia) return 1;
+  switch (recorrencia.tipo) {
+    case 'diaria':
+      return 7;
+    case 'vezes_por_semana':
+      return Math.max(1, Math.min(7, Math.floor(recorrencia.vezes)));
+    case 'dias':
+      return new Set(recorrencia.dias.filter((d) => d >= 1 && d <= 7)).size;
+  }
+}
+
+/** Texto curto para a lista de tarefas, ex. "todos os dias", "4× por semana". */
+export function descreverRecorrencia(recorrencia: Recorrencia | null | undefined): string | null {
+  if (!recorrencia) return null;
+  switch (recorrencia.tipo) {
+    case 'diaria':
+      return 'todos os dias';
+    case 'vezes_por_semana':
+      return `${instanciasPorSemana(recorrencia)}× por semana`;
+    case 'dias': {
+      const nomes = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+      const dias = [...new Set(recorrencia.dias)].filter((d) => d >= 1 && d <= 7).sort((a, b) => a - b);
+      return dias.map((d) => nomes[d - 1]).join(', ');
+    }
+  }
+}
