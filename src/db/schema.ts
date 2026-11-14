@@ -33,6 +33,10 @@ export const metas = sqliteTable(
     tipo: text('tipo', { enum: ['horas', 'vezes'] }).notNull(),
     /** Horas por semana (tipo "horas") ou ocorrências por semana (tipo "vezes"). */
     alvoSemanal: real('alvo_semanal').notNull(),
+    /** Como o utilizador a definiu ("1 por dia" ou "3 por semana"); só afeta a apresentação. */
+    periodo: text('periodo', { enum: ['dia', 'semana'] }).notNull().default('semana'),
+    /** Unidade das metas de vezes, no singular (ex.: "lição"); null = "vezes". */
+    unidade: text('unidade'),
     ...timestamps,
   },
   (t) => [index('metas_area_idx').on(t.areaId)],
@@ -49,7 +53,8 @@ export const tarefas = sqliteTable(
     metaId: integer('meta_id').references(() => metas.id, { onDelete: 'set null' }),
     nome: text('nome').notNull(),
     nomeCurto: text('nome_curto'),
-    duracaoMin: integer('duracao_min').notNull(),
+    /** Minutos no calendário; null = não ocupa tempo (ex.: "Lição ACIM" conta só quando é feita). */
+    duracaoMin: integer('duracao_min'),
     /** JSON de `Recorrencia` (ver src/domain/recorrencia.ts); null = tarefa única. */
     recorrencia: text('recorrencia', { mode: 'json' }).$type<Recorrencia>(),
     ...timestamps,

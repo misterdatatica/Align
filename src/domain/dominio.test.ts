@@ -3,7 +3,18 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { descreverRecorrencia, instanciasPorSemana } from './recorrencia.ts';
-import { alvoSemanal, encaixarMeiaHora, formatarHoras, MAX_AREAS, podeCriarArea, progresso } from './regras.ts';
+import {
+  alvoSemanal,
+  alvoValido,
+  contarUnidade,
+  descreverMeta,
+  encaixarMeiaHora,
+  formatarHoras,
+  MAX_AREAS,
+  pluralizar,
+  podeCriarArea,
+  progresso,
+} from './regras.ts';
 import { descreverSemana, diasDaSemana, inicioDaSemana, somarSemanas } from './semana.ts';
 
 describe('semana', () => {
@@ -77,5 +88,37 @@ describe('recorrência', () => {
     assert.equal(descreverRecorrencia({ tipo: 'vezes_por_semana', vezes: 2 }), '2× por semana');
     assert.equal(descreverRecorrencia({ tipo: 'dias', dias: [4, 2] }), 'ter, qui');
     assert.equal(descreverRecorrencia(null), null);
+  });
+});
+
+describe('metas', () => {
+  it('pluraliza unidades', () => {
+    assert.equal(pluralizar('lição'), 'lições');
+    assert.equal(pluralizar('treino'), 'treinos');
+    assert.equal(pluralizar('página'), 'páginas');
+    assert.equal(pluralizar('jejum'), 'jejuns');
+    assert.equal(pluralizar('lição do livro'), 'lições do livro');
+  });
+
+  it('conta unidades', () => {
+    assert.equal(contarUnidade(1, 'lição'), '1 lição');
+    assert.equal(contarUnidade(3, 'lição'), '3 lições');
+    assert.equal(contarUnidade(1, null), '1 vez');
+    assert.equal(contarUnidade(4, ''), '4 vezes');
+  });
+
+  it('descreve metas', () => {
+    assert.equal(descreverMeta({ tipo: 'vezes', alvoSemanal: 7, periodo: 'dia', unidade: 'lição' }), '1 lição por dia · 7 por semana');
+    assert.equal(descreverMeta({ tipo: 'vezes', alvoSemanal: 3, periodo: 'semana', unidade: 'treino' }), '3 treinos por semana');
+    assert.equal(descreverMeta({ tipo: 'vezes', alvoSemanal: 2, periodo: 'semana', unidade: null }), '2 vezes por semana');
+    assert.equal(descreverMeta({ tipo: 'horas', alvoSemanal: 14, periodo: 'dia', unidade: null }), '2 h por dia · 14 h por semana');
+    assert.equal(descreverMeta({ tipo: 'horas', alvoSemanal: 10, periodo: 'semana', unidade: null }), '10 h por semana');
+  });
+
+  it('valida o alvo', () => {
+    assert.equal(alvoValido('horas', 1.5), true);
+    assert.equal(alvoValido('vezes', 1.5), false);
+    assert.equal(alvoValido('vezes', 1), true);
+    assert.equal(alvoValido('vezes', 0), false);
   });
 });

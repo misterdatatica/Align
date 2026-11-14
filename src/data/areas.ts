@@ -2,7 +2,7 @@ import { and, asc, count, eq, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { areas, metas } from '@/db/schema';
-import { MAX_AREAS, podeCriarArea } from '@/domain/regras';
+import { MAX_AREAS, podeCriarArea, type PeriodoMeta, type TipoMeta } from '@/domain/regras';
 
 export const consultaAreasAtivas = () =>
   db.select().from(areas).where(eq(areas.arquivada, false)).orderBy(asc(areas.ordem), asc(areas.id));
@@ -45,9 +45,18 @@ export async function arquivarArea(id: number) {
   await db.update(areas).set({ arquivada: true }).where(eq(areas.id, id));
 }
 
-export async function criarMeta(dados: { areaId: number; descricao: string; tipo: 'horas' | 'vezes'; alvoSemanal: number }) {
+export async function criarMeta(dados: {
+  areaId: number;
+  descricao: string;
+  tipo: TipoMeta;
+  alvoSemanal: number;
+  periodo: PeriodoMeta;
+  unidade?: string | null;
+}) {
   if (!dados.descricao.trim()) throw new Error('A meta precisa de uma descrição.');
-  await db.insert(metas).values({ ...dados, descricao: dados.descricao.trim() });
+  // A unidade só faz sentido nas metas de vezes; vazia = "vezes".
+  const unidade = dados.tipo === 'vezes' ? dados.unidade?.trim() || null : null;
+  await db.insert(metas).values({ ...dados, descricao: dados.descricao.trim(), unidade });
 }
 
 export async function apagarMeta(id: number, areaId: number) {

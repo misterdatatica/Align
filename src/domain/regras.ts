@@ -35,3 +35,45 @@ export function progresso(feito: number, alvo: number): number {
   if (alvo <= 0) return 0;
   return Math.min(1, Math.max(0, feito / alvo));
 }
+
+export type TipoMeta = 'horas' | 'vezes';
+
+/** Plural português simples para a unidade: lição → lições, treino → treinos, oração → orações. */
+export function pluralizar(palavra: string): string {
+  const p = palavra.trim();
+  if (!p) return p;
+  const [primeira, ...resto] = p.split(' ');
+  const sufixo = resto.length ? ` ${resto.join(' ')}` : '';
+  let plural: string;
+  if (/ão$/.test(primeira)) plural = primeira.replace(/ão$/, 'ões');
+  else if (/m$/.test(primeira)) plural = primeira.replace(/m$/, 'ns');
+  else if (/al$/.test(primeira)) plural = primeira.replace(/al$/, 'ais');
+  else if (/[rz]$/.test(primeira)) plural = `${primeira}es`;
+  else if (/[aeiouáéíóúâêô]$/i.test(primeira)) plural = `${primeira}s`;
+  else plural = primeira;
+  return plural + sufixo;
+}
+
+/** "1 lição", "3 lições", "2 vezes", "1 vez". */
+export function contarUnidade(n: number, unidade: string | null): string {
+  const u = unidade?.trim() || 'vez';
+  return `${n} ${n === 1 ? u : u === 'vez' ? 'vezes' : pluralizar(u)}`;
+}
+
+/** Texto curto de uma meta: "1 lição por dia · 7 por semana", "2 h por dia · 14 h por semana". */
+export function descreverMeta(meta: { tipo: TipoMeta; alvoSemanal: number; periodo: PeriodoMeta; unidade: string | null }): string {
+  const porDia = meta.periodo === 'dia' ? meta.alvoSemanal / 7 : null;
+  if (meta.tipo === 'horas') {
+    return porDia === null
+      ? `${formatarHoras(meta.alvoSemanal)} por semana`
+      : `${formatarHoras(porDia)} por dia · ${formatarHoras(meta.alvoSemanal)} por semana`;
+  }
+  return porDia === null
+    ? `${contarUnidade(meta.alvoSemanal, meta.unidade)} por semana`
+    : `${contarUnidade(porDia, meta.unidade)} por dia · ${meta.alvoSemanal} por semana`;
+}
+
+/** Horas aceitam decimais (1,5 h); vezes têm de ser um número inteiro. */
+export function alvoValido(tipo: TipoMeta, valor: number): boolean {
+  return Number.isFinite(valor) && valor > 0 && (tipo === 'horas' || Number.isInteger(valor));
+}
