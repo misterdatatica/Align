@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type PressableProps, type TextStyle, type ViewStyle } from 'react-native';
 
-import { cores, coresArea, fontes } from '@/theme';
-import { Icone, type NomeIcone } from './Icone';
+import { cores, coresArea, corDaArea, fontes } from '@/theme';
+import { Icone, iconesArea, type NomeIcone } from './Icone';
 
 export function Titulo({ children, subtitulo }: { children: ReactNode; subtitulo?: string }) {
   return (
@@ -86,6 +86,39 @@ export function SeletorCor({ valor, onChange }: { valor: string; onChange: (id: 
               outlineStyle: 'solid',
             }}
           />
+        );
+      })}
+    </View>
+  );
+}
+
+/** Escolha do ícone da área; o ícone ativo usa a cor da área. */
+export function SeletorIcone({ valor, cor, onChange }: { valor: string; cor: string; onChange: (nome: NomeIcone) => void }) {
+  const c = corDaArea(cor);
+  return (
+    <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }} accessibilityRole="radiogroup" accessibilityLabel="Ícone">
+      {iconesArea.map((i) => {
+        const ativo = i === valor;
+        return (
+          <Pressable
+            key={i}
+            accessibilityRole="radio"
+            accessibilityLabel={i}
+            accessibilityState={{ selected: ativo }}
+            onPress={() => onChange(i)}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: ativo ? c.tinta : cores.superficie,
+              borderWidth: ativo ? 2 : 1,
+              borderColor: ativo ? c.forte : cores.linha,
+            }}
+          >
+            <Icone nome={i} tamanho={22} cor={ativo ? c.texto : cores.texto2} />
+          </Pressable>
         );
       })}
     </View>

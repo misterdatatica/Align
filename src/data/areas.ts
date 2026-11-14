@@ -34,6 +34,10 @@ export async function atualizarArea(
   id: number,
   dados: Partial<{ nome: string; cor: string; icone: string; missao: string }>,
 ) {
+  if (dados.nome !== undefined) {
+    dados = { ...dados, nome: dados.nome.trim() };
+    if (!dados.nome) throw new Error('A área precisa de um nome.');
+  }
   await db
     .update(areas)
     .set({ ...dados, atualizadoEm: sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))` })

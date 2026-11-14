@@ -1,10 +1,10 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
 
 import { Icone, type NomeIcone } from '@/components/Icone';
-import { Botao, Cartao, Seccao, SeletorCor, estilos } from '@/components/ui';
+import { Botao, Cartao, Seccao, SeletorCor, SeletorIcone, estilos } from '@/components/ui';
 import { apagarMeta, arquivarArea, atualizarArea, consultaArea, consultaMetas, criarMeta } from '@/data/areas';
 import { alvoSemanal, alvoValido, descreverMeta, type PeriodoMeta, type TipoMeta } from '@/domain/regras';
 import { cores, corDaArea, fontes } from '@/theme';
@@ -41,13 +41,31 @@ export default function AreaEcra() {
         <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: cor.tinta, alignItems: 'center', justifyContent: 'center' }}>
           <Icone nome={area.icone as NomeIcone} tamanho={24} cor={cor.texto} />
         </View>
-        <Text style={estilos.titulo} accessibilityRole="header">
-          {area.nome}
-        </Text>
+        <CampoAutoGuardado
+          key={`nome-${area.id}`}
+          inicial={area.nome}
+          guardar={(nome) => atualizarArea(areaId, { nome })}
+          obrigatorio
+          erro="Não foi possível guardar o nome"
+          maxLength={40}
+          accessibilityLabel="Nome da área"
+          placeholder="Nome da área"
+          style={[estilos.titulo, { flex: 1, paddingVertical: 4 }]}
+        />
       </View>
 
       <Seccao titulo="Missão">
-        <EditorMissao key={area.id} areaId={areaId} inicial={area.missao} />
+        <CampoAutoGuardado
+          key={`missao-${area.id}`}
+          inicial={area.missao}
+          guardar={(missao) => atualizarArea(areaId, { missao })}
+          erro="Não foi possível guardar a missão"
+          placeholder="Porque é que esta área importa?"
+          multiline
+          maxLength={140}
+          accessibilityLabel="Missão"
+          style={[estilos.cartao, { padding: 16, fontFamily: fontes.tituloMedio, fontSize: 20, lineHeight: 26, color: cores.tinta }]}
+        />
       </Seccao>
 
       <Seccao titulo="Metas">
@@ -78,54 +96,65 @@ export default function AreaEcra() {
         <SeletorCor valor={area.cor} onChange={(c) => atualizarArea(areaId, { cor: c })} />
       </Seccao>
 
+      <Seccao titulo="Ícone">
+        <SeletorIcone valor={area.icone} cor={area.cor} onChange={(i) => atualizarArea(areaId, { icone: i })} />
+      </Seccao>
+
       <Botao titulo="Arquivar área" variante="texto" onPress={arquivar} />
     </ScrollView>
   );
 }
 
+type CampoAutoGuardadoProps = Omit<TextInputProps, 'value' | 'onChangeText' | 'onBlur'> & {
+  inicial: string;
+  guardar: (texto: string) => Promise<void>;
+  /** Campo que não pode ficar vazio (ex.: nome): o texto vazio não é guardado e é reposto ao sair. */
+  obrigatorio?: boolean;
+  erro: string;
+};
+
 /**
- * Guarda a missão enquanto o utilizador escreve (com uma pequena pausa), ao sair do campo
+ * Guarda enquanto o utilizador escreve (com uma pequena pausa), ao sair do campo
  * e ao sair do ecrã — não depende de onEndEditing, que nem sempre dispara (web, voltar atrás).
  */
-function EditorMissao({ areaId, inicial }: { areaId: number; inicial: string }) {
-  const [missao, setMissao] = useState(inicial);
-  const guardada = useRef(inicial.trim());
+function CampoAutoGuardado({ inicial, guardar: guardarTexto, obrigatorio, erro, ...resto }: CampoAutoGuardadoProps) {
+  const [texto, setTexto] = useState(inicial);
+  const guardado = useRef(inicial.trim());
   const pendente = useRef<string | null>(null);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const funcaoGuardar = useRef(guardarTexto);
+  useEffect(() => {
+    funcaoGuardar.current = guardarTexto;
+  });
 
   const guardar = useCallback(() => {
     if (temporizador.current) clearTimeout(temporizador.current);
     temporizador.current = null;
-    const texto = pendente.current;
+    const valor = pendente.current;
     pendente.current = null;
-    if (texto === null || texto === guardada.current) return;
-    guardada.current = texto;
-    atualizarArea(areaId, { missao: texto }).catch((e: Error) => Alert.alert('Não foi possível guardar a missão', e.message));
-  }, [areaId]);
+    if (valor === null || valor === guardado.current) return;
+    if (obrigatorio && !valor) return;
+    guardado.current = valor;
+    funcaoGuardar.current(valor).catch((e: Error) => Alert.alert(erro, e.message));
+  }, [obrigatorio, erro]);
 
   // Ao sair do ecrã, guarda o que ainda estiver por guardar.
   useEffect(() => guardar, [guardar]);
 
-  function mudar(texto: string) {
-    setMissao(texto);
-    pendente.current = texto.trim();
+  function mudar(novo: string) {
+    setTexto(novo);
+    pendente.current = novo.trim();
     if (temporizador.current) clearTimeout(temporizador.current);
     temporizador.current = setTimeout(guardar, 600);
   }
 
-  return (
-    <TextInput
-      value={missao}
-      onChangeText={mudar}
-      onBlur={guardar}
-      placeholder="Porque é que esta área importa?"
-      placeholderTextColor={cores.texto3}
-      multiline
-      maxLength={140}
-      accessibilityLabel="Missão"
-      style={[estilos.cartao, { padding: 16, fontFamily: fontes.tituloMedio, fontSize: 20, lineHeight: 26, color: cores.tinta }]}
-    />
-  );
+  function sair() {
+    guardar();
+    // Um campo obrigatório deixado vazio volta ao último valor guardado.
+    if (obrigatorio && !texto.trim()) setTexto(guardado.current);
+  }
+
+  return <TextInput value={texto} onChangeText={mudar} onBlur={sair} placeholderTextColor={cores.texto3} {...resto} />;
 }
 
 /**
