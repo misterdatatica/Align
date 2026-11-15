@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, Text, TextInput } from 'react-native';
+import { ScrollView, Text, TextInput } from 'react-native';
 
+import { avisarErro } from '@/components/dialogos';
 import type { NomeIcone } from '@/components/Icone';
 import { Botao, Seccao, SeletorCor, SeletorIcone, estilos } from '@/components/ui';
 import { criarArea } from '@/data/areas';
@@ -21,7 +22,7 @@ export default function NovaAreaEcra() {
       const area = await criarArea({ nome, missao, cor, icone });
       router.replace({ pathname: '/area/[id]', params: { id: String(area.id) } });
     } catch (e) {
-      Alert.alert('Não foi possível criar a área', (e as Error).message);
+      avisarErro('Não foi possível criar a área', e);
       setAGuardar(false);
     }
   }

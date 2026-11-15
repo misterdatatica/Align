@@ -17,18 +17,31 @@ export type NomeIcone =
   | 'seta-esquerda'
   | 'certo'
   | 'repetir'
-  | 'lapis';
+  | 'lapis'
+  | 'menos'
+  | 'fechar'
+  | 'lixo'
+  | 'pegas'
+  | 'engrenagem'
+  | 'sino';
 
 /** Ícones de areas que o utilizador pode escolher. */
 export const iconesArea: NomeIcone[] = ['folha', 'casa', 'pasta', 'bola', 'coracao', 'livro'];
 
 type Props = { nome: NomeIcone; tamanho?: number; cor?: string; espessura?: number };
 
+/**
+ * Os ícones são decorativos: o leitor de ecrã lê o rótulo do botão, não o desenho.
+ * No navegador o SVG só conhece `aria-hidden`; no telemóvel usam-se as propriedades nativas.
+ */
+const ESCONDIDO =
+  process.env.EXPO_OS === 'web' ? ({ 'aria-hidden': true } as const) : ({ accessibilityElementsHidden: true, importantForAccessibility: 'no' } as const);
+
 /** Ícones de traço simples, desenhados à mão (viewBox 24×24). */
 export function Icone({ nome, tamanho = 20, cor = '#15171C', espessura = 1.8 }: Props) {
   const traco = { stroke: cor, strokeWidth: espessura, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
   return (
-    <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24" accessibilityElementsHidden importantForAccessibility="no">
+    <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24" {...ESCONDIDO}>
       {desenho(nome, traco, cor)}
     </Svg>
   );
@@ -121,5 +134,30 @@ function desenho(nome: NomeIcone, t: object, cor: string) {
       return <Path d="m17 2 4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3" {...t} />;
     case 'lapis':
       return <Path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" {...t} />;
+    case 'menos':
+      return <Path d="M5 12h14" {...t} />;
+    case 'fechar':
+      return <Path d="M6 6l12 12M18 6 6 18" {...t} />;
+    case 'lixo':
+      return <Path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" {...t} />;
+    case 'pegas':
+      // Seis pontos: indica que o elemento se pode arrastar.
+      return (
+        <>
+          {[6, 12, 18].flatMap((y) => [9, 15].map((x) => <Circle key={`${x}-${y}`} cx={x} cy={y} r="1.5" fill={cor} />))}
+        </>
+      );
+    case 'engrenagem':
+      return (
+        <>
+          <Circle cx="12" cy="12" r="3" {...t} />
+          <Path
+            d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-2.8 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.8-1.2l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0-1.2-2.8H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.8l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 2.8-1.2V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.8 1.2l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0 1.2 2.8h.1a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"
+            {...t}
+          />
+        </>
+      );
+    case 'sino':
+      return <Path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9zM10 20a2 2 0 0 0 4 0" {...t} />;
   }
 }

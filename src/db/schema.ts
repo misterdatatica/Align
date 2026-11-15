@@ -57,6 +57,13 @@ export const tarefas = sqliteTable(
     duracaoMin: integer('duracao_min'),
     /** JSON de `Recorrencia` (ver src/domain/recorrencia.ts); null = tarefa única. */
     recorrencia: text('recorrencia', { mode: 'json' }).$type<Recorrencia>(),
+    /** Primeira semana (segunda-feira, AAAA-MM-DD) em que a tarefa existe. */
+    semanaInicio: text('semana_inicio').notNull().default(''),
+    /**
+     * Primeira semana em que a tarefa já não se aplica; null = continua.
+     * Apagar ou alterar uma tarefa "a partir desta semana" fecha-a aqui, para o histórico não mudar.
+     */
+    semanaFim: text('semana_fim'),
     ...timestamps,
   },
   (t) => [index('tarefas_area_idx').on(t.areaId)],
@@ -79,7 +86,7 @@ export const tarefasSemana = sqliteTable(
     transitadaDe: text('transitada_de'),
     ...timestamps,
   },
-  (t) => [index('tarefas_semana_semana_idx').on(t.semana)],
+  (t) => [index('tarefas_semana_semana_idx').on(t.semana), index('tarefas_semana_tarefa_idx').on(t.tarefaId)],
 );
 
 /** Um bloco no calendário. Sem tarefa = bloco "Ocupado". */
@@ -95,7 +102,7 @@ export const blocos = sqliteTable(
     feito: integer('feito', { mode: 'boolean' }).notNull().default(false),
     ...timestamps,
   },
-  (t) => [index('blocos_inicio_idx').on(t.inicio)],
+  (t) => [index('blocos_inicio_idx').on(t.inicio), index('blocos_tarefa_semana_idx').on(t.tarefaSemanaId)],
 );
 
 /** Revisão de domingo, uma por semana. */
@@ -120,6 +127,8 @@ export const definicoes = sqliteTable('definicoes', {
   horaRevisao: text('hora_revisao').notNull().default('18:00'),
   inicioGrelha: integer('inicio_grelha').notNull().default(6),
   fimGrelha: integer('fim_grelha').notNull().default(23),
+  /** Lembrete local da revisão; só fica ativo depois de o utilizador dar permissão. */
+  lembreteAtivo: integer('lembrete_ativo', { mode: 'boolean' }).notNull().default(false),
   ...timestamps,
 });
 
@@ -130,3 +139,5 @@ export type Tarefa = typeof tarefas.$inferSelect;
 export type TarefaSemana = typeof tarefasSemana.$inferSelect;
 export type Bloco = typeof blocos.$inferSelect;
 export type Revisao = typeof revisoes.$inferSelect;
+export type Definicoes = typeof definicoes.$inferSelect;
+export type EstadoTarefaSemana = TarefaSemana['estado'];

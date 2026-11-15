@@ -1,102 +1,103 @@
-import { and, count, eq, sum } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
-import { Link, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Redirect, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Icone, type NomeIcone } from '@/components/Icone';
-import { Botao, Seccao, Titulo, estilos } from '@/components/ui';
-import { consultaAreasAtivas, criarArea } from '@/data/areas';
-import { db } from '@/db/client';
-import { tarefas, tarefasSemana } from '@/db/schema';
-import { MAX_AREAS, formatarHoras, podeCriarArea } from '@/domain/regras';
-import { descreverSemana, inicioDaSemana } from '@/domain/semana';
+import { avisarErro } from '@/components/dialogos';
+import { Icone } from '@/components/Icone';
+import { ListaDeAreas } from '@/components/ListaDeAreas';
+import { Botao, BotaoIcone, Seccao, Titulo, estilos } from '@/components/ui';
+import { criarArea, reordenarAreas } from '@/data/areas';
+import { recarregarConsultas, useConsulta } from '@/data/consulta';
+import { primeiroArranque } from '@/data/definicoes';
+import { revisaoPorFazer } from '@/data/revisao';
+import { carregarPlano } from '@/data/tarefas';
+import { MAX_AREAS, podeCriarArea } from '@/domain/regras';
+import { DIAS_DE_REVISAO } from '@/domain/revisao';
+import { descreverSemanaPorExtenso } from '@/domain/semana';
+import { useHoje, usePrepararSemana, useSemanaAtual } from '@/estado/semana';
+import { SUGESTOES_DE_AREAS } from '@/sugestoes';
 import { cores, corDaArea, fontes } from '@/theme';
 
-const SUGESTOES: { nome: string; cor: string; icone: NomeIcone }[] = [
-  { nome: 'Espiritual', cor: 'violeta', icone: 'folha' },
-  { nome: 'Família', cor: 'laranja', icone: 'casa' },
-  { nome: 'Trabalho', cor: 'azul', icone: 'pasta' },
-  { nome: 'Saúde', cor: 'rosa', icone: 'coracao' },
-  { nome: 'Desporto', cor: 'verde', icone: 'bola' },
-  { nome: 'Finanças', cor: 'petroleo', icone: 'livro' },
-];
+const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos'] as const;
+const TABELAS_DA_REVISAO = ['tarefas_semana', 'revisoes', 'definicoes'] as const;
+const TABELAS_DO_ARRANQUE = ['areas', 'definicoes'] as const;
 
 export default function AreasEcra() {
   const router = useRouter();
-  const semana = useMemo(() => inicioDaSemana(new Date()), []);
-  const { data: lista } = useLiveQuery(consultaAreasAtivas());
-  const { data: resumo } = useLiveQuery(
-    db
-      .select({ areaId: tarefas.areaId, n: count(), minutos: sum(tarefas.duracaoMin) })
-      .from(tarefasSemana)
-      .innerJoin(tarefas, eq(tarefasSemana.tarefaId, tarefas.id))
-      .where(and(eq(tarefasSemana.semana, semana)))
-      .groupBy(tarefas.areaId),
-    [semana],
-  );
+  const semana = useSemanaAtual();
+  usePrepararSemana(semana);
+  const plano = useConsulta(() => carregarPlano(semana), TABELAS, semana);
+  const hoje = useHoje();
+  const porRever = useConsulta(() => revisaoPorFazer(hoje), TABELAS_DA_REVISAO, hoje);
   const [aCriar, setACriar] = useState<string | null>(null);
+  const boasVindas = useConsulta(primeiroArranque, TABELAS_DO_ARRANQUE);
 
-  const porArea = new Map(resumo.map((r) => [r.areaId, r]));
+  const lista = plano.areas;
   const podeCriar = podeCriarArea(lista.length);
 
-  async function criarSugestao(s: (typeof SUGESTOES)[number]) {
+  async function criarSugestao(s: (typeof SUGESTOES_DE_AREAS)[number]) {
     setACriar(s.nome);
     try {
       await criarArea({ ...s, missao: '' });
     } catch (e) {
-      Alert.alert('Não foi possível criar a área', (e as Error).message);
+      avisarErro('Não foi possível criar a área', e);
     } finally {
       setACriar(null);
     }
   }
 
+  // App acabada de instalar: começa pelo primeiro arranque.
+  if (boasVindas) return <Redirect href="/boas-vindas" />;
+
   return (
     <SafeAreaView style={estilos.ecra} edges={['top']}>
       <ScrollView contentContainerStyle={estilos.conteudo}>
-        <Titulo subtitulo={`Semana de ${descreverSemana(semana)}`}>As minhas áreas</Titulo>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+          <View style={{ flex: 1 }}>
+            <Titulo subtitulo={`Semana de ${descreverSemanaPorExtenso(semana)}`}>As minhas áreas</Titulo>
+          </View>
+          <BotaoIcone icone="engrenagem" rotulo="Definições" tamanho={22} cor={cores.texto2} onPress={() => router.push('/definicoes')} style={{ marginRight: -10, marginTop: -4 }} />
+        </View>
+
+        {porRever ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.navigate('/revisao')}
+            style={({ pressed }) => ({ marginTop: -4, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16, backgroundColor: cores.tinta, opacity: pressed ? 0.85 : 1 })}
+          >
+            <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: cores.tintaSuave, alignItems: 'center', justifyContent: 'center' }}>
+              <Icone nome="revisao" cor="#FFFFFF" />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: '#FFFFFF' }}>{`Revisão de ${DIAS_DE_REVISAO[porRever.diaRevisao]}`}</Text>
+              <Text style={{ fontFamily: fontes.texto, fontSize: 13, lineHeight: 18, color: cores.textoSobreTinta }}>{`Como correu a semana de ${descreverSemanaPorExtenso(porRever.semana)}?`}</Text>
+            </View>
+            <Icone nome="seta-direita" tamanho={18} cor="#FFFFFF" espessura={2} />
+          </Pressable>
+        ) : null}
 
         <Seccao titulo="Áreas" direita={<Text style={estilos.pequeno}>{`${lista.length} de ${MAX_AREAS} no máximo`}</Text>}>
-          <View style={{ gap: 10 }}>
-            {lista.map((area) => {
-              const cor = corDaArea(area.cor);
-              const r = porArea.get(area.id);
-              const n = r?.n ?? 0;
-              const horas = Number(r?.minutos ?? 0) / 60;
-              return (
-                <Link key={area.id} href={{ pathname: '/area/[id]', params: { id: String(area.id) } }} asChild>
-                  <Pressable
-                    accessibilityRole="link"
-                    style={({ pressed }) => [
-                      estilos.cartao,
-                      { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, opacity: pressed ? 0.7 : 1 },
-                    ]}
-                  >
-                    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: cor.tinta, alignItems: 'center', justifyContent: 'center' }}>
-                      <Icone nome={area.icone as NomeIcone} cor={cor.texto} />
-                    </View>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={{ fontFamily: fontes.textoForte, fontSize: 17, lineHeight: 22, color: cores.tinta }}>{area.nome}</Text>
-                      <Text style={{ fontFamily: fontes.texto, fontSize: 14, lineHeight: 20, color: area.missao ? cores.texto2 : cores.texto3, marginTop: 2 }} numberOfLines={2}>
-                        {area.missao || 'Sem missão — toque para definir'}
-                      </Text>
-                      <Text style={[estilos.pequeno, { marginTop: 6 }]}>
-                        {n === 0 ? 'Sem tarefas esta semana' : `${n} ${n === 1 ? 'tarefa' : 'tarefas'} · ${formatarHoras(horas)} esta semana`}
-                      </Text>
-                    </View>
-                    <Icone nome="seta-direita" tamanho={16} cor={cores.texto3} espessura={2} />
-                  </Pressable>
-                </Link>
-              );
-            })}
-          </View>
+          <ListaDeAreas
+            itens={lista}
+            aoAbrir={(areaId) => router.push({ pathname: '/area/[id]', params: { id: String(areaId) } })}
+            aoReordenar={(ids) => {
+              try {
+                reordenarAreas(ids);
+                recarregarConsultas();
+              } catch (e) {
+                avisarErro('Não foi possível mudar a ordem', e);
+              }
+            }}
+          />
+          {lista.length > 1 ? <Text style={[estilos.pequeno, { fontSize: 12, lineHeight: 16 }]}>Mantenha uma área premida e arraste para mudar a ordem.</Text> : null}
 
           {lista.length === 0 ? (
             <View style={{ gap: 12, marginTop: 4 }}>
               <Text style={estilos.corpo}>Comece por escolher as áreas da sua vida. Pode mudar tudo depois.</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {SUGESTOES.map((s) => {
+                {SUGESTOES_DE_AREAS.map((s) => {
                   const cor = corDaArea(s.cor);
                   return (
                     <Pressable

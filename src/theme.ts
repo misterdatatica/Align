@@ -11,6 +11,22 @@ export const cores = {
   tracejado: '#7D838E',
   ativoTab: '#E9EBEF',
   pista: '#E8EAEE',
+  /** Contorno de botões e pílulas não selecionadas. */
+  contorno: '#D5D8DE',
+  /** Contorno dos campos de texto (contraste 3:1 com o fundo). */
+  contornoCampo: '#8A909A',
+  /** Linhas da grelha do calendário. */
+  grelha: '#E6E8EC',
+  /** Riscas dos blocos "Ocupado". */
+  ocupadoClaro: '#EEF0F3',
+  ocupadoEscuro: '#E3E6EB',
+  ocupadoRiscaLegenda: '#9AA0AA',
+  /** Fundo do ícone e texto secundário sobre o cartão escuro (revisão). */
+  tintaSuave: '#2B2F38',
+  textoSobreTinta: '#C9CCD3',
+  /** Ações que apagam. */
+  perigo: '#B42318',
+  perigoTinta: '#FEE4E2',
 } as const;
 
 export type CorArea = {

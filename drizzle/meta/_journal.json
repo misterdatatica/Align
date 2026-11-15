@@ -15,6 +15,13 @@
       "when": 1794675066706,
       "tag": "0001_metas_vezes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1794678592788,
+      "tag": "0002_tarefas_por_semana",
+      "breakpoints": true
     }
   ]
 }

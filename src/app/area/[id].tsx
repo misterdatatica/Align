@@ -1,41 +1,57 @@
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { CampoAutoGuardado } from '@/components/CampoAutoGuardado';
+import { avisarErro, confirmar } from '@/components/dialogos';
+import { FormularioMeta } from '@/components/FormularioMeta';
 import { Icone, type NomeIcone } from '@/components/Icone';
-import { Botao, Cartao, Seccao, SeletorCor, SeletorIcone, estilos } from '@/components/ui';
-import { apagarMeta, arquivarArea, atualizarArea, consultaArea, consultaMetas, criarMeta } from '@/data/areas';
-import { alvoSemanal, alvoValido, descreverMeta, type PeriodoMeta, type TipoMeta } from '@/domain/regras';
+import { LinhaTarefa } from '@/components/LinhaTarefa';
+import { BarraProgresso, Botao, Cartao, Seccao, SeletorCor, SeletorIcone, estilos } from '@/components/ui';
+import { arquivarArea, atualizarArea, carregarAreaNaSemana, type MetaComProgresso } from '@/data/areas';
+import { useConsulta } from '@/data/consulta';
+import { alvoDaMeta, contarUnidade, formatarHoras, formatarProgressoHoras, medidaSemanal, progresso } from '@/domain/regras';
+import { usePrepararSemana, useSemanaAtual } from '@/estado/semana';
 import { cores, corDaArea, fontes } from '@/theme';
+
+const TABELAS = ['areas', 'metas', 'tarefas', 'tarefas_semana', 'blocos'] as const;
 
 export default function AreaEcra() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const areaId = Number(id);
   const router = useRouter();
-  const { data: linhas } = useLiveQuery(consultaArea(areaId), [areaId]);
-  const { data: listaMetas } = useLiveQuery(consultaMetas(areaId), [areaId]);
-  const area = linhas[0];
+  const semana = useSemanaAtual();
+  usePrepararSemana(semana);
+  const dados = useConsulta(() => carregarAreaNaSemana(areaId, semana), TABELAS, `${areaId}|${semana}`);
+  /** Meta aberta no formulário: o id de uma meta, 'nova', ou null (nenhuma). */
+  const [metaAberta, setMetaAberta] = useState<number | 'nova' | null>(null);
 
-  if (!area) return null;
+  if (!dados) return null;
+  const { area, metas, tarefas } = dados;
   const cor = corDaArea(area.cor);
 
-  function arquivar() {
-    Alert.alert('Arquivar área?', 'A área deixa de aparecer, mas o histórico fica guardado.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Arquivar',
-        style: 'destructive',
-        onPress: async () => {
-          await arquivarArea(areaId);
-          router.back();
-        },
-      },
-    ]);
+  async function arquivar() {
+    const sim = await confirmar({
+      titulo: 'Arquivar área?',
+      mensagem: 'A área deixa de aparecer, mas o histórico fica guardado.',
+      acao: 'Arquivar',
+      destrutiva: true,
+    });
+    if (!sim) return;
+    try {
+      await arquivarArea(areaId);
+      router.back();
+    } catch (e) {
+      avisarErro('Não foi possível arquivar a área', e);
+    }
+  }
+
+  function mudar(campos: Parameters<typeof atualizarArea>[1]) {
+    atualizarArea(areaId, campos).catch((e: unknown) => avisarErro('Não foi possível guardar', e));
   }
 
   return (
-    <ScrollView style={estilos.ecra} contentContainerStyle={[estilos.conteudo, { paddingTop: 4 }]} keyboardShouldPersistTaps="handled">
+    <ScrollView style={estilos.ecra} contentContainerStyle={[estilos.conteudo, { paddingTop: 4 }]} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <Stack.Screen options={{ title: '' }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
         <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: cor.tinta, alignItems: 'center', justifyContent: 'center' }}>
@@ -70,34 +86,49 @@ export default function AreaEcra() {
 
       <Seccao titulo="Metas">
         <Cartao>
-          {listaMetas.map((m, i) => (
-            <View key={m.id} style={{ padding: 16, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: cores.linhaSuave, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: fontes.textoForte, fontSize: 16, lineHeight: 22, color: cores.tinta }}>{m.descricao}</Text>
-                <Text style={[estilos.pequeno, { marginTop: 2 }]}>
-                  {descreverMeta(m)}
-                </Text>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Apagar meta ${m.descricao}`}
-                onPress={() => apagarMeta(m.id, areaId)}
-                style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Text style={[estilos.pequeno, { color: cores.texto2 }]}>Apagar</Text>
-              </Pressable>
+          {metas.map((m, i) => (
+            <View key={m.id} style={i === 0 ? null : { borderTopWidth: 1, borderTopColor: cores.linhaSuave }}>
+              {metaAberta === m.id ? (
+                <FormularioMeta areaId={areaId} meta={m} aoFechar={() => setMetaAberta(null)} />
+              ) : (
+                <LinhaMeta meta={m} cor={cor.forte} aoAbrir={() => setMetaAberta(m.id)} />
+              )}
             </View>
           ))}
-          <NovaMeta areaId={areaId} separador={listaMetas.length > 0} />
+          <View style={metas.length > 0 ? { borderTopWidth: 1, borderTopColor: cores.linhaSuave } : null}>
+            {metaAberta === 'nova' ? (
+              <FormularioMeta areaId={areaId} aoFechar={() => setMetaAberta(null)} />
+            ) : (
+              <View style={{ paddingHorizontal: 8 }}>
+                <Botao titulo="Adicionar meta" icone="mais" variante="texto" onPress={() => setMetaAberta('nova')} />
+              </View>
+            )}
+          </View>
         </Cartao>
       </Seccao>
 
+      <Seccao titulo="Tarefas desta semana">
+        <View style={[estilos.cartao, { overflow: 'hidden' }]}>
+          {tarefas.map((t, i) => (
+            <LinhaTarefa key={t.id} tarefa={t} semana={semana} porExtenso semLinha={i === 0} />
+          ))}
+          <View style={[{ paddingHorizontal: 8 }, tarefas.length > 0 ? { borderTopWidth: 1, borderTopColor: cores.linhaSuave } : null]}>
+            <Botao
+              titulo="Nova tarefa"
+              icone="mais"
+              variante="texto"
+              onPress={() => router.push({ pathname: '/tarefa/nova', params: { areaId: String(areaId), semana } })}
+            />
+          </View>
+        </View>
+      </Seccao>
+
       <Seccao titulo="Cor">
-        <SeletorCor valor={area.cor} onChange={(c) => atualizarArea(areaId, { cor: c })} />
+        <SeletorCor valor={area.cor} onChange={(c) => mudar({ cor: c })} />
       </Seccao>
 
       <Seccao titulo="Ícone">
-        <SeletorIcone valor={area.icone} cor={area.cor} onChange={(i) => atualizarArea(areaId, { icone: i })} />
+        <SeletorIcone valor={area.icone} cor={area.cor} onChange={(i) => mudar({ icone: i })} />
       </Seccao>
 
       <Botao titulo="Arquivar área" variante="texto" onPress={arquivar} />
@@ -105,165 +136,44 @@ export default function AreaEcra() {
   );
 }
 
-type CampoAutoGuardadoProps = Omit<TextInputProps, 'value' | 'onChangeText' | 'onBlur'> & {
-  inicial: string;
-  guardar: (texto: string) => Promise<void>;
-  /** Campo que não pode ficar vazio (ex.: nome): o texto vazio não é guardado e é reposto ao sair. */
-  obrigatorio?: boolean;
-  erro: string;
-};
-
 /**
- * Guarda enquanto o utilizador escreve (com uma pequena pausa), ao sair do campo
- * e ao sair do ecrã — não depende de onEndEditing, que nem sempre dispara (web, voltar atrás).
+ * Uma meta com o progresso desta semana. As metas de tempo comparam as horas planeadas com o alvo;
+ * as de vezes contam as tarefas já feitas. Só contam as tarefas ligadas à meta.
  */
-function CampoAutoGuardado({ inicial, guardar: guardarTexto, obrigatorio, erro, ...resto }: CampoAutoGuardadoProps) {
-  const [texto, setTexto] = useState(inicial);
-  const guardado = useRef(inicial.trim());
-  const pendente = useRef<string | null>(null);
-  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const funcaoGuardar = useRef(guardarTexto);
-  useEffect(() => {
-    funcaoGuardar.current = guardarTexto;
-  });
+function LinhaMeta({ meta, cor, aoAbrir }: { meta: MetaComProgresso; cor: string; aoAbrir: () => void }) {
+  const p = meta.progresso;
+  const deTempo = meta.tipo === 'horas';
+  const legenda = deTempo ? 'Planeado para esta semana' : 'Feito esta semana';
+  const valor = deTempo
+    ? formatarProgressoHoras(p.minutosPlaneados / 60, meta.alvoSemanal)
+    : `${p.vezesFeitas} de ${contarUnidade(meta.alvoSemanal, meta.unidade)}`;
+  const proporcao = deTempo ? progresso(p.minutosPlaneados / 60, meta.alvoSemanal) : progresso(p.vezesFeitas, meta.alvoSemanal);
 
-  const guardar = useCallback(() => {
-    if (temporizador.current) clearTimeout(temporizador.current);
-    temporizador.current = null;
-    const valor = pendente.current;
-    pendente.current = null;
-    if (valor === null || valor === guardado.current) return;
-    if (obrigatorio && !valor) return;
-    guardado.current = valor;
-    funcaoGuardar.current(valor).catch((e: Error) => Alert.alert(erro, e.message));
-  }, [obrigatorio, erro]);
+  let nota: string | null = null;
+  if (p.vezesPlaneadas === 0) nota = 'Ainda não há tarefas desta semana ligadas a esta meta.';
+  else if (deTempo && p.minutosCalendario < p.minutosPlaneados) nota = `Falta pôr ${formatarHoras((p.minutosPlaneados - p.minutosCalendario) / 60)} no calendário.`;
 
-  // Ao sair do ecrã, guarda o que ainda estiver por guardar.
-  useEffect(() => guardar, [guardar]);
-
-  function mudar(novo: string) {
-    setTexto(novo);
-    pendente.current = novo.trim();
-    if (temporizador.current) clearTimeout(temporizador.current);
-    temporizador.current = setTimeout(guardar, 600);
-  }
-
-  function sair() {
-    guardar();
-    // Um campo obrigatório deixado vazio volta ao último valor guardado.
-    if (obrigatorio && !texto.trim()) setTexto(guardado.current);
-  }
-
-  return <TextInput value={texto} onChangeText={mudar} onBlur={sair} placeholderTextColor={cores.texto3} {...resto} />;
-}
-
-/**
- * Formulário curto. Tempo: "Meditar" + 2 h por dia → 14 h por semana.
- * Vezes: "A Course in Miracles" + 1 lição por dia → 7 por semana (conta por conclusão, sem tempo no calendário).
- */
-function NovaMeta({ areaId, separador }: { areaId: number; separador: boolean }) {
-  const [aberto, setAberto] = useState(false);
-  const [tipo, setTipo] = useState<TipoMeta>('horas');
-  const [descricao, setDescricao] = useState('');
-  const [valor, setValor] = useState('');
-  const [unidade, setUnidade] = useState('');
-  const [periodo, setPeriodo] = useState<PeriodoMeta>('dia');
-
-  // Nas metas de vezes o campo vazio vale 1 (o valor sugerido); só as de tempo exigem um número.
-  const numero = tipo === 'vezes' && valor.trim() === '' ? 1 : Number(valor.replace(',', '.'));
-
-  function escolherTipo(novo: TipoMeta) {
-    setTipo(novo);
-    // Um valor de horas como "1,5" não serve para vezes: limpa-o em vez de bloquear o botão.
-    if (novo === 'vezes' && !Number.isInteger(Number(valor.replace(',', '.')))) setValor('');
-  }
-  const valido = descricao.trim().length > 0 && alvoValido(tipo, numero);
-  const previsao = valido ? descreverMeta({ tipo, periodo, unidade, alvoSemanal: alvoSemanal(numero, periodo) }) : null;
-
-  async function guardar() {
-    try {
-      await criarMeta({ areaId, descricao, tipo, periodo, unidade, alvoSemanal: alvoSemanal(numero, periodo) });
-      setDescricao('');
-      setValor('');
-      setUnidade('');
-      setAberto(false);
-    } catch (e) {
-      Alert.alert('Não foi possível guardar a meta', (e as Error).message);
-    }
-  }
-
-  const borda = separador ? { borderTopWidth: 1, borderTopColor: cores.linhaSuave } : null;
-
-  if (!aberto) {
-    return (
-      <View style={[{ paddingHorizontal: 8 }, borda]}>
-        <Botao titulo="Adicionar meta" icone="mais" variante="texto" onPress={() => setAberto(true)} />
-      </View>
-    );
-  }
-
-  return (
-    <View style={[{ padding: 16, gap: 10 }, borda]}>
-      <View style={{ flexDirection: 'row', gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel="Medir por">
-        <Opcao titulo="Tempo" ativa={tipo === 'horas'} onPress={() => escolherTipo('horas')} />
-        <Opcao titulo="Vezes" ativa={tipo === 'vezes'} onPress={() => escolherTipo('vezes')} />
-      </View>
-      <TextInput
-        value={descricao}
-        onChangeText={setDescricao}
-        placeholder={tipo === 'horas' ? 'O quê? Ex.: Meditar' : 'O quê? Ex.: A Course in Miracles'}
-        placeholderTextColor={cores.texto3}
-        style={estilos.campo}
-        accessibilityLabel="Descrição da meta"
-        autoFocus
-      />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-        <TextInput
-          value={valor}
-          onChangeText={setValor}
-          placeholder={tipo === 'horas' ? '2' : '1'}
-          placeholderTextColor={cores.texto3}
-          keyboardType={tipo === 'horas' ? 'decimal-pad' : 'number-pad'}
-          style={[estilos.campo, { width: 72 }]}
-          accessibilityLabel={tipo === 'horas' ? 'Horas' : 'Quantas vezes'}
-        />
-        {tipo === 'horas' ? (
-          <Text style={estilos.corpo}>h</Text>
-        ) : (
-          <TextInput
-            value={unidade}
-            onChangeText={setUnidade}
-            placeholder="lição (opcional)"
-            placeholderTextColor={cores.texto3}
-            autoCapitalize="none"
-            maxLength={24}
-            style={[estilos.campo, { flexGrow: 1, flexBasis: 140 }]}
-            accessibilityLabel="Unidade, no singular (opcional)"
-          />
-        )}
-        <Text style={estilos.corpo}>por</Text>
-        {(['dia', 'semana'] as const).map((p) => (
-          <Opcao key={p} titulo={p} ativa={periodo === p} onPress={() => setPeriodo(p)} />
-        ))}
-      </View>
-      {previsao ? <Text style={estilos.pequeno}>{previsao}</Text> : null}
-      {tipo === 'vezes' ? <Text style={estilos.pequeno}>Conta cada vez que marca a tarefa como feita. Não ocupa tempo no calendário.</Text> : null}
-      {tipo === 'vezes' && valor.length > 0 && !Number.isInteger(numero) ? <Text style={estilos.pequeno}>Use um número inteiro.</Text> : null}
-      <Botao titulo="Guardar meta" onPress={guardar} disabled={!valido} />
-    </View>
-  );
-}
-
-/** Pílula de escolha única (tipo de meta, período). */
-function Opcao({ titulo, ativa, onPress }: { titulo: string; ativa: boolean; onPress: () => void }) {
   return (
     <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected: ativa }}
-      onPress={onPress}
-      style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 999, justifyContent: 'center', borderWidth: 1, borderColor: ativa ? cores.tinta : cores.linha, backgroundColor: ativa ? cores.tinta : cores.superficie }}
+      accessibilityRole="button"
+      accessibilityLabel={`${meta.descricao}, ${alvoDaMeta(meta)}. ${legenda}: ${valor}.`}
+      accessibilityHint="Abre a meta para a alterar"
+      onPress={aoAbrir}
+      style={({ pressed }) => ({ padding: 16, opacity: pressed ? 0.6 : 1 })}
     >
-      <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, color: ativa ? '#FFFFFF' : cores.tinta }}>{titulo}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontFamily: fontes.textoForte, fontSize: 16, lineHeight: 22, color: cores.tinta }}>{`${meta.descricao} ${alvoDaMeta(meta)}`}</Text>
+          <Text style={[estilos.pequeno, { marginTop: 2 }]}>{`Medida à semana: ${medidaSemanal(meta)}`}</Text>
+        </View>
+        <Icone nome="lapis" tamanho={16} cor={cores.texto3} />
+      </View>
+      <View style={{ marginTop: 12, marginBottom: 6, flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
+        <Text style={estilos.pequeno}>{legenda}</Text>
+        <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, lineHeight: 18, color: cores.tinta, fontVariant: ['tabular-nums'] }}>{valor}</Text>
+      </View>
+      <BarraProgresso valor={proporcao} cor={cor} pista={cores.linhaSuave} />
+      {nota ? <Text style={[estilos.pequeno, { marginTop: 8 }]}>{nota}</Text> : null}
     </Pressable>
   );
 }

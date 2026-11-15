@@ -8,6 +8,7 @@ e alocá-las num calendário semanal. Segue a especificação v1 e o design dos 
 ```bash
 npm install
 npx expo start          # abrir no Expo Go (iOS/Android) ou num development build
+npx expo start --web    # ver no navegador (útil para desenvolver; a v1 é para telemóvel)
 ```
 
 ## Comandos
@@ -15,7 +16,8 @@ npx expo start          # abrir no Expo Go (iOS/Android) ou num development buil
 | Comando | O que faz |
 | --- | --- |
 | `npm run typecheck` | TypeScript sem emitir ficheiros |
-| `npm test` | Testes das regras de negócio (`node --test`, sem dependências) |
+| `npm test` | Testes das regras e da camada de dados, contra SQLite real em memória (`node --test`, sem dependências) |
+| `npm run e2e` | Cenários de ponta a ponta na versão web, num Chrome sem janela (ver abaixo) |
 | `npm run lint` | ESLint (configuração da Expo) |
 | `npm run db:generate` | Gera uma nova migração Drizzle depois de mudar `src/db/schema.ts` |
 
@@ -23,29 +25,74 @@ npx expo start          # abrir no Expo Go (iOS/Android) ou num development buil
 
 ```
 src/
-  app/                 rotas Expo Router (cada ficheiro é um ecrã)
-    (tabs)/            Áreas · Semana · Calendário · Revisão
-    area/[id].tsx      detalhe da área (missão, metas, cor, arquivar)
-    area/nova.tsx      criar área (modal)
-  db/schema.ts         as 7 entidades da especificação (Drizzle + SQLite)
-  db/client.ts         abre align.db com change listener (useLiveQuery)
-  data/                leituras e escritas usadas pelos ecrãs
-  domain/              regras puras e testadas: semana, metas, recorrência
-  components/          ícones (react-native-svg) e UI partilhada
-  theme.ts             cores e fontes do design
-drizzle/               migrações geradas (incluídas no bundle como .sql)
+  app/                   rotas Expo Router (cada ficheiro é um ecrã)
+    (tabs)/              Áreas · Semana · Calendário · Revisão
+    area/[id].tsx        detalhe da área: missão, metas com progresso, tarefas da semana, cor, ícone
+    area/nova.tsx        criar área
+    tarefa/nova.tsx      criar tarefa          tarefa/[id].tsx   alterar ou apagar tarefa
+    definicoes.tsx       revisão (dia, hora, lembrete), horas do calendário, cópia de segurança
+    boas-vindas.tsx      primeiro arranque, em três passos
+  db/schema.ts           as 7 entidades da especificação (Drizzle + SQLite)
+  db/client.ts           ligação à base de dados      db/preparar.ts   abre-a e aplica as migrações
+  data/                  leituras e escritas usadas pelos ecrãs (tarefas, calendário, revisão, cópia…)
+    consulta.ts          useConsulta: lê e volta a ler quando as tabelas mudam
+  domain/                regras puras e testadas: semana, metas, recorrência, tarefas, calendário, revisão
+  components/            ícones, UI partilhada, formulários
+    calendario/          grelha, blocos, bandeja "Por alocar", folha de detalhes e o arrasto (arrasto.ts)
+  estado/semana.ts       o dia de hoje e a semana escolhida nos separadores
+  lembrete.ts            lembrete local da revisão (expo-notifications); lembrete.web.ts não faz nada
+  copiaFicheiro.ts       guardar e abrir o ficheiro da cópia; copiaFicheiro.web.ts para o navegador
+  theme.ts               cores e fontes do design
+drizzle/                 migrações geradas (incluídas no pacote como .sql)
+scripts/testes/          apoio aos testes em Node (substitui o expo-sqlite por node:sqlite)
+scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
 ```
 
-## Estado (plano de entrega)
+## Como os dados funcionam
+
+- **Tarefa** é o modelo (nome, duração, repetição); **tarefa da semana** é cada instância: "Meditar,
+  todos os dias" são 7 linhas em cada semana. Ao abrir uma semana, a app cria as instâncias das
+  tarefas recorrentes que faltam (`garantirSemana`).
+- Alterar ou apagar uma tarefa vale **a partir da semana em que se está**; as semanas anteriores
+  ficam como estavam (a tarefa antiga é fechada com `semanaFim` e nasce uma nova).
+- Uma instância tem no máximo um **bloco** no calendário. Sem bloco está "por alocar"; com bloco,
+  "alocada"; bloco marcado como feito, "feita". Um bloco sem tarefa é um bloco "Ocupado".
+- Tarefas **sem duração** não vão ao calendário: contam-se marcando-as como feitas (metas de vezes).
+- As escritas são transações síncronas do SQLite, por isso nunca ficam a meio.
+
+## Estado (plano de entrega da especificação)
 
 - [x] **Fase 1 — Base:** projeto, navegação, modelo de dados, migrações.
-- [x] Áreas: lista, sugestões iniciais, criar (limite de 7), detalhe, missão, metas (2 h/dia → 14 h/semana), cor, arquivar.
-- [ ] **Fase 2 — Planear a semana:** tarefas, recorrência, instâncias por semana.
-- [ ] **Fase 3 — Calendário:** grelha, arrastar e largar (gesture-handler + reanimated já instalados).
-- [ ] **Fase 4 — Revisão:** horas feitas, transitar tarefas, reflexão, lembrete local.
-- [ ] **Fase 5 — Testes e lojas:** EAS Build / Submit.
+- [x] **Fase 2 — Áreas e metas:** áreas (limite de 7, reordenar a arrastar, arquivar e repor), missão,
+      metas com progresso, tarefas únicas e recorrentes, ecrã "Planear a semana".
+- [x] **Fase 3 — Calendário:** grelha de 7 dias em meias horas, arrastar da bandeja, mover e esticar
+      blocos, alocar só com toques, blocos "Ocupado", aviso de sobreposição.
+- [x] **Fase 4 — Revisão:** horas feitas contra planeadas, "Feito?" para blocos por marcar, passar
+      tarefas para a semana seguinte, reflexão, lembrete local, exportar e importar, primeiro arranque.
+- [ ] **Fase 5 — Testes e lojas:** testar num iPhone e num Android reais, corrigir, EAS Build / Submit.
+
+O que falta verificar em telemóveis reais (não se consegue no navegador): o arrasto com o dedo
+e a sua fluidez, o lembrete (notificação à hora escolhida), exportar pela folha de partilha e
+importar pelo seletor de ficheiros, e o uso em modo de avião.
+
+## Testes de ponta a ponta
+
+`npm run e2e` percorre a app como um utilizador, na versão web: primeiro arranque, áreas e metas,
+planear a semana, calendário (arrastar, mover, esticar), revisão e cópia de segurança. Precisa do
+Chrome instalado e da app a ser servida noutro terminal (`npx expo start --web`). Cada cenário usa
+um perfil de navegador vazio, por isso não toca nos dados de ninguém.
+
+```bash
+npm run e2e                 # todos
+npm run e2e -- calendario   # só um: semana, calendario, revisao, arranque, ordem
+```
 
 ## Notas
 
 - Expo SDK 58, Expo Router com rotas em `src/app`. Instalar pacotes sempre com `npx expo install`.
 - Os dados ficam só no telemóvel (SQLite). Contas e sincronização são v2.
+- **Versão web:** serve para desenvolver e testar. O SQLite da Expo no navegador desiste de uma
+  chamada síncrona ao fim de cerca de 30 ms; `src/db/client.ts` alarga essa espera e
+  `src/db/preparar.ts` aplica as migrações pela API assíncrona, para não haver falhas ao arrancar
+  nem ao guardar. No telemóvel nada disto se aplica.
+- Em modo de desenvolvimento não use `CI=1` com `expo start`: desliga a deteção de alterações.

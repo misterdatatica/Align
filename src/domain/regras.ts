@@ -21,6 +21,13 @@ export function formatarHoras(horas: number): string {
   return `${String(arredondado).replace('.', ',')} h`;
 }
 
+/** "14 de 14 h", "7,5 de 10 h", "30 min de 2 h" — o que já está contra o alvo. */
+export function formatarProgressoHoras(horas: number, alvo: number): string {
+  const feito = formatarHoras(horas);
+  const total = formatarHoras(alvo);
+  return feito.endsWith(' h') && total.endsWith(' h') ? `${feito.slice(0, -2)} de ${total}` : `${feito} de ${total}`;
+}
+
 export function minutosParaHoras(min: number): number {
   return min / 60;
 }
@@ -76,4 +83,17 @@ export function descreverMeta(meta: { tipo: TipoMeta; alvoSemanal: number; perio
 /** Horas aceitam decimais (1,5 h); vezes têm de ser um número inteiro. */
 export function alvoValido(tipo: TipoMeta, valor: number): boolean {
   return Number.isFinite(valor) && valor > 0 && (tipo === 'horas' || Number.isInteger(valor));
+}
+
+type TextoDeMeta = { tipo: TipoMeta; alvoSemanal: number; periodo: PeriodoMeta; unidade: string | null };
+
+/** "2 h por dia", "3 treinos por semana" — a meta tal como o utilizador a definiu. */
+export function alvoDaMeta(meta: TextoDeMeta): string {
+  const valor = meta.periodo === 'dia' ? meta.alvoSemanal / 7 : meta.alvoSemanal;
+  return `${meta.tipo === 'horas' ? formatarHoras(valor) : contarUnidade(valor, meta.unidade)} por ${meta.periodo}`;
+}
+
+/** "14 h", "7 lições" — a mesma meta medida à semana. */
+export function medidaSemanal(meta: TextoDeMeta): string {
+  return meta.tipo === 'horas' ? formatarHoras(meta.alvoSemanal) : contarUnidade(meta.alvoSemanal, meta.unidade);
 }
