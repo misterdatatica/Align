@@ -3,8 +3,9 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 
 import { avisarErro, confirmar } from '@/components/dialogos';
 import { Botao, Opcao, Passo, Seccao, estilos } from '@/components/ui';
-import { consultaAreasAtivas, consultaMetas } from '@/data/areas';
+import { consultaAreasAtivas } from '@/data/areas';
 import { useConsulta } from '@/data/consulta';
+import { metasParaTarefas } from '@/data/metas';
 import { apagarTarefa, criarTarefa, editarTarefa, type DadosTarefa } from '@/data/tarefas';
 import type { Tarefa } from '@/db/schema';
 import { instanciasPorSemana, type Recorrencia } from '@/domain/recorrencia';
@@ -35,11 +36,13 @@ type Props = {
   tarefa?: Tarefa;
   /** Área já escolhida ao abrir (botão "+" de uma área). */
   areaInicial?: number;
+  /** Meta já escolhida ao abrir ("Nova tarefa para esta meta"). */
+  metaInicial?: number;
   aoFechar: () => void;
 };
 
-/** Criar ou alterar uma tarefa: nome, área, duração, repetição e meta associada. */
-export function FormularioTarefa({ semana, tarefa, areaInicial, aoFechar }: Props) {
+/** Criar ou alterar uma tarefa: nome, área, duração, repetição e a meta para a qual contribui. */
+export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoFechar }: Props) {
   const listaAreas = useConsulta(() => consultaAreasAtivas().all(), ['areas']);
   const [nome, setNome] = useState(tarefa?.nome ?? '');
   const [nomeCurto, setNomeCurto] = useState(tarefa?.nomeCurto ?? '');
@@ -49,12 +52,12 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, aoFechar }: Prop
   const [repeticao, setRepeticao] = useState<TipoRepeticao>(tipoDe(tarefa?.recorrencia));
   const [vezes, setVezes] = useState(tarefa?.recorrencia?.tipo === 'vezes_por_semana' ? tarefa.recorrencia.vezes : 3);
   const [dias, setDias] = useState<number[]>(tarefa?.recorrencia?.tipo === 'dias' ? tarefa.recorrencia.dias : []);
-  const [metaId, setMetaId] = useState<number | null>(tarefa?.metaId ?? null);
+  const [metaId, setMetaId] = useState<number | null>(tarefa?.metaId ?? metaInicial ?? null);
   const [aGuardar, setAGuardar] = useState(false);
 
   // Com uma só área não há nada para escolher.
   const areaEscolhida = areaId ?? (listaAreas.length === 1 ? listaAreas[0].id : null);
-  const listaMetas = useConsulta(() => (areaEscolhida === null ? [] : consultaMetas(areaEscolhida).all()), ['metas'], areaEscolhida ?? 0);
+  const listaMetas = useConsulta(() => (areaEscolhida === null ? [] : metasParaTarefas(areaEscolhida)), ['metas'], areaEscolhida ?? 0);
   const metaEscolhida = listaMetas.some((m) => m.id === metaId) ? metaId : null;
 
   const recorrencia: Recorrencia | null =
@@ -189,10 +192,10 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, aoFechar }: Prop
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel="Meta associada">
             <Opcao titulo="Nenhuma" ativa={metaEscolhida === null} onPress={() => setMetaId(null)} />
             {listaMetas.map((m) => (
-              <Opcao key={m.id} titulo={m.descricao} ativa={metaEscolhida === m.id} onPress={() => setMetaId(m.id)} />
+              <Opcao key={m.id} titulo={m.estado === 'pausada' ? `${m.descricao} (pausada)` : m.descricao} ativa={metaEscolhida === m.id} onPress={() => setMetaId(m.id)} style={{ maxWidth: '100%', paddingVertical: 8 }} />
             ))}
           </View>
-          <Text style={estilos.pequeno}>O tempo desta tarefa conta para a meta escolhida.</Text>
+          <Text style={estilos.pequeno}>Ligue a tarefa à meta que ela ajuda a alcançar. O tempo conta-se na tarefa, não na meta.</Text>
         </Seccao>
       ) : null}
 

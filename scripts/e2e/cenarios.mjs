@@ -4,6 +4,7 @@
 // Uso:  npx expo start --web        (noutro terminal; a app tem de estar a ser servida)
 //       npm run e2e                  (todos os cenários)
 //       npm run e2e -- calendario    (só um: semana, calendario, revisao, arranque, ordem)
+//       No Linux, em contentores: CHROME_PATH=/caminho/do/chrome CHROME_ARGS=--no-sandbox npm run e2e
 //
 // Cada cenário começa com a app "acabada de instalar" (perfil de navegador vazio), por isso não toca
 // nos dados de ninguém. As capturas dos passos que falham ficam na pasta temporária do sistema.
@@ -46,6 +47,30 @@ async function criarTarefa(b, area, nome, { mais = 0, menos = 0, semDuracao = fa
   await b.verTexto(nome);
 }
 
+/** No detalhe de uma área: cria uma meta com prazo daqui a 3 meses. Com `de` e `para` é de número; sem eles, um marco. */
+async function criarMeta(b, descricao, { de, para, unidade } = {}) {
+  await b.clicar('Adicionar meta');
+  await b.verTexto('ONDE QUER CHEGAR?');
+  await b.clicar('Descrição da meta');
+  await b.escrever(descricao);
+  if (de === undefined) {
+    await b.clicar('Marco');
+  } else {
+    await b.clicar('Valor de partida');
+    await b.escrever(String(de));
+    await b.clicar('Valor alvo');
+    await b.escrever(String(para));
+    if (unidade) {
+      await b.clicar('Unidade (opcional)');
+      await b.escrever(unidade);
+    }
+  }
+  await b.clicar('Prazo daqui a 3 meses');
+  await b.clicar('Criar meta');
+  await b.verTexto('TAREFAS DESTA SEMANA');
+  await b.verTexto(descricao);
+}
+
 /** Centro de uma célula da grelha do calendário: dia 0–6 (segunda–domingo) e hora (ex.: 9.5). */
 async function celula(b, dia, horas) {
   const coluna = await b.procurar(DIAS[dia]);
@@ -67,7 +92,7 @@ const haBlocos = (b, nome, quantos) =>
   );
 
 const cenarios = {
-  /** Fase 2: áreas, metas, tarefas e o plano da semana (critérios 1 a 3). */
+  /** Áreas, metas (resultados com prazo), tarefas, o plano da semana e a proposta da semana seguinte. */
   async semana(b, passo) {
     await passo('primeiro arranque e criar uma área pelo formulário', async () => {
       await comecar(b, ['Espiritual']);
@@ -84,20 +109,19 @@ const cenarios = {
       await b.verTexto('2 de 7 no máximo');
     });
 
-    await passo('a meta "Meditar 2 h por dia" mede-se à semana: 14 h', async () => {
+    await passo('uma meta é um resultado com prazo: número com alvo, ou marco', async () => {
       await b.clicar('Espiritual');
-      await b.clicar('Adicionar meta');
-      await b.clicar('Descrição da meta');
-      await b.escrever('Meditar');
-      await b.clicar('Horas');
-      await b.escrever('2');
-      await b.verTexto('2 h por dia · 14 h por semana');
-      await b.clicar('Guardar meta');
-      await b.verTexto('Medida à semana: 14 h');
-      await b.verTexto('0 de 14 h');
+      await b.verTexto('0 de 3 ativas');
+      await criarMeta(b, 'Conseguir meditar 1 h seguida', { de: 20, para: 60, unidade: 'min seguidos' });
+      await b.verTexto('20 de 60 min seguidos');
+      await b.verTexto('faltam ');
+      await b.verTexto('Ainda não há tarefas ligadas a esta meta.');
+      await criarMeta(b, 'Fazer um retiro de silêncio');
+      await b.verTexto('Por alcançar');
+      await b.verTexto('2 de 3 ativas');
     });
 
-    await passo('a tarefa "Meditar 2 h, todos os dias" cria 7 instâncias por alocar', async () => {
+    await passo('a tarefa "Meditar 2 h, todos os dias" fica ligada à meta e cria 7 instâncias por alocar', async () => {
       await b.clicar('Nova tarefa');
       await b.verTexto('REPETIÇÃO');
       await b.clicar('Nome da tarefa');
@@ -106,11 +130,36 @@ const cenarios = {
       await b.clicar('Mais duração');
       await b.clicar('Todos os dias');
       await b.verTexto('Nesta semana: 7 × 2 h = 14 h.');
-      await b.clicar('Meditar'); // a meta, na secção "Meta (opcional)"
+      await b.clicar('Conseguir meditar 1 h seguida'); // a meta, na secção "Meta (opcional)"
       await b.clicar('Criar tarefa');
       await b.verTexto('TAREFAS DESTA SEMANA');
-      await b.verTexto('14 de 14 h');
+      await b.verTexto('2 h · todos os dias · 0/7 esta semana');
       await b.verTexto('0/7 no calendário');
+    });
+
+    await passo('a meta regista o valor, guarda o histórico e pausa sem o perder', async () => {
+      await b.clicar('Conseguir meditar 1 h seguida', { exato: false });
+      await b.verTexto('PROGRESSO');
+      await b.verTexto('TAREFAS LIGADAS');
+      await b.clicar('Valor atual de Conseguir meditar 1 h seguida');
+      await b.avaliar('document.activeElement.select()');
+      await b.escrever('30');
+      await b.clicar('Registar o valor de Conseguir meditar 1 h seguida');
+      await b.verTexto('30 de 60 min seguidos');
+      await b.verTexto('25% do caminho');
+      await b.verTexto('HISTÓRICO');
+      await b.verTexto('Registado hoje: 30.');
+      await b.clicar('Pausar meta');
+      await b.verTexto('Em pausa: o histórico e as tarefas ligadas ficam guardados.');
+      await b.verTexto('HISTÓRICO');
+      await b.avaliar('history.back()');
+      await b.verTexto('1 de 3 ativas');
+      await b.verTexto('Pausada');
+      await b.clicar('Conseguir meditar 1 h seguida', { exato: false });
+      await b.clicar('Retomar meta');
+      await b.verTexto('Pausar meta');
+      await b.avaliar('history.back()');
+      await b.verTexto('2 de 3 ativas');
       await b.avaliar('history.back()');
       await b.verTexto('1 tarefa · 14 h esta semana');
     });
@@ -139,15 +188,35 @@ const cenarios = {
       await b.verTexto('6,5 h');
     });
 
-    await passo('a semana seguinte recebe só as tarefas recorrentes', async () => {
+    await passo('a semana seguinte começa como uma proposta, que só fica definitiva ao aceitar', async () => {
       await b.clicar('Semana seguinte');
       await b.verTexto(descreverSemanaComAno(SEGUINTE));
+      await b.verTexto('Como quer começar esta semana?');
+      await b.verTexto('Igual à semana passada');
+      await b.naoVerTexto('Igual à semana modelo');
+      await b.naoVerTexto('Meditar');
+      await b.clicar('Criar proposta');
+      await b.verTexto('Proposta por aceitar');
       await b.verTexto('0/3');
       await b.verTexto('0/7');
-      await b.naoVerTexto('Ligar aos avós');
+      await b.verTexto('30 min · vem da semana passada'); // "Ligar aos avós" ficou por fazer
+      await b.verTexto('2 áreas sem tempo no calendário');
+      await b.clicar('Aceitar semana');
+      await b.naoVerTexto('Proposta por aceitar');
       await b.clicar('Voltar a esta semana');
       await b.verTexto(descreverSemanaComAno(ESTA));
-      await b.verTexto('Ligar aos avós');
+      await b.naoVerTexto('Proposta por aceitar');
+    });
+
+    await passo('qualquer semana se marca e desmarca como semana modelo', async () => {
+      await b.clicar('Semana modelo');
+      await b.verTexto('Esta é a semana modelo');
+      await b.clicar('Semana seguinte');
+      await b.verTexto(`Marcar como semana modelo (substitui a de ${descreverSemanaPorExtenso(ESTA)})`);
+      await b.clicar('Voltar a esta semana');
+      await b.clicar('Semana modelo');
+      await b.verTexto('Marcar como semana modelo');
+      await b.naoVerTexto('Esta é a semana modelo');
     });
 
     await passo('apagar pelo formulário e a deslizar, com confirmação', async () => {
@@ -248,6 +317,61 @@ const cenarios = {
       await b.verTexto('7/7');
       await b.verTexto('14 h');
     });
+
+    await passo('mexer num bloco de uma tarefa recorrente pergunta "só esta semana" ou "esta e as seguintes"', async () => {
+      await b.clicar('Calendário');
+      // Pela folha: terça passa das 6:30 para as 7:00, só esta semana.
+      let p = await celula(b, 1, 7.6);
+      await b.clicarEm(p.x, p.y);
+      await b.clicar('Mais hora de início');
+      await b.clicar('Guardar o novo horário');
+      await b.verTexto('Mudar “Meditar” para terça, 07:00–09:00?');
+      await b.clicar('Só esta semana');
+      await haBloco(b, 'Meditar, terça, 07:00–09:00');
+      await b.verTexto('Mudado só nesta semana');
+      await b.clicar('Fechar', { indice: 1 });
+      // A arrastar: quarta passa para o meio-dia, nesta semana e nas seguintes. Até responder, o bloco não sai do sítio.
+      await b.arrastar(await celula(b, 2, 7), await celula(b, 2, 12.5), { segurar: 500 });
+      await b.verTexto('Mudar “Meditar” para qua, 12:00–14:00?');
+      await haBloco(b, 'Meditar, quarta, 06:30–08:30');
+      await b.clicar('Esta e as seguintes');
+      await haBloco(b, 'Meditar, quarta, 12:00–14:00');
+    });
+
+    await passo('a proposta da semana seguinte copia os blocos recorrentes e os "Ocupado", e destaca o que precisa de atenção', async () => {
+      await b.clicar('Semana');
+      await b.clicar('Semana seguinte');
+      await b.verTexto('Como quer começar esta semana?');
+      await b.clicar('Criar proposta');
+      await b.verTexto('Proposta por aceitar');
+      await b.verTexto('1 sobreposição');
+      await b.verTexto('Seg 08:00–08:30 · Meditar e Reunião');
+      await b.verTexto('1 área sem tempo no calendário');
+      await b.verTexto('2 h · vem da semana passada'); // "Curso online" voltou a "Por alocar"
+      await b.clicar('Rever no calendário');
+      await b.verTexto('Proposta por aceitar · 1 sobreposição');
+      await haBlocos(b, 'Meditar', 7);
+      await haBloco(b, 'Meditar, segunda, 06:30–08:30, sobreposto a outro bloco');
+      await haBloco(b, 'Meditar, terça, 06:30–08:30'); // a exceção de terça não passou
+      await haBloco(b, 'Meditar, quarta, 12:00–14:00'); // o hábito novo de quarta passou
+      await haBloco(b, 'Reunião, segunda, 08:00–09:00');
+      await b.verTexto('vem da semana passada');
+      if (await b.avaliar(`${contar('Meditar, ')} > 0 && [...document.querySelectorAll('[aria-label*=", feito"]')].filter((e) => !e.closest('[inert]')).length`)) throw new Error('o estado "feito" foi copiado');
+    });
+
+    await passo('rever a proposta: apagar o que não se repete e aceitar', async () => {
+      const p = await celula(b, 0, 8.75);
+      await b.clicarEm(p.x + 12, p.y);
+      await b.clicar('Apagar bloco');
+      await naoHaBloco(b, 'Reunião, segunda');
+      await b.verTexto('Proposta por aceitar');
+      await b.naoVerTexto('sobreposição');
+      await b.clicar('Aceitar semana');
+      await b.naoVerTexto('Proposta por aceitar');
+      await b.clicar('Semana');
+      await b.naoVerTexto('Proposta por aceitar');
+      await b.verTexto('7/7');
+    });
   },
 
   /** Fase 4: revisão semanal (critérios 7 e 8). */
@@ -259,7 +383,12 @@ const cenarios = {
       await criarTarefa(b, 'Espiritual', 'Meditar', { mais: 2, repeticao: 'Todos os dias' });
       await criarTarefa(b, 'Trabalho', 'Curso online', { mais: 2 });
       await criarTarefa(b, 'Trabalho', 'Rever orçamento');
-      await b.clicar('Alocar no calendário');
+      await b.clicar('Áreas');
+      await b.clicar('Espiritual');
+      await criarMeta(b, 'Conseguir meditar 1 h seguida', { de: 20, para: 60, unidade: 'min seguidos' });
+      await criarMeta(b, 'Fazer um retiro de silêncio');
+      await b.avaliar('history.back()');
+      await b.clicar('Calendário');
       await b.clicar('Meditar · 2 h');
       let p = await celula(b, 0, 6.6);
       await b.clicarEm(p.x, p.y);
@@ -309,15 +438,30 @@ const cenarios = {
       await b.clicar('Meditar: não foi feito');
     });
 
-    await passo('fechar passa a tarefa escolhida para a semana seguinte', async () => {
+    await passo('como estão as suas metas: atualizar o valor e marcar o marco como alcançado', async () => {
+      await b.verTexto('COMO ESTÃO AS SUAS METAS?');
+      await b.clicar('Valor atual de Conseguir meditar 1 h seguida');
+      await b.avaliar('document.activeElement.select()');
+      await b.escrever('25');
+      await b.clicar('Registar o valor de Conseguir meditar 1 h seguida');
+      await b.verTexto('25 de 60 min seguidos');
+      await b.verTexto('Registado hoje: 25.');
+      await b.clicar('Fazer um retiro de silêncio: alcançada');
+      await b.verTexto('Fazer um retiro de silêncio — concluída');
+    });
+
+    await passo('fechar abre a proposta da semana seguinte, com a tarefa escolhida a passar', async () => {
       await b.clicar('Rever orçamento, Trabalho · 1 h'); // desmarca: esta não passa
       await b.clicar('O que correu bem?');
       await b.escrever('Meditei quase todos os dias.');
       await b.esperar(900);
       await b.clicar(`Planear a semana de ${descreverSemanaPorExtenso(SEGUINTE)}`);
       await b.verTexto(descreverSemanaComAno(SEGUINTE));
+      await b.verTexto('Proposta por aceitar');
+      await b.verTexto('Igual à semana passada');
       await b.verTexto('2 h · vem da semana passada');
-      await b.verTexto('0/7');
+      await b.verTexto('7/7'); // os blocos de "Meditar" vieram copiados
+      await b.naoVerTexto('7/7 feitas');
       await b.naoVerTexto('Rever orçamento');
       if (!b.dialogos.some((d) => d.includes('blocos por marcar'))) throw new Error('não avisou dos blocos por marcar');
     });

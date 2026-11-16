@@ -9,7 +9,7 @@ import path from 'node:path';
 import { sqlite } from '@/db/client';
 
 const pasta = path.resolve(import.meta.dirname, '..', '..', 'drizzle');
-const TABELAS = ['blocos', 'tarefas_semana', 'tarefas', 'metas', 'areas', 'revisoes', 'definicoes'];
+const TABELAS = ['blocos', 'tarefas_semana', 'tarefas', 'metas_registos', 'metas', 'areas', 'revisoes', 'semanas', 'definicoes'];
 let migrada = false;
 
 export function prepararBd() {

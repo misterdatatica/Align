@@ -23,7 +23,11 @@ export type NomeIcone =
   | 'lixo'
   | 'pegas'
   | 'engrenagem'
-  | 'sino';
+  | 'sino'
+  | 'estrela'
+  | 'aviso'
+  | 'alvo'
+  | 'pausa';
 
 /** Ícones de areas que o utilizador pode escolher. */
 export const iconesArea: NomeIcone[] = ['folha', 'casa', 'pasta', 'bola', 'coracao', 'livro'];
@@ -159,5 +163,19 @@ function desenho(nome: NomeIcone, t: object, cor: string) {
       );
     case 'sino':
       return <Path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9zM10 20a2 2 0 0 0 4 0" {...t} />;
+    case 'estrela':
+      return <Path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1.1 5.9-5.3-2.9-5.3 2.9 1.1-5.9-4.3-4.1 5.9-.8z" {...t} />;
+    case 'aviso':
+      return <Path d="M12 4.5 2.8 20h18.4zM12 10.5v4M12 17.3v.1" {...t} />;
+    case 'alvo':
+      return (
+        <>
+          <Circle cx="12" cy="12" r="9" {...t} />
+          <Circle cx="12" cy="12" r="5" {...t} />
+          <Circle cx="12" cy="12" r="1.2" fill={cor} />
+        </>
+      );
+    case 'pausa':
+      return <Path d="M9 5v14M15 5v14" {...t} />;
   }
 }

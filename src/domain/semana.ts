@@ -82,6 +82,27 @@ export function descreverSemanaComAno(semana: string): string {
   return `${ini.getDate()} – ${fim.getDate()} ${MESES[ini.getMonth()]} ${fim.getFullYear()}`;
 }
 
+/** "31 mar 2027": o prazo de uma meta mostra sempre o ano. */
+export function descreverData(dataISO: string): string {
+  const d = deDataISO(dataISO);
+  return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** "31 mar": para os eixos e os registos, onde o ano já se percebe. */
+export function descreverDataCurta(dataISO: string): string {
+  const d = deDataISO(dataISO);
+  return `${d.getDate()} ${MESES[d.getMonth()]}`;
+}
+
+/** O mesmo dia, uns meses depois; se o mês não tiver esse dia, fica no último (31 jan + 1 mês = 28 fev). */
+export function somarMeses(dataISO: string, meses: number): string {
+  const d = deDataISO(dataISO);
+  const alvo = new Date(d.getFullYear(), d.getMonth() + meses, 1);
+  const ultimoDia = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate();
+  alvo.setDate(Math.min(d.getDate(), ultimoDia));
+  return paraDataISO(alvo);
+}
+
 export const DIAS_CURTOS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'] as const;
 export const DIAS_LONGOS = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'] as const;
 

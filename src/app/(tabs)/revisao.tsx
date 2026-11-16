@@ -6,9 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CampoAutoGuardado } from '@/components/CampoAutoGuardado';
 import { avisarErro, confirmar } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
+import { AtualizarValor } from '@/components/metas/AtualizarValor';
+import { TEXTO_ESTAGNADA, textoDoPrazo, textoDoProgresso } from '@/components/metas/textos';
 import { BarraProgresso, Botao, Cartao, Seccao, Titulo, estilos } from '@/components/ui';
 import { useConsulta } from '@/data/consulta';
+import { mudarEstadoDaMeta, type MetaDetalhada } from '@/data/metas';
 import { carregarRevisao, fecharRevisao, guardarReflexao, reabrirRevisao, responderBloco, type RevisaoDaSemana } from '@/data/revisao';
+import { abrirProposta } from '@/data/semanas';
 import { formatarIntervalo } from '@/domain/calendario';
 import { formatarHoras, formatarProgressoHoras, progresso } from '@/domain/regras';
 import { percentagemCumprida } from '@/domain/revisao';
@@ -17,18 +21,20 @@ import { formatarDuracao } from '@/domain/tarefas';
 import { escolherSemana, useHoje } from '@/estado/semana';
 import { cores, corDaArea, fontes } from '@/theme';
 
-const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos', 'revisoes', 'definicoes'] as const;
+const TABELAS = ['areas', 'metas', 'metas_registos', 'tarefas', 'tarefas_semana', 'blocos', 'revisoes', 'definicoes'] as const;
 
 export default function RevisaoEcra() {
   const hoje = useHoje();
   const revisao = useConsulta(() => carregarRevisao(hoje), TABELAS, hoje);
   // A escolha das tarefas que passam recomeça quando muda a semana em revisão.
-  return <Revisao key={revisao.semana} revisao={revisao} />;
+  return <Revisao key={revisao.semana} revisao={revisao} hoje={hoje} />;
 }
 
-function Revisao({ revisao }: { revisao: RevisaoDaSemana }) {
+function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) {
   const router = useRouter();
-  const { semana, disponivel, fechadaEm, areas, porConfirmar, porFazer } = revisao;
+  const { semana, disponivel, fechadaEm, areas, porConfirmar, porFazer, metas } = revisao;
+  /** Marcos marcados como alcançados nesta revisão: deixam de estar ativos, mas ficam à vista. */
+  const [alcancadas, setAlcancadas] = useState<{ id: number; descricao: string }[]>([]);
   const seguinte = somarSemanas(semana, 1);
   const fechada = fechadaEm !== null;
   /** Tarefas por fazer que o utilizador desmarcou: essas não passam para a semana seguinte. */
@@ -42,9 +48,22 @@ function Revisao({ revisao }: { revisao: RevisaoDaSemana }) {
     });
   }
 
+  /** O último passo: abre a proposta da semana seguinte (criada como cópia da que passou, se ainda não existir). */
   function planear() {
+    try {
+      abrirProposta(seguinte);
+    } catch (erro) {
+      avisarErro('Não foi possível criar a proposta da semana', erro);
+    }
     escolherSemana(seguinte);
     router.navigate('/semana');
+  }
+
+  function concluir(meta: MetaDetalhada) {
+    tentar('Não foi possível concluir a meta', () => {
+      mudarEstadoDaMeta(meta.id, 'concluida');
+      setAlcancadas((atuais) => [...atuais, { id: meta.id, descricao: meta.descricao }]);
+    });
   }
 
   async function fechar() {
@@ -192,6 +211,53 @@ function Revisao({ revisao }: { revisao: RevisaoDaSemana }) {
               </Seccao>
             ) : null}
 
+            {disponivel && (metas.length > 0 || alcancadas.length > 0) ? (
+              <Seccao titulo="Como estão as suas metas?">
+                <Text style={[estilos.pequeno, { marginTop: -4, fontSize: 12, lineHeight: 16 }]}>Atualize o valor das metas de número e marque os marcos que alcançou.</Text>
+                <Cartao style={{ overflow: 'hidden' }}>
+                  {metas.map((m, i) => (
+                    <View key={m.id} style={{ padding: 16, gap: 10, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: cores.linhaSuave }}>
+                      <View style={{ gap: 2 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <View style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: corDaArea(m.area.cor).forte }} />
+                          <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 16, color: cores.texto3 }}>{`${m.area.nome} · ${textoDoPrazo(m).toLowerCase()}`}</Text>
+                        </View>
+                        <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: cores.tinta }}>{m.descricao}</Text>
+                      </View>
+                      {m.medida === 'numero' ? (
+                        <>
+                          <View style={{ gap: 6 }}>
+                            <Text style={{ fontFamily: fontes.texto, fontSize: 13, lineHeight: 18, color: cores.texto2, fontVariant: ['tabular-nums'] }}>{textoDoProgresso(m)}</Text>
+                            <BarraProgresso valor={m.progresso} cor={corDaArea(m.area.cor).forte} />
+                          </View>
+                          <AtualizarValor key={`${m.id}|${m.valorAtual}`} meta={m} hoje={hoje} />
+                          {m.alcancada ? (
+                            <Botao titulo="Chegou ao alvo: concluir meta" icone="certo" variante="contorno" accessibilityLabel={`Concluir a meta ${m.descricao}`} onPress={() => concluir(m)} />
+                          ) : null}
+                        </>
+                      ) : (
+                        <Botao titulo="Alcançada" icone="certo" variante="contorno" accessibilityLabel={`${m.descricao}: alcançada`} onPress={() => concluir(m)} />
+                      )}
+                      {m.estagnada && !m.alcancada ? (
+                        <View style={{ gap: 4, padding: 12, borderRadius: 12, backgroundColor: cores.fundo }}>
+                          <Text style={[estilos.pequeno, { color: cores.texto2 }]}>{TEXTO_ESTAGNADA}</Text>
+                          <Pressable accessibilityRole="button" accessibilityLabel={`Rever a meta ${m.descricao}`} onPress={() => router.push({ pathname: '/meta/[id]', params: { id: String(m.id) } })} style={{ minHeight: 32, justifyContent: 'center', alignSelf: 'flex-start' }}>
+                            <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, color: cores.tinta, textDecorationLine: 'underline' }}>Rever a meta</Text>
+                          </Pressable>
+                        </View>
+                      ) : null}
+                    </View>
+                  ))}
+                  {alcancadas.map((m, i) => (
+                    <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52, paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: i === 0 && metas.length === 0 ? 0 : 1, borderTopColor: cores.linhaSuave }}>
+                      <Icone nome="certo" tamanho={16} cor={cores.texto2} espessura={2.2} />
+                      <Text style={{ flex: 1, fontFamily: fontes.textoMedio, fontSize: 14, lineHeight: 20, color: cores.texto2 }}>{`${m.descricao} — concluída`}</Text>
+                    </View>
+                  ))}
+                </Cartao>
+              </Seccao>
+            ) : null}
+
             {disponivel ? (
               <Seccao titulo="Reflexão">
                 <View style={{ gap: 12 }}>
@@ -206,6 +272,7 @@ function Revisao({ revisao }: { revisao: RevisaoDaSemana }) {
                 {fechada ? <Text style={[estilos.pequeno, { textAlign: 'center' }]}>Revisão fechada.</Text> : null}
                 <Botao
                   titulo={`Planear a semana de ${descreverSemanaPorExtenso(seguinte)}`}
+                  accessibilityHint="Abre a proposta da semana seguinte, para rever e aceitar"
                   onPress={fechada ? planear : fechar}
                   style={{ minHeight: 52, paddingHorizontal: 12 }}
                 />

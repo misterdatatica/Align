@@ -7,9 +7,12 @@ import { avisarErro } from '@/components/dialogos';
 import { Botao, BotaoIcone, Opcao, Passo, estilos } from '@/components/ui';
 import { alocarTarefa, marcarBlocoFeito, moverBloco, renomearOcupado, retirarBloco, type BlocoCalendario, type CalendarioDaSemana, type TarefaPorAlocar } from '@/data/calendario';
 import { formatarIntervalo, PASSO_MIN, sobrepostos } from '@/domain/calendario';
+import type { Ambito } from '@/domain/proposta';
 import { DIAS_CURTOS, DIAS_LONGOS, MINUTOS_DIA, descreverDia, formatarHora } from '@/domain/semana';
 import { formatarDuracao } from '@/domain/tarefas';
 import { cores, corDaArea, fontes } from '@/theme';
+
+import { EscolhaDeAmbito } from './EscolhaDeAmbito';
 
 /** O que a folha mostra: um bloco que já existe, ou uma tarefa a alocar escolhendo dia e hora. */
 export type AlvoDaFolha = { tipo: 'bloco'; blocoId: number } | { tipo: 'nova'; tarefaId: number };
@@ -120,9 +123,14 @@ function EscolhaDeHorario({ horario, dias, duracaoFixa, aoMudar }: { horario: Ho
 
 function DetalheDoBloco({ bloco, calendario, aoFechar }: { bloco: BlocoCalendario; calendario: CalendarioDaSemana; aoFechar: () => void }) {
   const ocupado = bloco.tipo === 'ocupado';
+  // Nos blocos de tarefas recorrentes o horário só se guarda depois de se escolher o âmbito.
+  const [pendente, setPendente] = useState<Horario | null>(null);
+  const [aPerguntar, setAPerguntar] = useState<'mudar' | 'retirar' | null>(null);
+  const horario = pendente ?? bloco;
+  const mudou = pendente !== null && (pendente.dia !== bloco.dia || pendente.inicioMin !== bloco.inicioMin || pendente.fimMin !== bloco.fimMin);
   const outros = sobrepostos(
-    calendario.blocos.filter((b) => b.dia === bloco.dia),
-    bloco,
+    calendario.blocos.filter((b) => b.dia === horario.dia),
+    { id: bloco.id, inicioMin: horario.inicioMin, fimMin: horario.fimMin },
   );
 
   function tentar(titulo: string, acao: () => void): boolean {
@@ -135,10 +143,27 @@ function DetalheDoBloco({ bloco, calendario, aoFechar }: { bloco: BlocoCalendari
     }
   }
 
-  const mudar = (h: Horario) => tentar('Não foi possível mudar o bloco', () => moverBloco(bloco.id, calendario.dias[h.dia], h.inicioMin, h.fimMin));
-  const retirar = () => {
-    if (tentar('Não foi possível retirar o bloco', () => retirarBloco(bloco.id))) aoFechar();
+  const mover = (h: Horario, ambito?: Ambito) => tentar('Não foi possível mudar o bloco', () => moverBloco(bloco.id, calendario.dias[h.dia], h.inicioMin, h.fimMin, ambito));
+  const retirar = (ambito?: Ambito) => {
+    if (tentar('Não foi possível retirar o bloco', () => retirarBloco(bloco.id, ambito))) aoFechar();
   };
+
+  function responder(ambito: Ambito) {
+    if (aPerguntar === 'retirar') {
+      retirar(ambito);
+      return;
+    }
+    if (pendente && mover(pendente, ambito)) setPendente(null);
+    setAPerguntar(null);
+  }
+
+  if (aPerguntar) {
+    const titulo =
+      aPerguntar === 'retirar'
+        ? `Devolver “${bloco.nome}” a “Por alocar”?`
+        : `Mudar “${bloco.nome}” para ${DIAS_LONGOS[horario.dia]}, ${formatarIntervalo(horario.inicioMin, horario.fimMin)}?`;
+    return <EscolhaDeAmbito titulo={titulo} aoEscolher={responder} aoCancelar={() => setAPerguntar(null)} />;
+  }
 
   return (
     <>
@@ -148,6 +173,7 @@ function DetalheDoBloco({ bloco, calendario, aoFechar }: { bloco: BlocoCalendari
         cor={bloco.cor ? corDaArea(bloco.cor).forte : null}
         aoFechar={aoFechar}
       />
+      {bloco.soEstaSemana ? <Text style={estilos.pequeno}>Mudado só nesta semana: a semana seguinte volta ao horário habitual.</Text> : null}
       {outros.length > 0 ? (
         <Text style={[estilos.pequeno, { color: cores.perigo }]} accessibilityLiveRegion="polite">
           {`Sobrepõe-se a “${outros[0].nome}”${outros.length > 1 ? ` e a mais ${outros.length - 1}` : ''}.`}
@@ -167,19 +193,20 @@ function DetalheDoBloco({ bloco, calendario, aoFechar }: { bloco: BlocoCalendari
           />
         </View>
       ) : null}
-      <EscolhaDeHorario horario={bloco} dias={calendario.dias} aoMudar={mudar} />
+      <EscolhaDeHorario horario={horario} dias={calendario.dias} aoMudar={(h) => (bloco.recorrente ? setPendente(h) : mover(h))} />
       <View style={{ gap: 8 }}>
+        {mudou ? <Botao titulo="Guardar o novo horário" onPress={() => setAPerguntar('mudar')} /> : null}
         {ocupado ? (
-          <Botao titulo="Apagar bloco" icone="lixo" variante="perigo" onPress={retirar} />
+          <Botao titulo="Apagar bloco" icone="lixo" variante="perigo" onPress={() => retirar()} />
         ) : (
           <>
             <Botao
               titulo={bloco.feito ? 'Desmarcar como feito' : 'Marcar como feito'}
               icone="certo"
-              variante={bloco.feito ? 'contorno' : 'primario'}
+              variante={bloco.feito || mudou ? 'contorno' : 'primario'}
               onPress={() => tentar('Não foi possível marcar o bloco', () => marcarBlocoFeito(bloco.id, !bloco.feito))}
             />
-            <Botao titulo="Devolver a “Por alocar”" variante="contorno" onPress={retirar} />
+            <Botao titulo="Devolver a “Por alocar”" variante="contorno" onPress={() => (bloco.recorrente ? setAPerguntar('retirar') : retirar())} />
           </>
         )}
       </View>

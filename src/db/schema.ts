@@ -21,7 +21,10 @@ export const areas = sqliteTable('areas', {
   ...timestamps,
 });
 
-/** O que se mede, sempre guardado como alvo semanal. */
+/**
+ * Um resultado a alcançar até uma data ("Conseguir meditar 1 h seguida até 31 mar 2027").
+ * Diz onde se quer chegar, não o que se faz: o tempo semanal vive nas tarefas e nos blocos.
+ */
 export const metas = sqliteTable(
   'metas',
   {
@@ -30,16 +33,39 @@ export const metas = sqliteTable(
       .notNull()
       .references(() => areas.id, { onDelete: 'cascade' }),
     descricao: text('descricao').notNull(),
-    tipo: text('tipo', { enum: ['horas', 'vezes'] }).notNull(),
-    /** Horas por semana (tipo "horas") ou ocorrências por semana (tipo "vezes"). */
-    alvoSemanal: real('alvo_semanal').notNull(),
-    /** Como o utilizador a definiu ("1 por dia" ou "3 por semana"); só afeta a apresentação. */
-    periodo: text('periodo', { enum: ['dia', 'semana'] }).notNull().default('semana'),
-    /** Unidade das metas de vezes, no singular (ex.: "lição"); null = "vezes". */
+    /** Dia até ao qual se quer lá chegar, AAAA-MM-DD. */
+    prazo: text('prazo').notNull(),
+    /** "numero" mede-se com um valor (20 → 60 min seguidos); "marco" é sim ou não. */
+    medida: text('medida', { enum: ['numero', 'marco'] }).notNull(),
+    /** Só nas metas de número. O alvo pode ficar abaixo do valor inicial (55 → 50 min, 80 → 75 kg). */
+    valorInicial: real('valor_inicial'),
+    valorAtual: real('valor_atual'),
+    valorAlvo: real('valor_alvo'),
+    /** Unidade das metas de número (ex.: "min seguidos", "km", "kg"); null = sem unidade. */
     unidade: text('unidade'),
+    /** Só as ativas contam para o limite de 3 por área. Pausar não apaga nada. */
+    estado: text('estado', { enum: ['ativa', 'concluida', 'pausada', 'abandonada'] })
+      .notNull()
+      .default('ativa'),
     ...timestamps,
   },
   (t) => [index('metas_area_idx').on(t.areaId)],
+);
+
+/** Histórico das metas de número: uma linha por dia em que o valor foi atualizado. */
+export const metasRegistos = sqliteTable(
+  'metas_registos',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    metaId: integer('meta_id')
+      .notNull()
+      .references(() => metas.id, { onDelete: 'cascade' }),
+    /** Dia da atualização, AAAA-MM-DD. */
+    data: text('data').notNull(),
+    valor: real('valor').notNull(),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex('metas_registos_meta_data_idx').on(t.metaId, t.data)],
 );
 
 /** Modelo de uma tarefa; a recorrência gera instâncias por semana. */
@@ -64,6 +90,11 @@ export const tarefas = sqliteTable(
      * Apagar ou alterar uma tarefa "a partir desta semana" fecha-a aqui, para o histórico não mudar.
      */
     semanaFim: text('semana_fim'),
+    /**
+     * Id da primeira versão da tarefa; null = esta é a primeira. Alterar uma tarefa com histórico cria
+     * uma versão nova, e é por aqui que se sabe que "Meditar" de hoje é a mesma de há um mês.
+     */
+    serieId: integer('serie_id'),
     ...timestamps,
   },
   (t) => [index('tarefas_area_idx').on(t.areaId)],
@@ -84,6 +115,12 @@ export const tarefasSemana = sqliteTable(
       .default('por_alocar'),
     /** Semana de onde transitou, se veio da revisão. */
     transitadaDe: text('transitada_de'),
+    /**
+     * Horário habitual (AAAA-MM-DDTHH:MM, nesta semana) quando esta semana é uma exceção: o bloco foi
+     * mudado ou retirado "só esta semana". A semana seguinte copia o habitual, não a exceção.
+     */
+    habitualInicio: text('habitual_inicio'),
+    habitualFim: text('habitual_fim'),
     ...timestamps,
   },
   (t) => [index('tarefas_semana_semana_idx').on(t.semana), index('tarefas_semana_tarefa_idx').on(t.tarefaId)],
@@ -119,6 +156,23 @@ export const revisoes = sqliteTable(
   (t) => [uniqueIndex('revisoes_semana_idx').on(t.semana)],
 );
 
+/**
+ * O plano de uma semana. Sem linha, a semana ainda não foi planeada; "rascunho" é a proposta
+ * (cópia de outra semana) à espera de "Aceitar semana".
+ */
+export const semanas = sqliteTable('semanas', {
+  /** Segunda-feira da semana, AAAA-MM-DD. */
+  semana: text('semana').primaryKey(),
+  estado: text('estado', { enum: ['rascunho', 'aceite'] }).notNull(),
+  /** De onde veio a proposta. */
+  origem: text('origem', { enum: ['passada', 'modelo', 'vazia'] }),
+  /** A semana copiada (segunda-feira), quando houve cópia. */
+  origemSemana: text('origem_semana'),
+  /** Semana modelo: a que o utilizador marcou como típica. Só há uma de cada vez. */
+  modelo: integer('modelo', { mode: 'boolean' }).notNull().default(false),
+  ...timestamps,
+});
+
 /** Registo único de definições. */
 export const definicoes = sqliteTable('definicoes', {
   id: integer('id').primaryKey(),
@@ -135,6 +189,8 @@ export const definicoes = sqliteTable('definicoes', {
 export type Area = typeof areas.$inferSelect;
 export type NovaArea = typeof areas.$inferInsert;
 export type Meta = typeof metas.$inferSelect;
+export type MetaRegisto = typeof metasRegistos.$inferSelect;
+export type Semana = typeof semanas.$inferSelect;
 export type Tarefa = typeof tarefas.$inferSelect;
 export type TarefaSemana = typeof tarefasSemana.$inferSelect;
 export type Bloco = typeof blocos.$inferSelect;

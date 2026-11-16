@@ -9,8 +9,9 @@ import { Botao, Cartao, Opcao, Passo, estilos } from '@/components/ui';
 import { criarArea } from '@/data/areas';
 import { recarregarConsultas } from '@/data/consulta';
 import { DEFINICOES_INICIAIS, guardarDefinicoes } from '@/data/definicoes';
+import { garantirSemana } from '@/data/tarefas';
 import { DIAS_DE_REVISAO } from '@/domain/revisao';
-import { formatarHora } from '@/domain/semana';
+import { formatarHora, inicioDaSemana } from '@/domain/semana';
 import { agendarLembrete, lembretesDisponiveis, pedirPermissaoDeLembrete } from '@/lembrete';
 import { SUGESTOES_DE_AREAS } from '@/sugestoes';
 import { cores, corDaArea, fontes } from '@/theme';
@@ -18,8 +19,8 @@ import { cores, corDaArea, fontes } from '@/theme';
 const NIVEIS = [
   { nome: 'Área', texto: 'Uma responsabilidade da sua vida: Espiritual, Família, Trabalho…' },
   { nome: 'Missão', texto: 'Uma frase que diz porque é que essa área importa.' },
-  { nome: 'Meta', texto: 'O que mede, sempre à semana: meditar 2 h por dia são 14 h por semana.' },
-  { nome: 'Tarefa', texto: 'O que faz numa semana concreta, com lugar no calendário.' },
+  { nome: 'Meta', texto: 'Onde quer chegar, com prazo: conseguir meditar 1 h seguida até 31 de março.' },
+  { nome: 'Tarefa', texto: 'O que faz para lá chegar, semana a semana, com lugar no calendário.' },
 ];
 
 /** Dias pela ordem da semana portuguesa, com o número que as definições guardam (0 = domingo). */
@@ -57,6 +58,8 @@ export default function BoasVindasEcra() {
       for (const sugestao of SUGESTOES_DE_AREAS.filter((s) => escolhidas.includes(s.nome))) await criarArea({ ...sugestao, missao: '' });
       const horaRevisao = formatarHora(minutos);
       guardarDefinicoes({ diaRevisao, horaRevisao, lembreteAtivo: lembrete });
+      // A primeira semana não tem de onde copiar: começa já com plano.
+      garantirSemana(inicioDaSemana(new Date()));
       if (lembrete) await agendarLembrete(diaRevisao, horaRevisao);
       recarregarConsultas();
       router.replace('/');

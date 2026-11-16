@@ -12,17 +12,19 @@ import { criarArea, reordenarAreas } from '@/data/areas';
 import { recarregarConsultas, useConsulta } from '@/data/consulta';
 import { primeiroArranque } from '@/data/definicoes';
 import { revisaoPorFazer } from '@/data/revisao';
+import { carregarPlanoDaSemana } from '@/data/semanas';
 import { carregarPlano } from '@/data/tarefas';
 import { MAX_AREAS, podeCriarArea } from '@/domain/regras';
 import { DIAS_DE_REVISAO } from '@/domain/revisao';
 import { descreverSemanaPorExtenso } from '@/domain/semana';
-import { useHoje, usePrepararSemana, useSemanaAtual } from '@/estado/semana';
+import { escolherSemana, useHoje, usePrepararSemana, useSemanaAtual } from '@/estado/semana';
 import { SUGESTOES_DE_AREAS } from '@/sugestoes';
 import { cores, corDaArea, fontes } from '@/theme';
 
 const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos'] as const;
 const TABELAS_DA_REVISAO = ['tarefas_semana', 'revisoes', 'definicoes'] as const;
 const TABELAS_DO_ARRANQUE = ['areas', 'definicoes'] as const;
+const TABELAS_DO_PLANO = ['semanas'] as const;
 
 export default function AreasEcra() {
   const router = useRouter();
@@ -31,6 +33,7 @@ export default function AreasEcra() {
   const plano = useConsulta(() => carregarPlano(semana), TABELAS, semana);
   const hoje = useHoje();
   const porRever = useConsulta(() => revisaoPorFazer(hoje), TABELAS_DA_REVISAO, hoje);
+  const estadoDaSemana = useConsulta(() => carregarPlanoDaSemana(semana, hoje).estado, TABELAS_DO_PLANO, `${semana}|${hoje}`);
   const [aCriar, setACriar] = useState<string | null>(null);
   const boasVindas = useConsulta(primeiroArranque, TABELAS_DO_ARRANQUE);
 
@@ -75,6 +78,24 @@ export default function AreasEcra() {
               <Text style={{ fontFamily: fontes.texto, fontSize: 13, lineHeight: 18, color: cores.textoSobreTinta }}>{`Como correu a semana de ${descreverSemanaPorExtenso(porRever.semana)}?`}</Text>
             </View>
             <Icone nome="seta-direita" tamanho={18} cor="#FFFFFF" espessura={2} />
+          </Pressable>
+        ) : null}
+
+        {estadoDaSemana !== 'aceite' && lista.length > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              escolherSemana(semana);
+              router.navigate('/semana');
+            }}
+            style={({ pressed }) => ({ marginTop: -4, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1, borderColor: cores.tinta, backgroundColor: cores.superficie, opacity: pressed ? 0.7 : 1 })}
+          >
+            <Icone nome="calendario" cor={cores.tinta} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: cores.tinta }}>{estadoDaSemana === 'rascunho' ? 'A proposta desta semana está por aceitar' : 'Esta semana ainda não tem plano'}</Text>
+              <Text style={{ fontFamily: fontes.texto, fontSize: 13, lineHeight: 18, color: cores.texto3 }}>{estadoDaSemana === 'rascunho' ? 'Reveja os blocos e aceite a semana.' : 'Comece por uma cópia da semana passada.'}</Text>
+            </View>
+            <Icone nome="seta-direita" tamanho={18} cor={cores.tinta} espessura={2} />
           </Pressable>
         ) : null}
 

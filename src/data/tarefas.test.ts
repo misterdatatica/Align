@@ -6,7 +6,7 @@ import { asc, eq } from 'drizzle-orm';
 
 import { prepararBd } from '../../scripts/testes/bd.ts';
 import { db } from '../db/client.ts';
-import { areas, blocos, metas, tarefas, tarefasSemana } from '../db/schema.ts';
+import { areas, blocos, metas, semanas, tarefas, tarefasSemana } from '../db/schema.ts';
 import { apagarTarefa, carregarPlano, criarTarefa, editarTarefa, garantirSemana, marcarVez } from './tarefas.ts';
 
 const S1 = '2026-11-16';
@@ -36,6 +36,12 @@ function alocar(instanciaId: number, inicio: string, fim: string, feito = false)
     .where(eq(tarefasSemana.id, instanciaId))
     .run();
   return db.insert(blocos).values({ tarefaSemanaId: instanciaId, inicio, fim, feito }).returning({ id: blocos.id }).get().id;
+}
+
+/** Abre uma semana que já tem plano (aceite): é aí que as tarefas recorrentes ganham as instâncias em falta. */
+function abrir(semana: string): number {
+  db.insert(semanas).values({ semana, estado: 'aceite' }).onConflictDoNothing().run();
+  return garantirSemana(semana, HOJE);
 }
 
 const meditar = (areaId: number) => ({ areaId, nome: 'Meditar', duracaoMin: 120, recorrencia: { tipo: 'diaria' } as const });
@@ -73,7 +79,7 @@ describe('criar tarefa', () => {
   it('recusa dados inválidos', () => {
     const area = novaArea();
     const outra = novaArea('Trabalho');
-    const metaDeOutra = db.insert(metas).values({ areaId: outra, descricao: 'Estudar', tipo: 'horas', alvoSemanal: 5 }).returning({ id: metas.id }).get().id;
+    const metaDeOutra = db.insert(metas).values({ areaId: outra, descricao: 'Acabar o curso', prazo: '2027-03-31', medida: 'marco' }).returning({ id: metas.id }).get().id;
     assert.throws(() => criarTarefa({ areaId: area, nome: '  ', duracaoMin: 30, recorrencia: null }, S1), /nome/);
     assert.throws(() => criarTarefa({ areaId: area, nome: 'X', duracaoMin: 0, recorrencia: null }, S1), /duração/);
     assert.throws(() => criarTarefa({ areaId: area, nome: 'X', duracaoMin: 30, recorrencia: { tipo: 'dias', dias: [] } }, S1), /dia/);
@@ -88,8 +94,8 @@ describe('abrir uma semana', () => {
     const area = novaArea();
     const id = criarTarefa(meditar(area), S1);
     const unica = criarTarefa({ areaId: area, nome: 'Jogo', duracaoMin: 120, recorrencia: null }, S1);
-    assert.equal(garantirSemana(S2, HOJE), 7);
-    assert.equal(garantirSemana(S2, HOJE), 0);
+    assert.equal(abrir(S2), 7);
+    assert.equal(abrir(S2), 0);
     assert.equal(instancias(id, S2).length, 7);
     assert.equal(instancias(unica, S2).length, 0);
   });
@@ -105,7 +111,7 @@ describe('abrir uma semana', () => {
     const area = novaArea();
     criarTarefa(meditar(area), S1);
     db.update(areas).set({ arquivada: true }).where(eq(areas.id, area)).run();
-    assert.equal(garantirSemana(S2, HOJE), 0);
+    assert.equal(abrir(S2), 0);
   });
 });
 
@@ -131,7 +137,7 @@ describe('alterar tarefa', () => {
   it('com histórico, as semanas anteriores ficam como estavam', () => {
     const area = novaArea();
     const id = criarTarefa(meditar(area), S1);
-    garantirSemana(S2, HOJE);
+    abrir(S2);
 
     const nova = editarTarefa(id, S2, { areaId: area, nome: 'Meditar de manhã', duracaoMin: 60, recorrencia: { tipo: 'diaria' } });
     assert.notEqual(nova, id);
@@ -146,7 +152,7 @@ describe('alterar tarefa', () => {
     assert.equal(carregarPlano(S2).areas[0].tarefas[0].minutosPlaneados, 7 * 60);
 
     // A versão antiga já não gera instâncias; a nova continua.
-    assert.equal(garantirSemana(S3, HOJE), 7);
+    assert.equal(abrir(S3), 7);
     assert.equal(instancias(id, S3).length, 0);
     assert.equal(instancias(nova, S3).length, 7);
   });
@@ -154,11 +160,11 @@ describe('alterar tarefa', () => {
   it('uma tarefa que deixa de repetir fica só na semana alterada', () => {
     const area = novaArea();
     const id = criarTarefa(meditar(area), S1);
-    garantirSemana(S2, HOJE);
+    abrir(S2);
     editarTarefa(id, S1, { areaId: area, nome: 'Meditar', duracaoMin: 120, recorrencia: null });
     assert.equal(instancias(id, S1).length, 1);
     assert.equal(instancias(id, S2).length, 0);
-    assert.equal(garantirSemana(S3, HOJE), 0);
+    assert.equal(abrir(S3), 0);
   });
 
   it('a nova duração passa para os blocos que ainda tinham a antiga', () => {
@@ -203,13 +209,13 @@ describe('apagar tarefa', () => {
 
   it('com histórico sai desta semana e das seguintes, e deixa de repetir', () => {
     const id = criarTarefa(meditar(novaArea()), S1);
-    garantirSemana(S2, HOJE);
+    abrir(S2);
     apagarTarefa(id, S2);
     assert.equal(instancias(id, S1).length, 7);
     assert.equal(instancias(id, S2).length, 0);
     assert.equal(db.select().from(tarefas).where(eq(tarefas.id, id)).get()?.semanaFim, S2);
-    assert.equal(garantirSemana(S2, HOJE), 0);
-    assert.equal(garantirSemana(S3, HOJE), 0);
+    assert.equal(abrir(S2), 0);
+    assert.equal(abrir(S3), 0);
   });
 });
 

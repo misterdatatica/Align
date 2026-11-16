@@ -2,6 +2,7 @@ import { and, asc, count, eq, inArray, ne, sql } from 'drizzle-orm';
 
 import { marcarBlocoFeito } from '@/data/calendario';
 import { carregarDefinicoes } from '@/data/definicoes';
+import { carregarMetasAtivas, type MetaDetalhada } from '@/data/metas';
 import { carregarPlano, garantirSemana } from '@/data/tarefas';
 import { db } from '@/db/client';
 import { areas, blocos, revisoes, tarefas, tarefasSemana } from '@/db/schema';
@@ -53,6 +54,8 @@ export type RevisaoDaSemana = {
   porConfirmar: BlocoPorConfirmar[];
   /** Tarefas únicas por fazer, que podem passar para a semana seguinte (as recorrentes não passam). */
   porFazer: TarefaPorFazer[];
+  /** "Como estão as suas metas?": as metas ativas, para atualizar o valor ou marcar como alcançadas. */
+  metas: MetaDetalhada[];
   temTarefas: boolean;
 };
 
@@ -126,6 +129,7 @@ export function carregarRevisao(hoje: string): RevisaoDaSemana {
     areas: resumoDasAreas,
     porConfirmar,
     porFazer,
+    metas: carregarMetasAtivas(semana, hoje),
     temTarefas,
   };
 }
@@ -166,7 +170,10 @@ export function responderBloco(blocoId: number, feito: boolean): void {
 /**
  * Fecha a revisão: o que não foi feito fica "não feito" e as tarefas únicas escolhidas passam para a
  * semana seguinte, com a marca "vem da semana passada" (regra 8). As recorrentes não passam:
- * a semana seguinte recebe as suas instâncias novas.
+ * a semana seguinte recebe as suas na proposta.
+ *
+ * Se a semana seguinte já tinha sido proposta antes da revisão, levou todas as tarefas por fazer;
+ * aqui saem as que afinal não passam (desmarcadas, ou entretanto feitas), desde que ninguém lhes tenha mexido.
  */
 export function fecharRevisao(semana: string, transitar: number[], hoje: Date = new Date()): void {
   const seguinte = somarSemanas(semana, 1);
@@ -180,6 +187,7 @@ export function fecharRevisao(semana: string, transitar: number[], hoje: Date = 
       .where(and(eq(tarefasSemana.semana, semana), inArray(tarefasSemana.estado, ['por_alocar', 'alocada'])))
       .run();
 
+    const passam = new Set<number>();
     for (const tarefaId of new Set(transitar)) {
       const tarefa = tx.select({ recorrencia: tarefas.recorrencia }).from(tarefas).where(eq(tarefas.id, tarefaId)).get();
       if (!tarefa || tarefa.recorrencia) continue;
@@ -194,9 +202,19 @@ export function fecharRevisao(semana: string, transitar: number[], hoje: Date = 
         .from(tarefasSemana)
         .where(and(eq(tarefasSemana.tarefaId, tarefaId), eq(tarefasSemana.semana, seguinte)))
         .get();
-      if (!porFazer?.n || jaPassou?.n) continue;
-      tx.insert(tarefasSemana).values({ tarefaId, semana: seguinte, transitadaDe: semana }).run();
+      if (!porFazer?.n) continue;
+      passam.add(tarefaId);
+      if (!jaPassou?.n) tx.insert(tarefasSemana).values({ tarefaId, semana: seguinte, transitadaDe: semana }).run();
     }
+
+    const transitadas = tx
+      .select({ id: tarefasSemana.id, tarefaId: tarefasSemana.tarefaId, estado: tarefasSemana.estado, blocoId: blocos.id })
+      .from(tarefasSemana)
+      .leftJoin(blocos, eq(blocos.tarefaSemanaId, tarefasSemana.id))
+      .where(and(eq(tarefasSemana.semana, seguinte), eq(tarefasSemana.transitadaDe, semana)))
+      .all();
+    const aRetirar = transitadas.filter((i) => !passam.has(i.tarefaId) && i.estado === 'por_alocar' && i.blocoId === null).map((i) => i.id);
+    if (aRetirar.length) tx.delete(tarefasSemana).where(inArray(tarefasSemana.id, aRetirar)).run();
   });
   garantirSemana(seguinte, hoje);
 }

@@ -18,13 +18,15 @@ type Props = {
   blocoArrastado: number | null;
   /** Cor da tarefa arrastada, para o contorno tracejado do destino; null = "Ocupado". */
   corDoArrasto: CorArea | null;
+  /** Ids dos blocos a destacar por se sobreporem (só numa proposta por aceitar). */
+  blocosEmAtencao?: ReadonlySet<number>;
   aoTocarBloco: (bloco: BlocoCalendario) => void;
   /** Toque numa zona livre: dia (0 = segunda) e minutos desde a meia-noite, já na meia hora tocada. */
   aoTocarVazio: (dia: number, minutos: number) => void;
 };
 
 /** A grelha de 7 dias: linhas de hora, blocos e o destino tracejado enquanto se arrasta. */
-export function Grelha({ calendario, arrasto, grelhaRef, blocoArrastado, corDoArrasto, aoTocarBloco, aoTocarVazio }: Props) {
+export function Grelha({ calendario, arrasto, grelhaRef, blocoArrastado, corDoArrasto, blocosEmAtencao, aoTocarBloco, aoTocarVazio }: Props) {
   const { inicioMin, fimMin, blocos } = calendario;
   const [largura, setLargura] = useState(0);
   const [alturaVisivel, setAlturaVisivel] = useState(0);
@@ -115,6 +117,7 @@ export function Grelha({ calendario, arrasto, grelhaRef, blocoArrastado, corDoAr
                   largura={larguraColuna / b.colunas}
                   altura={((b.fimMin - b.inicioMin) / 30) * meiaHora}
                   esbatido={b.id === blocoArrastado}
+                  atencao={blocosEmAtencao?.has(b.id)}
                   aoTocar={aoTocarBloco}
                 />
               ))

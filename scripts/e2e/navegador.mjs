@@ -78,7 +78,8 @@ export async function abrirNavegador(nome, { porta = 9400, largura = 390, altura
 
   const processo = spawn(
     chrome,
-    ['--headless=new', `--remote-debugging-port=${porta}`, `--user-data-dir=${perfil}`, `--window-size=${largura},${altura}`, '--no-first-run', '--no-default-browser-check', '--disable-extensions', 'about:blank'],
+    // CHROME_ARGS acrescenta opções ao Chrome (ex.: "--no-sandbox" em contentores, onde corre como root).
+    ['--headless=new', `--remote-debugging-port=${porta}`, `--user-data-dir=${perfil}`, `--window-size=${largura},${altura}`, '--no-first-run', '--no-default-browser-check', '--disable-extensions', ...(process.env.CHROME_ARGS?.split(' ').filter(Boolean) ?? []), 'about:blank'],
     { stdio: 'ignore' },
   );
   let pagina;

@@ -1,18 +1,16 @@
-import { and, asc, count, eq, sql } from 'drizzle-orm';
+import { asc, count, eq, sql } from 'drizzle-orm';
 
+import { carregarMetasDaArea, type MetaDetalhada } from '@/data/metas';
 import { carregarPlano } from '@/data/tarefas';
 import { db } from '@/db/client';
-import { areas, metas, type Area, type Meta } from '@/db/schema';
-import { MAX_AREAS, podeCriarArea, type PeriodoMeta, type TipoMeta } from '@/domain/regras';
-import { progressoDaMeta, type ProgressoMeta, type ResumoTarefa } from '@/domain/tarefas';
+import { areas, type Area } from '@/db/schema';
+import { MAX_AREAS, podeCriarArea } from '@/domain/regras';
+import type { ResumoTarefa } from '@/domain/tarefas';
 
 export const consultaAreasAtivas = () =>
   db.select().from(areas).where(eq(areas.arquivada, false)).orderBy(asc(areas.ordem), asc(areas.id));
 
 export const consultaAreasArquivadas = () => db.select().from(areas).where(eq(areas.arquivada, true)).orderBy(asc(areas.nome));
-
-export const consultaMetas = (areaId: number) =>
-  db.select().from(metas).where(eq(metas.areaId, areaId)).orderBy(asc(metas.id));
 
 export class LimiteDeAreasError extends Error {
   constructor() {
@@ -70,43 +68,10 @@ export async function reporArea(id: number) {
     .where(eq(areas.id, id));
 }
 
-export async function criarMeta(dados: {
-  areaId: number;
-  descricao: string;
-  tipo: TipoMeta;
-  alvoSemanal: number;
-  periodo: PeriodoMeta;
-  unidade?: string | null;
-}) {
-  if (!dados.descricao.trim()) throw new Error('A meta precisa de uma descrição.');
-  // A unidade só faz sentido nas metas de vezes; vazia = "vezes".
-  const unidade = dados.tipo === 'vezes' ? dados.unidade?.trim() || null : null;
-  await db.insert(metas).values({ ...dados, descricao: dados.descricao.trim(), unidade });
-}
-
-export async function atualizarMeta(
-  id: number,
-  dados: { descricao: string; tipo: TipoMeta; alvoSemanal: number; periodo: PeriodoMeta; unidade?: string | null },
-) {
-  if (!dados.descricao.trim()) throw new Error('A meta precisa de uma descrição.');
-  const unidade = dados.tipo === 'vezes' ? dados.unidade?.trim() || null : null;
-  await db
-    .update(metas)
-    .set({ ...dados, descricao: dados.descricao.trim(), unidade, atualizadoEm: sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))` })
-    .where(eq(metas.id, id));
-}
-
-export async function apagarMeta(id: number, areaId: number) {
-  await db.delete(metas).where(and(eq(metas.id, id), eq(metas.areaId, areaId)));
-}
-
-export type MetaComProgresso = Meta & { progresso: ProgressoMeta };
-
-/** O detalhe de uma área numa semana: metas com o seu progresso e as tarefas dessa semana. */
-export function carregarAreaNaSemana(areaId: number, semana: string): { area: Area; metas: MetaComProgresso[]; tarefas: ResumoTarefa[] } | null {
+/** O detalhe de uma área numa semana: as suas metas e as tarefas dessa semana. */
+export function carregarAreaNaSemana(areaId: number, semana: string, hoje: string): { area: Area; metas: MetaDetalhada[]; tarefas: ResumoTarefa[] } | null {
   const area = db.select().from(areas).where(eq(areas.id, areaId)).get();
   if (!area) return null;
   const daArea = carregarPlano(semana).areas.find((a) => a.area.id === areaId)?.tarefas ?? [];
-  const listaMetas = consultaMetas(areaId).all();
-  return { area, metas: listaMetas.map((m) => ({ ...m, progresso: progressoDaMeta(m.id, daArea) })), tarefas: daArea };
+  return { area, metas: carregarMetasDaArea(areaId, semana, hoje), tarefas: daArea };
 }

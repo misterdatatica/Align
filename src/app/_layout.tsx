@@ -76,6 +76,8 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="area/[id]" options={{ title: '', headerBackTitle: 'Áreas', headerStyle: { backgroundColor: cores.fundo } }} />
         <Stack.Screen name="area/nova" options={{ title: 'Nova área', presentation: 'modal' }} />
+        <Stack.Screen name="meta/nova" options={{ title: 'Nova meta', presentation: 'modal' }} />
+        <Stack.Screen name="meta/[id]" options={{ title: '', headerBackTitle: 'Área', headerStyle: { backgroundColor: cores.fundo } }} />
         <Stack.Screen name="tarefa/nova" options={{ title: 'Nova tarefa', presentation: 'modal' }} />
         <Stack.Screen name="tarefa/[id]" options={{ title: 'Alterar tarefa', presentation: 'modal' }} />
         <Stack.Screen name="boas-vindas" options={{ headerShown: false, gestureEnabled: false }} />

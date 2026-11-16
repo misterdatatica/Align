@@ -22,6 +22,13 @@
       "when": 1794678592788,
       "tag": "0002_tarefas_por_semana",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1794839980295,
+      "tag": "0003_metas_resultado_e_proposta",
+      "breakpoints": true
     }
   ]
 }

@@ -37,6 +37,8 @@ type Props = {
   altura: number;
   /** A ser arrastado: fica esbatido no sítio de origem. */
   esbatido: boolean;
+  /** Numa proposta, o bloco sobrepõe-se a outro: leva um contorno de aviso. */
+  atencao?: boolean;
   aoTocar: (bloco: BlocoCalendario) => void;
 };
 
@@ -44,7 +46,7 @@ type Props = {
  * Um bloco do calendário, com a cor da área e o nome curto da tarefa.
  * Tocar abre os detalhes; manter premido arrasta (gesto da grelha, ver arrasto.ts).
  */
-export function Bloco({ bloco, esquerda, topo, largura, altura, esbatido, aoTocar }: Props) {
+export function Bloco({ bloco, esquerda, topo, largura, altura, esbatido, atencao, aoTocar }: Props) {
   const ocupado = bloco.tipo === 'ocupado';
   const cor = ocupado ? null : corDaArea(bloco.cor ?? '');
   const corTexto = cor ? cor.texto : cores.texto2;
@@ -54,7 +56,7 @@ export function Bloco({ bloco, esquerda, topo, largura, altura, esbatido, aoToca
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${bloco.nome}, ${DIAS_LONGOS[bloco.dia]}, ${formatarIntervalo(bloco.inicioMin, bloco.fimMin)}${bloco.feito ? ', feito' : ''}`}
+      accessibilityLabel={`${bloco.nome}, ${DIAS_LONGOS[bloco.dia]}, ${formatarIntervalo(bloco.inicioMin, bloco.fimMin)}${bloco.feito ? ', feito' : ''}${atencao ? ', sobreposto a outro bloco' : ''}`}
       accessibilityHint="Abre os detalhes do bloco"
       onPress={() => aoTocar(bloco)}
       style={{
@@ -65,9 +67,9 @@ export function Bloco({ bloco, esquerda, topo, largura, altura, esbatido, aoToca
         height: Math.max(0, altura - 2),
         borderRadius: 6,
         overflow: 'hidden',
-        borderWidth: 1,
+        borderWidth: atencao ? 2 : 1,
         // Contorno do design: a cor forte da área a 45% (ou cinzento a 20% nos "Ocupado").
-        borderColor: cor ? `${cor.forte}73` : '#3F445033',
+        borderColor: atencao ? cores.perigo : cor ? `${cor.forte}73` : '#3F445033',
         backgroundColor: cor ? cor.tinta : cores.ocupadoClaro,
         opacity: esbatido ? 0.35 : 1,
       }}

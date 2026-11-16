@@ -3,22 +3,27 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LinhaTarefa } from '@/components/LinhaTarefa';
+import { CartaoPlano } from '@/components/semana/CartaoPlano';
 import { SeletorSemana } from '@/components/SeletorSemana';
 import { Botao, BotaoIcone, Cartao, Titulo, estilos } from '@/components/ui';
 import { useConsulta } from '@/data/consulta';
+import { carregarPlanoDaSemana } from '@/data/semanas';
 import { carregarPlano, type PlanoDaSemana } from '@/data/tarefas';
 import { formatarHoras } from '@/domain/regras';
-import { escolherSemana, usePrepararSemana, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
+import { escolherSemana, useHoje, usePrepararSemana, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
 import { cores, corDaArea, fontes } from '@/theme';
 
 const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos'] as const;
+const TABELAS_DO_PLANO = ['areas', 'tarefas', 'tarefas_semana', 'blocos', 'semanas'] as const;
 
 export default function SemanaEcra() {
   const router = useRouter();
   const semana = useSemanaEscolhida();
   const semanaAtual = useSemanaAtual();
   usePrepararSemana(semana);
+  const hoje = useHoje();
   const plano = useConsulta(() => carregarPlano(semana), TABELAS, semana);
+  const planoDaSemana = useConsulta(() => carregarPlanoDaSemana(semana, hoje), TABELAS_DO_PLANO, `${semana}|${hoje}`);
 
   return (
     <SafeAreaView style={estilos.ecra} edges={['top']}>
@@ -33,13 +38,22 @@ export default function SemanaEcra() {
           )}
         </View>
 
+        {/* A escolha da origem recomeça quando se muda de semana ou a proposta é criada. */}
+        <CartaoPlano key={`${semana}|${planoDaSemana.estado}`} plano={planoDaSemana} aoRever={() => router.navigate('/calendario')} />
+
         <Cartao style={{ padding: 16, gap: 14 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Numero valor={formatarHoras(plano.minutosPlaneados / 60)} legenda="planeadas" />
             <Numero valor={formatarHoras(plano.minutosCalendario / 60)} legenda="no calendário" />
             <Numero valor={String(plano.porAlocar)} legenda="por alocar" />
           </View>
-          <Botao titulo="Alocar no calendário" icone="calendario" onPress={() => router.navigate('/calendario')} style={{ borderRadius: 12 }} />
+          <Botao
+            titulo="Alocar no calendário"
+            icone="calendario"
+            variante={planoDaSemana.estado === 'aceite' ? 'primario' : 'contorno'}
+            onPress={() => router.navigate('/calendario')}
+            style={{ borderRadius: 12 }}
+          />
         </Cartao>
 
         {plano.areas.length === 0 ? (

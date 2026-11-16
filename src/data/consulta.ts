@@ -1,7 +1,7 @@
 import { addDatabaseChangeListener } from 'expo-sqlite';
 import { useEffect, useRef, useState } from 'react';
 
-export type Tabela = 'areas' | 'metas' | 'tarefas' | 'tarefas_semana' | 'blocos' | 'revisoes' | 'definicoes';
+export type Tabela = 'areas' | 'metas' | 'metas_registos' | 'tarefas' | 'tarefas_semana' | 'blocos' | 'revisoes' | 'semanas' | 'definicoes';
 
 const pedidos = new Set<() => void>();
 

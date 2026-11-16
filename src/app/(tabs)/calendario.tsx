@@ -6,12 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LARGURA_HORAS, MODO_BANDEJA, MODO_MOVER, useArrasto, type Largada } from '@/components/calendario/arrasto';
 import { Bandeja, Fantasma } from '@/components/calendario/Bandeja';
 import { Riscas } from '@/components/calendario/Bloco';
+import { FolhaDeAmbito } from '@/components/calendario/EscolhaDeAmbito';
 import { FolhaBloco, type AlvoDaFolha } from '@/components/calendario/FolhaBloco';
 import { Grelha } from '@/components/calendario/Grelha';
 import { avisarErro } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
 import { SeletorSemana } from '@/components/SeletorSemana';
-import { BotaoIcone, Titulo, estilos } from '@/components/ui';
+import { Botao, BotaoIcone, Titulo, estilos } from '@/components/ui';
 import {
   alocarRestantes,
   alocarTarefa,
@@ -23,17 +24,23 @@ import {
   type TarefaPorAlocar,
 } from '@/data/calendario';
 import { recarregarConsultas, useConsulta } from '@/data/consulta';
+import { aceitarSemana, carregarPlanoDaSemana } from '@/data/semanas';
 import { formatarIntervalo, inicioEncaixado, sobrepostos, type Intervalo } from '@/domain/calendario';
+import { sobreposicoesDaSemana, type Ambito } from '@/domain/proposta';
 import { DIAS_CURTOS, deDataISO } from '@/domain/semana';
 import { escolherSemana, useHoje, usePrepararSemana, useSemanaEscolhida } from '@/estado/semana';
 import { cores, corDaArea, fontes } from '@/theme';
 
 const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos', 'definicoes'] as const;
+const TABELAS_DO_PLANO = ['areas', 'tarefas', 'tarefas_semana', 'blocos', 'semanas'] as const;
 
 /** O que está escolhido para pôr no calendário com um toque numa hora (alternativa a arrastar). */
 type Escolha = { tipo: 'tarefa'; tarefaId: number } | { tipo: 'ocupado' };
 
 type Aviso = { texto: string; acao?: { titulo: string; executar: () => void } };
+
+/** Uma mudança num bloco de tarefa recorrente, à espera de se saber se vale só esta semana ou também nas seguintes. */
+type Pergunta = { titulo: string; executar: (ambito: Ambito) => void };
 
 export default function CalendarioEcra() {
   const router = useRouter();
@@ -42,12 +49,18 @@ export default function CalendarioEcra() {
   usePrepararSemana(semana);
   const calendario = useConsulta(() => carregarCalendario(semana), TABELAS, semana);
   const { dias, blocos, porAlocar, legenda } = calendario;
+  const plano = useConsulta(() => carregarPlanoDaSemana(semana, hoje), TABELAS_DO_PLANO, `${semana}|${hoje}`);
+  const proposta = plano.estado === 'rascunho';
 
   const [pegado, setPegado] = useState<{ modo: number; id: number } | null>(null);
   const [destino, setDestino] = useState('');
   const [escolha, setEscolha] = useState<Escolha | null>(null);
   const [folha, setFolha] = useState<AlvoDaFolha | null>(null);
   const [aviso, setAviso] = useState<Aviso | null>(null);
+  const [pergunta, setPergunta] = useState<Pergunta | null>(null);
+
+  // Numa proposta, os blocos que se sobrepõem ficam destacados até o utilizador os arrumar.
+  const emAtencao = useMemo(() => new Set(proposta ? sobreposicoesDaSemana(blocos).flatMap((s) => [s.a.id, s.b.id]) : []), [proposta, blocos]);
 
   // Os avisos saem sozinhos; os que pedem uma decisão ficam mais tempo.
   useEffect(() => {
@@ -126,13 +139,19 @@ export default function CalendarioEcra() {
         const bloco = blocos.find((b) => b.id === largada.id);
         if (bloco && largada.naGrelha) {
           if (bloco.dia !== largada.dia || bloco.inicioMin !== largada.inicioMin || bloco.fimMin !== largada.fimMin) {
-            moverBloco(bloco.id, dias[largada.dia], largada.inicioMin, largada.fimMin);
-            const texto = textoDeSobreposicao(bloco.nome, { id: bloco.id, dia: largada.dia, inicioMin: largada.inicioMin, fimMin: largada.fimMin });
-            setAviso(texto ? { texto } : null);
+            const mover = (ambito?: Ambito) => {
+              moverBloco(bloco.id, dias[largada.dia], largada.inicioMin, largada.fimMin, ambito);
+              const texto = textoDeSobreposicao(bloco.nome, { id: bloco.id, dia: largada.dia, inicioMin: largada.inicioMin, fimMin: largada.fimMin });
+              setAviso(texto ? { texto } : null);
+            };
+            // Um bloco de uma tarefa recorrente fica onde estava até se responder à pergunta.
+            if (bloco.recorrente) setPergunta({ titulo: `Mudar “${bloco.nome}” para ${DIAS_CURTOS[largada.dia].toLowerCase()}, ${formatarIntervalo(largada.inicioMin, largada.fimMin)}?`, executar: mover });
+            else mover();
           }
         } else if (bloco && largada.naBandeja && largada.modo === MODO_MOVER && bloco.tipo === 'tarefa') {
           // Largar um bloco em cima da bandeja devolve-o a "Por alocar".
-          retirarBloco(bloco.id);
+          if (bloco.recorrente) setPergunta({ titulo: `Devolver “${bloco.nome}” a “Por alocar”?`, executar: (ambito) => retirarBloco(bloco.id, ambito) });
+          else retirarBloco(bloco.id);
         }
       }
     } catch (erro) {
@@ -161,6 +180,25 @@ export default function CalendarioEcra() {
       recarregarConsultas();
     } catch (erro) {
       avisarErro('Não foi possível pôr no calendário', erro);
+    }
+  }
+
+  function responder(ambito: Ambito) {
+    const { executar } = pergunta ?? {};
+    setPergunta(null);
+    try {
+      executar?.(ambito);
+    } catch (erro) {
+      avisarErro('Não foi possível mudar o calendário', erro);
+    }
+    recarregarConsultas();
+  }
+
+  function aceitar() {
+    try {
+      aceitarSemana(semana);
+    } catch (erro) {
+      avisarErro('Não foi possível aceitar a semana', erro);
     }
   }
 
@@ -219,6 +257,16 @@ export default function CalendarioEcra() {
           </Pressable>
         </View>
 
+        {proposta ? (
+          <FaixaDoPlano
+            texto={emAtencao.size > 0 ? `Proposta por aceitar · ${plano.atencao?.sobreposicoes.length === 1 ? '1 sobreposição' : `${plano.atencao?.sobreposicoes.length ?? 0} sobreposições`}` : 'Proposta por aceitar'}
+            acao="Aceitar semana"
+            aoPremir={aceitar}
+          />
+        ) : plano.estado === 'por_planear' && plano.podePlanear ? (
+          <FaixaDoPlano texto="Esta semana ainda não tem plano." acao="Planear" aoPremir={() => router.navigate('/semana')} />
+        ) : null}
+
         <View style={{ marginTop: 10, flexDirection: 'row', paddingLeft: LARGURA_HORAS }}>
           {dias.map((dia, i) => {
             const eHoje = dia === hoje;
@@ -240,6 +288,7 @@ export default function CalendarioEcra() {
             grelhaRef={grelhaRef}
             blocoArrastado={blocoPegado?.id ?? null}
             corDoArrasto={corPegada ? corDaArea(corPegada) : null}
+            blocosEmAtencao={emAtencao}
             aoTocarBloco={(bloco: BlocoCalendario) => {
               setEscolha(null);
               setFolha({ tipo: 'bloco', blocoId: bloco.id });
@@ -293,7 +342,20 @@ export default function CalendarioEcra() {
 
       <Fantasma arrasto={arrasto} camadaRef={camadaRef} nome={blocoPegado?.nome ?? tarefaPegada?.nome ?? null} destino={destino} />
       <FolhaBloco alvo={folha} calendario={calendario} aoFechar={() => setFolha(null)} />
+      <FolhaDeAmbito pergunta={pergunta?.titulo ?? null} aoEscolher={responder} aoCancelar={() => setPergunta(null)} />
     </SafeAreaView>
+  );
+}
+
+/** Faixa por baixo da legenda: a semana é uma proposta por aceitar, ou ainda não tem plano. */
+function FaixaDoPlano({ texto, acao, aoPremir }: { texto: string; acao: string; aoPremir: () => void }) {
+  return (
+    <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 12, paddingRight: 4, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: cores.tinta, backgroundColor: cores.superficie }}>
+      <Text style={{ flex: 1, fontFamily: fontes.textoForte, fontSize: 13, lineHeight: 18, color: cores.tinta }} accessibilityLiveRegion="polite">
+        {texto}
+      </Text>
+      <Botao titulo={acao} onPress={aoPremir} style={{ minHeight: 36, paddingHorizontal: 12, borderRadius: 10 }} />
+    </View>
   );
 }
 

@@ -157,29 +157,6 @@ export function acertarInstancias(existentes: InstanciaParaAcertar[], alvo: numb
   return { criar: 0, remover: candidatas.slice(0, existentes.length - alvo).map((i) => i.id) };
 }
 
-/** Quanto das tarefas de uma semana conta para uma meta. */
-export type ProgressoMeta = {
-  minutosPlaneados: number;
-  minutosCalendario: number;
-  minutosFeitos: number;
-  /** Instâncias planeadas e feitas, para as metas que contam vezes. */
-  vezesPlaneadas: number;
-  vezesFeitas: number;
-};
-
-export function progressoDaMeta(metaId: number, tarefas: ResumoTarefa[]): ProgressoMeta {
-  const p: ProgressoMeta = { minutosPlaneados: 0, minutosCalendario: 0, minutosFeitos: 0, vezesPlaneadas: 0, vezesFeitas: 0 };
-  for (const t of tarefas) {
-    if (t.metaId !== metaId) continue;
-    p.minutosPlaneados += t.minutosPlaneados;
-    p.minutosCalendario += t.minutosCalendario;
-    p.minutosFeitos += t.minutosFeitos;
-    p.vezesPlaneadas += t.total;
-    p.vezesFeitas += t.feitas;
-  }
-  return p;
-}
-
 export type AreaComTarefas<A> = { area: A; tarefas: ResumoTarefa[]; minutosPlaneados: number };
 
 export type PlanoSemana<A> = {

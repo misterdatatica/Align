@@ -1,20 +1,19 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
 import { CampoAutoGuardado } from '@/components/CampoAutoGuardado';
 import { avisarErro, confirmar } from '@/components/dialogos';
-import { FormularioMeta } from '@/components/FormularioMeta';
 import { Icone, type NomeIcone } from '@/components/Icone';
 import { LinhaTarefa } from '@/components/LinhaTarefa';
-import { BarraProgresso, Botao, Cartao, Seccao, SeletorCor, SeletorIcone, estilos } from '@/components/ui';
-import { arquivarArea, atualizarArea, carregarAreaNaSemana, type MetaComProgresso } from '@/data/areas';
+import { CartaoMeta } from '@/components/metas/CartaoMeta';
+import { Botao, Cartao, Seccao, SeletorCor, SeletorIcone, estilos } from '@/components/ui';
+import { arquivarArea, atualizarArea, carregarAreaNaSemana } from '@/data/areas';
 import { useConsulta } from '@/data/consulta';
-import { alvoDaMeta, contarUnidade, formatarHoras, formatarProgressoHoras, medidaSemanal, progresso } from '@/domain/regras';
-import { usePrepararSemana, useSemanaAtual } from '@/estado/semana';
+import { MAX_METAS_ATIVAS, podeAtivarMeta } from '@/domain/metas';
+import { useHoje, usePrepararSemana, useSemanaAtual } from '@/estado/semana';
 import { cores, corDaArea, fontes } from '@/theme';
 
-const TABELAS = ['areas', 'metas', 'tarefas', 'tarefas_semana', 'blocos'] as const;
+const TABELAS = ['areas', 'metas', 'metas_registos', 'tarefas', 'tarefas_semana', 'blocos'] as const;
 
 export default function AreaEcra() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,13 +21,17 @@ export default function AreaEcra() {
   const router = useRouter();
   const semana = useSemanaAtual();
   usePrepararSemana(semana);
-  const dados = useConsulta(() => carregarAreaNaSemana(areaId, semana), TABELAS, `${areaId}|${semana}`);
-  /** Meta aberta no formulário: o id de uma meta, 'nova', ou null (nenhuma). */
-  const [metaAberta, setMetaAberta] = useState<number | 'nova' | null>(null);
+  const hoje = useHoje();
+  const dados = useConsulta(() => carregarAreaNaSemana(areaId, semana, hoje), TABELAS, `${areaId}|${semana}|${hoje}`);
 
   if (!dados) return null;
   const { area, metas, tarefas } = dados;
   const cor = corDaArea(area.cor);
+  // As ativas primeiro; as pausadas, concluídas e abandonadas ficam por baixo, sem contar para o limite.
+  const ativas = metas.filter((m) => m.estado === 'ativa');
+  const outras = metas.filter((m) => m.estado !== 'ativa');
+  const podeCriarMeta = podeAtivarMeta(ativas.length);
+  const abrirMeta = (metaId: number) => router.push({ pathname: '/meta/[id]', params: { id: String(metaId) } });
 
   async function arquivar() {
     const sim = await confirmar({
@@ -84,27 +87,35 @@ export default function AreaEcra() {
         />
       </Seccao>
 
-      <Seccao titulo="Metas">
+      <Seccao titulo="Metas" direita={<Text style={estilos.pequeno}>{`${ativas.length} de ${MAX_METAS_ATIVAS} ativas`}</Text>}>
         <Cartao>
-          {metas.map((m, i) => (
+          {ativas.map((m, i) => (
             <View key={m.id} style={i === 0 ? null : { borderTopWidth: 1, borderTopColor: cores.linhaSuave }}>
-              {metaAberta === m.id ? (
-                <FormularioMeta areaId={areaId} meta={m} aoFechar={() => setMetaAberta(null)} />
-              ) : (
-                <LinhaMeta meta={m} cor={cor.forte} aoAbrir={() => setMetaAberta(m.id)} />
-              )}
+              <CartaoMeta meta={m} cor={cor.forte} aoAbrir={() => abrirMeta(m.id)} />
             </View>
           ))}
-          <View style={metas.length > 0 ? { borderTopWidth: 1, borderTopColor: cores.linhaSuave } : null}>
-            {metaAberta === 'nova' ? (
-              <FormularioMeta areaId={areaId} aoFechar={() => setMetaAberta(null)} />
-            ) : (
-              <View style={{ paddingHorizontal: 8 }}>
-                <Botao titulo="Adicionar meta" icone="mais" variante="texto" onPress={() => setMetaAberta('nova')} />
-              </View>
-            )}
+          {ativas.length === 0 ? <Text style={[estilos.pequeno, { padding: 16, paddingBottom: 4 }]}>Onde quer chegar nesta área? Uma meta é um resultado com prazo, não uma atividade.</Text> : null}
+          <View style={[{ paddingHorizontal: 8 }, ativas.length > 0 ? { borderTopWidth: 1, borderTopColor: cores.linhaSuave } : null]}>
+            <Botao
+              titulo="Adicionar meta"
+              icone="mais"
+              variante="texto"
+              disabled={!podeCriarMeta}
+              accessibilityHint={podeCriarMeta ? undefined : `Já tem ${MAX_METAS_ATIVAS} metas ativas nesta área.`}
+              onPress={() => router.push({ pathname: '/meta/nova', params: { areaId: String(areaId) } })}
+            />
           </View>
         </Cartao>
+        {podeCriarMeta ? null : <Text style={estilos.pequeno}>{`O máximo são ${MAX_METAS_ATIVAS} metas ativas por área. Conclua, pause ou abandone uma para criar outra.`}</Text>}
+        {outras.length > 0 ? (
+          <Cartao style={{ marginTop: 4 }}>
+            {outras.map((m, i) => (
+              <View key={m.id} style={i === 0 ? null : { borderTopWidth: 1, borderTopColor: cores.linhaSuave }}>
+                <CartaoMeta meta={m} cor={cor.forte} aoAbrir={() => abrirMeta(m.id)} />
+              </View>
+            ))}
+          </Cartao>
+        ) : null}
       </Seccao>
 
       <Seccao titulo="Tarefas desta semana">
@@ -133,47 +144,5 @@ export default function AreaEcra() {
 
       <Botao titulo="Arquivar área" variante="texto" onPress={arquivar} />
     </ScrollView>
-  );
-}
-
-/**
- * Uma meta com o progresso desta semana. As metas de tempo comparam as horas planeadas com o alvo;
- * as de vezes contam as tarefas já feitas. Só contam as tarefas ligadas à meta.
- */
-function LinhaMeta({ meta, cor, aoAbrir }: { meta: MetaComProgresso; cor: string; aoAbrir: () => void }) {
-  const p = meta.progresso;
-  const deTempo = meta.tipo === 'horas';
-  const legenda = deTempo ? 'Planeado para esta semana' : 'Feito esta semana';
-  const valor = deTempo
-    ? formatarProgressoHoras(p.minutosPlaneados / 60, meta.alvoSemanal)
-    : `${p.vezesFeitas} de ${contarUnidade(meta.alvoSemanal, meta.unidade)}`;
-  const proporcao = deTempo ? progresso(p.minutosPlaneados / 60, meta.alvoSemanal) : progresso(p.vezesFeitas, meta.alvoSemanal);
-
-  let nota: string | null = null;
-  if (p.vezesPlaneadas === 0) nota = 'Ainda não há tarefas desta semana ligadas a esta meta.';
-  else if (deTempo && p.minutosCalendario < p.minutosPlaneados) nota = `Falta pôr ${formatarHoras((p.minutosPlaneados - p.minutosCalendario) / 60)} no calendário.`;
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${meta.descricao}, ${alvoDaMeta(meta)}. ${legenda}: ${valor}.`}
-      accessibilityHint="Abre a meta para a alterar"
-      onPress={aoAbrir}
-      style={({ pressed }) => ({ padding: 16, opacity: pressed ? 0.6 : 1 })}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: fontes.textoForte, fontSize: 16, lineHeight: 22, color: cores.tinta }}>{`${meta.descricao} ${alvoDaMeta(meta)}`}</Text>
-          <Text style={[estilos.pequeno, { marginTop: 2 }]}>{`Medida à semana: ${medidaSemanal(meta)}`}</Text>
-        </View>
-        <Icone nome="lapis" tamanho={16} cor={cores.texto3} />
-      </View>
-      <View style={{ marginTop: 12, marginBottom: 6, flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-        <Text style={estilos.pequeno}>{legenda}</Text>
-        <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, lineHeight: 18, color: cores.tinta, fontVariant: ['tabular-nums'] }}>{valor}</Text>
-      </View>
-      <BarraProgresso valor={proporcao} cor={cor} pista={cores.linhaSuave} />
-      {nota ? <Text style={[estilos.pequeno, { marginTop: 8 }]}>{nota}</Text> : null}
-    </Pressable>
   );
 }

@@ -71,7 +71,7 @@ function Ficha({ tarefa, arrasto, escolhida, arrastada, aoEscolher }: FichaProps
     <GestureDetector gesture={gesto} touchAction="pan-x">
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${tarefa.nome}, ${duracao}${tarefa.quantas > 1 ? `, ${tarefa.quantas} por alocar` : ''}`}
+        accessibilityLabel={`${tarefa.nome}, ${duracao}${tarefa.quantas > 1 ? `, ${tarefa.quantas} por alocar` : ''}${tarefa.veioDaSemanaPassada ? ', vem da semana passada' : ''}`}
         accessibilityHint="Escolhe a tarefa para depois tocar na hora do calendário. Também se pode arrastar."
         accessibilityState={{ selected: escolhida }}
         onPress={() => aoEscolher(tarefa)}
@@ -90,9 +90,12 @@ function Ficha({ tarefa, arrasto, escolhida, arrastada, aoEscolher }: FichaProps
         }}
       >
         <Icone nome="pegas" tamanho={14} cor={cor.texto} />
-        <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, lineHeight: 18, color: cor.texto }} numberOfLines={1}>
-          {`${tarefa.nome} · ${duracao}`}
-        </Text>
+        <View>
+          <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, lineHeight: 18, color: cor.texto }} numberOfLines={1}>
+            {`${tarefa.nome} · ${duracao}`}
+          </Text>
+          {tarefa.veioDaSemanaPassada ? <Text style={{ fontFamily: fontes.textoMedio, fontSize: 10, lineHeight: 12, color: cor.texto }}>vem da semana passada</Text> : null}
+        </View>
         {tarefa.quantas > 1 ? (
           <View style={{ minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: cor.texto }}>
             <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: '#FFFFFF', fontVariant: ['tabular-nums'] }}>{`×${tarefa.quantas}`}</Text>
