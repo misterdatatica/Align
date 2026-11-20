@@ -26,7 +26,7 @@ npx expo start --web    # ver no navegador (útil para desenvolver; a v1 é para
 ```
 src/
   app/                   rotas Expo Router (cada ficheiro é um ecrã)
-    (tabs)/              Áreas · Semana · Calendário · Revisão
+    (tabs)/              Hoje (index) · Áreas · Semana · Calendário (dia / 3 dias / semana) · Revisão
     area/[id].tsx        detalhe da área: missão, metas (progresso, prazo, tarefas ligadas), tarefas, cor, ícone
     area/nova.tsx        criar área
     meta/[id].tsx        uma meta: progresso, linha do histórico, atualizar valor, pausar, concluir
@@ -38,12 +38,14 @@ src/
   db/client.ts           ligação à base de dados      db/preparar.ts   abre-a e aplica as migrações
   data/                  leituras e escritas usadas pelos ecrãs (metas, tarefas, semanas, calendário, revisão…)
     consulta.ts          useConsulta: lê e volta a ler quando as tabelas mudam
-  domain/                regras puras e testadas: semana, metas, proposta, recorrência, tarefas, calendário, revisão
+  domain/                regras puras e testadas: semana, metas, cópia da semana (proposta.ts), recorrência,
+                         tarefas, calendário, revisão; erros.ts tem o ErroDaApp (mensagens para o utilizador)
   components/            ícones, UI partilhada, formulários
+    AvisoTemporario.tsx  aviso de 5 s com "Desfazer" (comDesfazer), em vez de pedir confirmação
+    exportarCopia.ts     exportar a cópia de segurança e registar a data
     calendario/          grelha, blocos, bandeja "Por alocar", folha de detalhes, o arrasto (arrasto.ts)
                          e a pergunta "Só esta semana / Esta e as seguintes"
     metas/               cartão da meta, linha de progresso, atualizar o valor
-    semana/              o plano da semana: escolher a origem, rever e aceitar a proposta, semana modelo
   estado/semana.ts       o dia de hoje e a semana escolhida nos separadores
   lembrete.ts            lembrete local da revisão (expo-notifications); lembrete.web.ts não faz nada
   copiaFicheiro.ts       guardar e abrir o ficheiro da cópia; copiaFicheiro.web.ts para o navegador
@@ -67,11 +69,18 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
   `serieId`).
 - Uma instância tem no máximo um **bloco** no calendário. Sem bloco está "por alocar"; com bloco,
   "alocada"; bloco marcado como feito, "feita". Um bloco sem tarefa é um bloco "Ocupado".
-- **Semanas** (`semanas`): uma semana sem linha ainda não foi planeada. Planear cria uma **proposta**
-  (rascunho) a partir da última semana planeada, da **semana modelo** ou vazia, que só fica
-  definitiva com "Aceitar semana". A cópia leva os blocos das tarefas recorrentes e os "Ocupado"
-  para o mesmo dia e hora, passa as tarefas únicas por fazer para "Por alocar" (respeitando a
-  revisão) e nunca copia o "feito". A primeira semana de todas começa já aceite.
+- **Semanas** (`semanas`): uma semana sem linha ainda não foi planeada. Ao abrir uma semana (atual
+  ou futura), `planearSemana` cria-a sozinha **igual à semana anterior**, sem nada para aceitar; se
+  faltarem semanas pelo meio, planeiam-se todas por ordem. A cópia leva os blocos das tarefas
+  recorrentes e os "Ocupado" para o mesmo dia e hora, passa as tarefas únicas por fazer para
+  "Por alocar" (respeitando a revisão) e nunca copia o "feito". A primeira semana de todas começa
+  vazia. As semanas que já passaram sem plano ficam assim. (As colunas `estado = 'rascunho'` e
+  `modelo` vêm de versões anteriores e já não se usam.)
+- Apagar, arquivar, concluir, pausar ou abandonar faz-se logo e mostra um aviso com **Desfazer**
+  durante 5 s. Desfazer repõe uma fotografia dos dados tirada antes da ação; o aviso sai assim que
+  outra coisa mudar os dados.
+- `definicoes.ultima_copia` guarda a data da última cópia de segurança; a revisão lembra de fazer
+  uma quando passaram mais de 30 dias.
 - Mover ou retirar um bloco de uma tarefa recorrente pede um âmbito. "Só esta semana" guarda o
   horário habitual na instância (`habitualInicio/Fim`), e a semana seguinte copia o habitual;
   "Esta e as seguintes" muda o hábito e acerta as semanas seguintes que já existem.
@@ -93,10 +102,13 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
 - [x] **Metas de resultado e proposta da semana:** metas com prazo e histórico, semana seguinte como
       cópia (passada, modelo ou vazia) a rever e aceitar, "só esta semana / esta e as seguintes",
       passo "Como estão as suas metas?" na revisão.
+- [x] **Uso diário:** ecrã Hoje, semana nova sempre igual à anterior, "Desfazer" em vez de
+      confirmações, erros compreensíveis, "Guardado ✓", revisão em dois passos (e mais cedo),
+      calendário de 1, 3 ou 7 dias com zoom de dois dedos, lembrete de cópia de segurança.
 - [ ] **Fase 5 — Testes e lojas:** testar num iPhone e num Android reais, corrigir, EAS Build / Submit.
 
 O que falta verificar em telemóveis reais (não se consegue no navegador): o arrasto com o dedo
-e a sua fluidez, o lembrete (notificação à hora escolhida), exportar pela folha de partilha e
+e a sua fluidez, o zoom de dois dedos no calendário, o lembrete (notificação à hora escolhida), exportar pela folha de partilha e
 importar pelo seletor de ficheiros, e o uso em modo de avião.
 
 ## Testes de ponta a ponta

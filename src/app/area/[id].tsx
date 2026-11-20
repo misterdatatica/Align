@@ -2,7 +2,8 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
 import { CampoAutoGuardado } from '@/components/CampoAutoGuardado';
-import { avisarErro, confirmar } from '@/components/dialogos';
+import { comDesfazer } from '@/components/AvisoTemporario';
+import { avisarErro } from '@/components/dialogos';
 import { Icone, type NomeIcone } from '@/components/Icone';
 import { LinhaTarefa } from '@/components/LinhaTarefa';
 import { CartaoMeta } from '@/components/metas/CartaoMeta';
@@ -33,20 +34,9 @@ export default function AreaEcra() {
   const podeCriarMeta = podeAtivarMeta(ativas.length);
   const abrirMeta = (metaId: number) => router.push({ pathname: '/meta/[id]', params: { id: String(metaId) } });
 
-  async function arquivar() {
-    const sim = await confirmar({
-      titulo: 'Arquivar área?',
-      mensagem: 'A área deixa de aparecer, mas o histórico fica guardado.',
-      acao: 'Arquivar',
-      destrutiva: true,
-    });
-    if (!sim) return;
-    try {
-      await arquivarArea(areaId);
-      router.back();
-    } catch (e) {
-      avisarErro('Não foi possível arquivar a área', e);
-    }
+  /** A área deixa de aparecer, mas o histórico fica guardado (e pode ser reposta nas definições). */
+  function arquivar() {
+    if (comDesfazer(`“${area.nome}” arquivada`, () => arquivarArea(areaId), 'Não foi possível arquivar a área')) router.back();
   }
 
   function mudar(campos: Parameters<typeof atualizarArea>[1]) {
@@ -69,7 +59,8 @@ export default function AreaEcra() {
           maxLength={40}
           accessibilityLabel="Nome da área"
           placeholder="Nome da área"
-          style={[estilos.titulo, { flex: 1, paddingVertical: 4 }]}
+          contentor={{ flex: 1 }}
+          style={[estilos.titulo, { paddingVertical: 4 }]}
         />
       </View>
 

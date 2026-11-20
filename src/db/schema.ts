@@ -183,6 +183,8 @@ export const definicoes = sqliteTable('definicoes', {
   fimGrelha: integer('fim_grelha').notNull().default(23),
   /** Lembrete local da revisão; só fica ativo depois de o utilizador dar permissão. */
   lembreteAtivo: integer('lembrete_ativo', { mode: 'boolean' }).notNull().default(false),
+  /** Quando foi exportada a última cópia de segurança (ISO); null = nunca. */
+  ultimaCopia: text('ultima_copia'),
   ...timestamps,
 });
 

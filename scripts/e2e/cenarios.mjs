@@ -20,7 +20,7 @@ const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 /** O dia de hoje pelo nome que as definições usam; a revisão abre no dia escolhido. */
 const HOJE = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'][new Date().getDay()];
 
-/** Passa pelo primeiro arranque, escolhendo as áreas indicadas, e acaba no ecrã das áreas. */
+/** Passa pelo primeiro arranque, escolhendo as áreas indicadas: a app abre no Hoje; acaba no ecrã das áreas. */
 async function comecar(b, areas = []) {
   await b.ir('/', 'Uma semana alinhada');
   await b.clicar('Continuar');
@@ -29,6 +29,8 @@ async function comecar(b, areas = []) {
   await b.clicar('Continuar');
   await b.verTexto('Quando faz a revisão da semana?');
   await b.clicar('Começar');
+  await b.verTexto(areas.length ? 'NO CALENDÁRIO' : 'Ainda não há nada para hoje.');
+  await b.clicar('Áreas');
   await b.verTexto('As minhas áreas');
 }
 
@@ -92,7 +94,7 @@ const haBlocos = (b, nome, quantos) =>
   );
 
 const cenarios = {
-  /** Áreas, metas (resultados com prazo), tarefas, o plano da semana e a proposta da semana seguinte. */
+  /** Áreas, metas (resultados com prazo), tarefas, o plano da semana e a semana seguinte, igual a esta. */
   async semana(b, passo) {
     await passo('primeiro arranque e criar uma área pelo formulário', async () => {
       await comecar(b, ['Espiritual']);
@@ -188,46 +190,33 @@ const cenarios = {
       await b.verTexto('6,5 h');
     });
 
-    await passo('a semana seguinte começa como uma proposta, que só fica definitiva ao aceitar', async () => {
+    await passo('a semana seguinte começa sozinha igual a esta, sem nada para aceitar', async () => {
       await b.clicar('Semana seguinte');
       await b.verTexto(descreverSemanaComAno(SEGUINTE));
-      await b.verTexto('Como quer começar esta semana?');
-      await b.verTexto('Igual à semana passada');
-      await b.naoVerTexto('Igual à semana modelo');
-      await b.naoVerTexto('Meditar');
-      await b.clicar('Criar proposta');
-      await b.verTexto('Proposta por aceitar');
+      await b.verTexto('Começou igual à semana passada.');
       await b.verTexto('0/3');
       await b.verTexto('0/7');
       await b.verTexto('30 min · vem da semana passada'); // "Ligar aos avós" ficou por fazer
-      await b.verTexto('2 áreas sem tempo no calendário');
-      await b.clicar('Aceitar semana');
       await b.naoVerTexto('Proposta por aceitar');
+      await b.naoVerTexto('semana modelo');
       await b.clicar('Voltar a esta semana');
       await b.verTexto(descreverSemanaComAno(ESTA));
-      await b.naoVerTexto('Proposta por aceitar');
     });
 
-    await passo('qualquer semana se marca e desmarca como semana modelo', async () => {
-      await b.clicar('Semana modelo');
-      await b.verTexto('Esta é a semana modelo');
-      await b.clicar('Semana seguinte');
-      await b.verTexto(`Marcar como semana modelo (substitui a de ${descreverSemanaPorExtenso(ESTA)})`);
-      await b.clicar('Voltar a esta semana');
-      await b.clicar('Semana modelo');
-      await b.verTexto('Marcar como semana modelo');
-      await b.naoVerTexto('Esta é a semana modelo');
-    });
-
-    await passo('apagar pelo formulário e a deslizar, com confirmação', async () => {
+    await passo('apagar pelo formulário e a deslizar, sem confirmação mas com "Desfazer"', async () => {
       await b.clicar('Ligar aos avós');
       await b.clicar('Apagar tarefa');
-      await b.naoVerTexto('Ligar aos avós');
+      await b.verTexto('“Ligar aos avós” apagada');
+      await b.clicar('Desfazer');
+      await b.naoVerTexto('“Ligar aos avós” apagada');
+      await b.verTexto('Ligar aos avós');
       const linha = await b.procurar('Lição ACIM');
       await b.arrastar({ x: linha.x + 60, y: linha.y }, { x: linha.x - 140, y: linha.y }, { passos: 12 });
       await b.clicar('Apagar Lição ACIM');
+      await b.verTexto('“Lição ACIM” apagada');
+      await b.clicar('Fechar aviso');
       await b.naoVerTexto('Lição ACIM');
-      if (b.dialogos.filter((d) => d.startsWith('confirm: Apagar')).length !== 2) throw new Error('faltou pedir confirmação');
+      if (b.dialogos.some((d) => d.startsWith('confirm: Apagar'))) throw new Error('voltou a pedir confirmação');
       // Um toque simples continua a abrir a tarefa.
       await b.clicar('Meditar');
       await b.verTexto('Guardar alterações');
@@ -313,7 +302,7 @@ const cenarios = {
       await b.arrastar({ x: de.x + 12, y: de.y }, { x: bandeja.x, y: bandeja.y + 30 }, { passos: 24, segurar: 500 });
       await b.verTexto('Rever orçamento · 1 h');
       await naoHaBloco(b, 'Rever orçamento, quarta');
-      await b.clicar('Semana');
+      await b.clicar('Semana', { indice: -1 });
       await b.verTexto('7/7');
       await b.verTexto('14 h');
     });
@@ -338,18 +327,24 @@ const cenarios = {
       await haBloco(b, 'Meditar, quarta, 12:00–14:00');
     });
 
-    await passo('a proposta da semana seguinte copia os blocos recorrentes e os "Ocupado", e destaca o que precisa de atenção', async () => {
-      await b.clicar('Semana');
+    await passo('as vistas de 1 e 3 dias mostram só esses dias, e as setas andam pelos dias', async () => {
+      await b.clicar('Mostrar dia');
+      await haBlocos(b, 'Meditar', 1);
+      await b.clicar('Mostrar 3 dias');
+      await haBlocos(b, 'Meditar', 3);
+      await b.clicar('Mostrar dia');
+      await b.clicar('Dia seguinte');
+      await haBlocos(b, 'Meditar', 1);
+      await b.clicar('Mostrar semana');
+      await haBlocos(b, 'Meditar', 7);
+    });
+
+    await passo('a semana seguinte copia os blocos recorrentes e os "Ocupado", e destaca as sobreposições', async () => {
+      await b.clicar('Semana', { indice: -1 });
       await b.clicar('Semana seguinte');
-      await b.verTexto('Como quer começar esta semana?');
-      await b.clicar('Criar proposta');
-      await b.verTexto('Proposta por aceitar');
-      await b.verTexto('1 sobreposição');
-      await b.verTexto('Seg 08:00–08:30 · Meditar e Reunião');
-      await b.verTexto('1 área sem tempo no calendário');
+      await b.verTexto('Começou igual à semana passada.');
       await b.verTexto('2 h · vem da semana passada'); // "Curso online" voltou a "Por alocar"
-      await b.clicar('Rever no calendário');
-      await b.verTexto('Proposta por aceitar · 1 sobreposição');
+      await b.clicar('Alocar no calendário');
       await haBlocos(b, 'Meditar', 7);
       await haBloco(b, 'Meditar, segunda, 06:30–08:30, sobreposto a outro bloco');
       await haBloco(b, 'Meditar, terça, 06:30–08:30'); // a exceção de terça não passou
@@ -359,17 +354,19 @@ const cenarios = {
       if (await b.avaliar(`${contar('Meditar, ')} > 0 && [...document.querySelectorAll('[aria-label*=", feito"]')].filter((e) => !e.closest('[inert]')).length`)) throw new Error('o estado "feito" foi copiado');
     });
 
-    await passo('rever a proposta: apagar o que não se repete e aceitar', async () => {
+    await passo('apagar um bloco "Ocupado" que não se repete, com "Desfazer"', async () => {
       const p = await celula(b, 0, 8.75);
       await b.clicarEm(p.x + 12, p.y);
       await b.clicar('Apagar bloco');
       await naoHaBloco(b, 'Reunião, segunda');
-      await b.verTexto('Proposta por aceitar');
-      await b.naoVerTexto('sobreposição');
-      await b.clicar('Aceitar semana');
-      await b.naoVerTexto('Proposta por aceitar');
-      await b.clicar('Semana');
-      await b.naoVerTexto('Proposta por aceitar');
+      await b.verTexto('“Reunião” apagado');
+      await b.clicar('Desfazer');
+      await haBloco(b, 'Reunião, segunda, 08:00–09:00');
+      await b.clicarEm(p.x + 12, p.y);
+      await b.clicar('Apagar bloco');
+      await naoHaBloco(b, 'Reunião, segunda');
+      await haBloco(b, 'Meditar, segunda, 06:30–08:30');
+      await b.clicar('Semana', { indice: -1 });
       await b.verTexto('7/7');
     });
   },
@@ -414,6 +411,7 @@ const cenarios = {
       await b.verTexto('A revisão desta semana abre domingo');
       await b.verTexto('de 17 h planeadas');
       await b.verTexto('Vai em 24% do plano.');
+      await b.verTexto('Fazer a revisão agora');
       await b.naoVerTexto('REFLEXÃO');
     });
 
@@ -423,8 +421,10 @@ const cenarios = {
       await b.clicar(HOJE);
       await b.verTexto(`A revisão da semana fica disponível a partir de ${HOJE}.`);
       await b.avaliar('history.back()');
+      await b.clicar('Hoje');
       await b.verTexto(`Revisão de ${HOJE}`);
       await b.verTexto(`Como correu a semana de ${descreverSemanaPorExtenso(ESTA)}?`);
+      await b.verTexto('NO CALENDÁRIO');
     });
 
     await passo('horas feitas por área, "Feito?" e o que ficou por fazer', async () => {
@@ -450,15 +450,16 @@ const cenarios = {
       await b.verTexto('Fazer um retiro de silêncio — concluída');
     });
 
-    await passo('fechar abre a proposta da semana seguinte, com a tarefa escolhida a passar', async () => {
+    await passo('fechar a revisão e depois planear a semana seguinte, com a tarefa escolhida a passar', async () => {
       await b.clicar('Rever orçamento, Trabalho · 1 h'); // desmarca: esta não passa
       await b.clicar('O que correu bem?');
       await b.escrever('Meditei quase todos os dias.');
-      await b.esperar(900);
-      await b.clicar(`Planear a semana de ${descreverSemanaPorExtenso(SEGUINTE)}`);
+      await b.verTexto('Guardado ✓');
+      await b.clicar('Fechar revisão');
+      await b.verTexto('Revisão fechada.');
+      await b.clicar(`Planear a semana de ${descreverSemanaPorExtenso(SEGUINTE)} →`);
       await b.verTexto(descreverSemanaComAno(SEGUINTE));
-      await b.verTexto('Proposta por aceitar');
-      await b.verTexto('Igual à semana passada');
+      await b.verTexto('Começou igual à semana passada.');
       await b.verTexto('2 h · vem da semana passada');
       await b.verTexto('7/7'); // os blocos de "Meditar" vieram copiados
       await b.naoVerTexto('7/7 feitas');
@@ -471,7 +472,7 @@ const cenarios = {
       await b.verTexto('Revisão fechada.');
       await b.verTexto('passou para a semana seguinte');
       await b.ate(`document.querySelector('[aria-label="O que correu bem?"]')?.value === 'Meditei quase todos os dias.'`, 'a nota guardada');
-      await b.clicar('Áreas');
+      await b.clicar('Hoje');
       await b.naoVerTexto('Como correu a semana');
     });
   },
@@ -493,6 +494,9 @@ const cenarios = {
       await b.clicar('Mais hora da revisão');
       await b.verTexto('18:30');
       await b.clicar('Começar');
+      await b.verTexto('NO CALENDÁRIO');
+      await b.verTexto('Não há nada no calendário para hoje.');
+      await b.clicar('Áreas');
       await b.verTexto('2 de 7 no máximo');
       await b.naoVerTexto('Família');
     });
@@ -506,7 +510,9 @@ const cenarios = {
     });
 
     await passo('exporta os dados para um ficheiro', async () => {
+      await b.verTexto('Ainda não fez nenhuma cópia.');
       await b.clicar('Exportar dados');
+      await b.verTexto('Última cópia: ');
       for (let i = 0; i < 50 && !(ficheiro = readdirSync(descargas).find((f) => f.endsWith('.json'))); i++) await b.esperar(200);
       if (!ficheiro) throw new Error('o ficheiro não foi descarregado');
       const copia = JSON.parse(readFileSync(path.join(descargas, ficheiro), 'utf8'));
@@ -538,7 +544,8 @@ const cenarios = {
     });
 
     await passo('uma app já usada não volta ao primeiro arranque', async () => {
-      await b.ir('/', 'As minhas áreas');
+      await b.ir('/', 'NO CALENDÁRIO');
+      await b.clicar('Áreas');
       await b.verTexto('2 de 7 no máximo');
     });
   },
@@ -558,7 +565,7 @@ const cenarios = {
       await b.arrastar(trabalho, { x: trabalho.x, y: espiritual.y - 20 }, { segurar: 600 });
       await b.esperar(500);
       if ((await ordem()) !== 'Trabalho,Espiritual,Família') throw new Error(`ordem inesperada: ${await ordem()}`);
-      await b.ir('/', 'As minhas áreas');
+      await b.ir('/areas', 'As minhas áreas');
       if ((await ordem()) !== 'Trabalho,Espiritual,Família') throw new Error('a ordem não ficou guardada');
     });
 

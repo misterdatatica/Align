@@ -2,7 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 
-import { garantirSemana } from '@/data/tarefas';
+import { planearSemana } from '@/data/semanas';
 import { deDataISO, inicioDaSemana, paraDataISO } from '@/domain/semana';
 
 /*
@@ -43,10 +43,13 @@ function semanaAtual(): string {
   return inicioDaSemana(deDataISO(hoje));
 }
 
-/** Cria as instâncias das tarefas recorrentes da semana, se ainda faltarem. Nunca interrompe o ecrã. */
+/**
+ * Planeia a semana (igual à anterior) e cria as instâncias das tarefas recorrentes, se ainda
+ * faltarem. Nunca interrompe o ecrã.
+ */
 function prepararSemana(semana: string) {
   try {
-    garantirSemana(semana);
+    planearSemana(semana);
   } catch (erro) {
     console.warn('Não foi possível preparar a semana', erro);
   }

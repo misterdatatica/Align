@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { comDesfazer } from '@/components/AvisoTemporario';
 import { CampoAutoGuardado } from '@/components/CampoAutoGuardado';
 import { avisarErro } from '@/components/dialogos';
 import { Botao, BotaoIcone, Opcao, Passo, estilos } from '@/components/ui';
@@ -145,7 +146,8 @@ function DetalheDoBloco({ bloco, calendario, aoFechar }: { bloco: BlocoCalendari
 
   const mover = (h: Horario, ambito?: Ambito) => tentar('Não foi possível mudar o bloco', () => moverBloco(bloco.id, calendario.dias[h.dia], h.inicioMin, h.fimMin, ambito));
   const retirar = (ambito?: Ambito) => {
-    if (tentar('Não foi possível retirar o bloco', () => retirarBloco(bloco.id, ambito))) aoFechar();
+    const texto = ocupado ? `“${bloco.nome}” apagado` : `“${bloco.nome}” voltou a “Por alocar”`;
+    if (comDesfazer(texto, () => retirarBloco(bloco.id, ambito), 'Não foi possível retirar o bloco')) aoFechar();
   };
 
   function responder(ambito: Ambito) {

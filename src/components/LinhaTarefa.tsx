@@ -5,7 +5,8 @@ import { Pressable as PressableDeGestos } from 'react-native-gesture-handler';
 import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
-import { avisarErro, confirmar } from '@/components/dialogos';
+import { comDesfazer } from '@/components/AvisoTemporario';
+import { avisarErro } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
 import { BotaoIcone } from '@/components/ui';
 import { apagarTarefa, marcarVez } from '@/data/tarefas';
@@ -33,22 +34,9 @@ export function LinhaTarefa({ tarefa, semana, porExtenso, semLinha }: Props) {
     router.push({ pathname: '/tarefa/[id]', params: { id: String(tarefa.id), semana } });
   }
 
-  async function apagar() {
-    const sim = await confirmar({
-      titulo: `Apagar “${tarefa.nome}”?`,
-      mensagem: 'Sai desta semana e das seguintes. As semanas anteriores ficam no histórico.',
-      acao: 'Apagar',
-      destrutiva: true,
-    });
-    if (!sim) {
-      deslizante.current?.close();
-      return;
-    }
-    try {
-      apagarTarefa(tarefa.id, semana);
-    } catch (erro) {
-      avisarErro('Não foi possível apagar a tarefa', erro);
-    }
+  /** Sai desta semana e das seguintes (as anteriores ficam no histórico), com uns segundos para desfazer. */
+  function apagar() {
+    if (!comDesfazer(`“${tarefa.nome}” apagada`, () => apagarTarefa(tarefa.id, semana), 'Não foi possível apagar a tarefa')) deslizante.current?.close();
   }
 
   function contar(feita: boolean) {

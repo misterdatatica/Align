@@ -2,6 +2,7 @@ import { db } from '@/db/client';
 import { areas, blocos, definicoes, metas, metasRegistos, revisoes, semanas, tarefas, tarefasSemana } from '@/db/schema';
 import { formatarValor } from '@/domain/metas';
 import { deDataISO, inicioDaSemana, paraDataISO, somarMeses } from '@/domain/semana';
+import { ErroDaApp } from '@/domain/erros';
 
 /*
  * Cópia de segurança: todos os dados num objeto que se guarda como ficheiro JSON, para não perder
@@ -100,15 +101,15 @@ export function lerCopia(texto: string, hoje: Date = new Date()): CopiaDeSeguran
   try {
     copia = JSON.parse(texto);
   } catch {
-    throw new Error('O ficheiro não é uma cópia de segurança válida.');
+    throw new ErroDaApp('O ficheiro não é uma cópia de segurança válida.');
   }
-  if (!eObjeto(copia) || copia.app !== APP || !eObjeto(copia.dados)) throw new Error('O ficheiro não é uma cópia de segurança desta app.');
+  if (!eObjeto(copia) || copia.app !== APP || !eObjeto(copia.dados)) throw new ErroDaApp('O ficheiro não é uma cópia de segurança desta app.');
   if (typeof copia.versao !== 'number' || copia.versao > VERSAO) {
-    throw new Error('Esta cópia foi feita por uma versão mais recente da app. Atualize a app e tente outra vez.');
+    throw new ErroDaApp('Esta cópia foi feita por uma versão mais recente da app. Atualize a app e tente outra vez.');
   }
   if (copia.versao < 2) atualizarDaVersao1(copia.dados, hoje);
   for (const nome of ORDEM) {
-    if (!Array.isArray(copia.dados[nome]) || !copia.dados[nome].every(eObjeto)) throw new Error('A cópia de segurança está incompleta.');
+    if (!Array.isArray(copia.dados[nome]) || !copia.dados[nome].every(eObjeto)) throw new ErroDaApp('A cópia de segurança está incompleta.');
   }
   return copia as CopiaDeSeguranca;
 }

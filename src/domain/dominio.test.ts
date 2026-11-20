@@ -18,7 +18,7 @@ import {
   progressoDaMeta,
   valorComUnidade,
 } from './metas.ts';
-import { areasSemTempo, fimCopiado, lugaresACopiar, origemPorOmissao, sobreposicoesDaSemana } from './proposta.ts';
+import { fimCopiado, lugaresACopiar, sobreposicoesDaSemana } from './proposta.ts';
 import { encaixarMeiaHora, formatarHoras, MAX_AREAS, podeCriarArea, progresso } from './regras.ts';
 import { descreverData, descreverSemana, diasDaSemana, inicioDaSemana, somarMeses, somarSemanas } from './semana.ts';
 
@@ -210,15 +210,5 @@ describe('proposta da semana', () => {
       ],
     );
     assert.deepEqual(sobreposicoesDaSemana([bloco(1, 0, 540, 600), bloco(2, 0, 600, 660)]), [], 'um a seguir ao outro não é sobreposição');
-  });
-
-  it('encontra as áreas sem nenhum tempo no calendário', () => {
-    const areas = [{ id: 1 }, { id: 2 }, { id: 3 }];
-    assert.deepEqual(areasSemTempo(areas, [bloco(1, 0, 540, 600, 1), bloco(2, 0, 600, 660, null)]), [{ id: 2 }, { id: 3 }], 'os blocos Ocupado não são de nenhuma área');
-  });
-
-  it('por omissão copia a semana passada, se houver', () => {
-    assert.equal(origemPorOmissao(['passada', 'modelo', 'vazia']), 'passada');
-    assert.equal(origemPorOmissao(['modelo', 'vazia']), 'vazia');
   });
 });

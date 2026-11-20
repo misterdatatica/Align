@@ -1,5 +1,7 @@
 import { Alert, Platform } from 'react-native';
 
+import { ErroDaApp } from '@/domain/erros';
+
 /*
  * Avisos e confirmações. No telemóvel usam os diálogos nativos; no navegador o `Alert` do
  * React Native não faz nada, por isso usam-se os do próprio navegador.
@@ -13,9 +15,34 @@ export function avisar(titulo: string, mensagem?: string) {
   Alert.alert(titulo, mensagem);
 }
 
-/** Mostra o erro de uma ação que falhou. */
+/** Mensagem para os erros técnicos, que não diriam nada a quem usa a app. */
+export const MENSAGEM_GENERICA = 'Tente outra vez. Os seus dados estão seguros.';
+
+export type ErroRegistado = { quando: string; titulo: string; detalhe: string };
+
+/** Os últimos erros técnicos, mais recentes no fim (só em memória, para diagnosticar). */
+const registo: ErroRegistado[] = [];
+const MAXIMO_NO_REGISTO = 50;
+
+export function errosRecentes(): readonly ErroRegistado[] {
+  return registo;
+}
+
+/**
+ * Mostra o erro de uma ação que falhou. As mensagens escritas para o utilizador (ErroDaApp) aparecem
+ * tal como estão; os erros técnicos ficam no registo interno e o ecrã mostra uma mensagem simples
+ * (com o detalhe só em desenvolvimento).
+ */
 export function avisarErro(titulo: string, erro: unknown) {
-  avisar(titulo, erro instanceof Error ? erro.message : String(erro));
+  if (erro instanceof ErroDaApp) {
+    avisar(titulo, erro.message);
+    return;
+  }
+  const detalhe = erro instanceof Error ? `${erro.name}: ${erro.message}` : String(erro);
+  registo.push({ quando: new Date().toISOString(), titulo, detalhe });
+  if (registo.length > MAXIMO_NO_REGISTO) registo.shift();
+  console.warn(`${titulo} — ${detalhe}`);
+  avisar(titulo, __DEV__ ? `${MENSAGEM_GENERICA}\n\n${detalhe}` : MENSAGEM_GENERICA);
 }
 
 type Confirmacao = {

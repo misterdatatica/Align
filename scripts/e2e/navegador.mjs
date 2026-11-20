@@ -56,7 +56,8 @@ const PROCURAR = `
       if (achados.length) break;
     }
     if (!achados.length) achados = reserva;
-    const el = achados[opcoes.indice ?? 0];
+    // indice negativo conta a partir do fim (ex.: -1 = o último, como o separador por baixo de tudo).
+    const el = achados.at(opcoes.indice ?? 0);
     if (!el) return null;
     el.scrollIntoView({ block: 'center', inline: 'center' });
     const r = el.getBoundingClientRect();

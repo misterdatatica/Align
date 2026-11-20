@@ -46,7 +46,8 @@ export default function TabsLayout() {
         sceneStyle: { backgroundColor: cores.fundo },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Áreas', tabBarIcon: iconeTab('grelha') }} />
+      <Tabs.Screen name="index" options={{ title: 'Hoje', tabBarIcon: iconeTab('sol') }} />
+      <Tabs.Screen name="areas" options={{ title: 'Áreas', tabBarIcon: iconeTab('grelha') }} />
       <Tabs.Screen name="semana" options={{ title: 'Semana', tabBarIcon: iconeTab('lista') }} />
       <Tabs.Screen name="calendario" options={{ title: 'Calendário', tabBarIcon: iconeTab('calendario') }} />
       <Tabs.Screen name="revisao" options={{ title: 'Revisão', tabBarIcon: iconeTab('grafico') }} />

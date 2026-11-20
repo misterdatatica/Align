@@ -1,6 +1,7 @@
 /** Regras das metas (resultados com prazo) que não dependem da base de dados. */
 
 import { deDataISO } from './semana';
+import { ErroDaApp } from './erros';
 
 export const MAX_METAS_ATIVAS = 3;
 
@@ -108,14 +109,14 @@ export type DadosMeta = {
 /** Valida e arruma uma meta antes de a guardar. As metas de marco não guardam valores. */
 export function normalizarMeta(dados: DadosMeta) {
   const descricao = dados.descricao.trim();
-  if (!descricao) throw new Error('A meta precisa de uma descrição.');
-  if (!dataValida(dados.prazo)) throw new Error('A meta precisa de um prazo: escolha uma data válida.');
+  if (!descricao) throw new ErroDaApp('A meta precisa de uma descrição.');
+  if (!dataValida(dados.prazo)) throw new ErroDaApp('A meta precisa de um prazo: escolha uma data válida.');
   if (dados.medida === 'marco') return { descricao, prazo: dados.prazo, medida: 'marco' as const, valorInicial: null, valorAlvo: null, unidade: null };
 
   const { valorInicial, valorAlvo } = dados;
-  if (typeof valorInicial !== 'number' || !Number.isFinite(valorInicial)) throw new Error('Indique o valor de partida.');
-  if (typeof valorAlvo !== 'number' || !Number.isFinite(valorAlvo)) throw new Error('Indique o valor a que quer chegar.');
-  if (valorAlvo === valorInicial) throw new Error('O alvo tem de ser diferente do valor de partida.');
+  if (typeof valorInicial !== 'number' || !Number.isFinite(valorInicial)) throw new ErroDaApp('Indique o valor de partida.');
+  if (typeof valorAlvo !== 'number' || !Number.isFinite(valorAlvo)) throw new ErroDaApp('Indique o valor a que quer chegar.');
+  if (valorAlvo === valorInicial) throw new ErroDaApp('O alvo tem de ser diferente do valor de partida.');
   return { descricao, prazo: dados.prazo, medida: 'numero' as const, valorInicial, valorAlvo, unidade: dados.unidade?.trim() || null };
 }
 

@@ -1,68 +1,71 @@
 import { Redirect, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { ScrollView } from 'react-native-gesture-handler';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Riscas } from '@/components/calendario/Bloco';
 import { avisarErro } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
-import { ListaDeAreas } from '@/components/ListaDeAreas';
-import { Botao, BotaoIcone, Seccao, Titulo, estilos } from '@/components/ui';
-import { criarArea, reordenarAreas } from '@/data/areas';
-import { recarregarConsultas, useConsulta } from '@/data/consulta';
+import { LinhaTarefa } from '@/components/LinhaTarefa';
+import { Botao, Cartao, Seccao, Titulo, estilos } from '@/components/ui';
+import { marcarBlocoFeito, type BlocoCalendario } from '@/data/calendario';
+import { useConsulta } from '@/data/consulta';
 import { primeiroArranque } from '@/data/definicoes';
+import { carregarHoje } from '@/data/hoje';
 import { revisaoPorFazer } from '@/data/revisao';
-import { carregarPlanoDaSemana } from '@/data/semanas';
-import { carregarPlano } from '@/data/tarefas';
-import { MAX_AREAS, podeCriarArea } from '@/domain/regras';
+import { formatarIntervalo } from '@/domain/calendario';
 import { DIAS_DE_REVISAO } from '@/domain/revisao';
-import { descreverSemanaPorExtenso } from '@/domain/semana';
-import { escolherSemana, useHoje, usePrepararSemana, useSemanaAtual } from '@/estado/semana';
-import { SUGESTOES_DE_AREAS } from '@/sugestoes';
+import { descreverDia, descreverSemanaPorExtenso } from '@/domain/semana';
+import { escolherSemana, useHoje, usePrepararSemana } from '@/estado/semana';
 import { cores, corDaArea, fontes } from '@/theme';
 
-const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos'] as const;
+const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos', 'definicoes'] as const;
 const TABELAS_DA_REVISAO = ['tarefas_semana', 'revisoes', 'definicoes'] as const;
 const TABELAS_DO_ARRANQUE = ['areas', 'definicoes'] as const;
-const TABELAS_DO_PLANO = ['semanas'] as const;
 
-export default function AreasEcra() {
+/** Minutos desde a meia-noite, atualizados a cada meio minuto (para saber o que está a decorrer). */
+function useAgora(): number {
+  const ler = () => {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  };
+  const [agora, setAgora] = useState(ler);
+  useEffect(() => {
+    const intervalo = setInterval(() => setAgora(ler()), 30_000);
+    return () => clearInterval(intervalo);
+  }, []);
+  return agora;
+}
+
+/**
+ * Hoje: o que está no calendário para hoje, por ordem de hora, com uma caixa para marcar cada bloco
+ * como feito, e as tarefas sem duração da semana. É o ecrã que a app abre.
+ */
+export default function HojeEcra() {
   const router = useRouter();
-  const semana = useSemanaAtual();
-  usePrepararSemana(semana);
-  const plano = useConsulta(() => carregarPlano(semana), TABELAS, semana);
   const hoje = useHoje();
+  const dia = useConsulta(() => carregarHoje(hoje), TABELAS, hoje);
+  usePrepararSemana(dia.semana);
+  const agora = useAgora();
   const porRever = useConsulta(() => revisaoPorFazer(hoje), TABELAS_DA_REVISAO, hoje);
-  const estadoDaSemana = useConsulta(() => carregarPlanoDaSemana(semana, hoje).estado, TABELAS_DO_PLANO, `${semana}|${hoje}`);
-  const [aCriar, setACriar] = useState<string | null>(null);
   const boasVindas = useConsulta(primeiroArranque, TABELAS_DO_ARRANQUE);
-
-  const lista = plano.areas;
-  const podeCriar = podeCriarArea(lista.length);
-
-  async function criarSugestao(s: (typeof SUGESTOES_DE_AREAS)[number]) {
-    setACriar(s.nome);
-    try {
-      await criarArea({ ...s, missao: '' });
-    } catch (e) {
-      avisarErro('Não foi possível criar a área', e);
-    } finally {
-      setACriar(null);
-    }
-  }
 
   // App acabada de instalar: começa pelo primeiro arranque.
   if (boasVindas) return <Redirect href="/boas-vindas" />;
 
+  const deTarefas = dia.blocos.filter((b) => b.tipo === 'tarefa');
+  const feitos = deTarefas.filter((b) => b.feito).length;
+  const titulo = descreverDia(hoje);
+
+  function abrirCalendario() {
+    escolherSemana(dia.semana);
+    router.navigate('/calendario');
+  }
+
   return (
     <SafeAreaView style={estilos.ecra} edges={['top']}>
       <ScrollView contentContainerStyle={estilos.conteudo}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-          <View style={{ flex: 1 }}>
-            <Titulo subtitulo={`Semana de ${descreverSemanaPorExtenso(semana)}`}>As minhas áreas</Titulo>
-          </View>
-          <BotaoIcone icone="engrenagem" rotulo="Definições" tamanho={22} cor={cores.texto2} onPress={() => router.push('/definicoes')} style={{ marginRight: -10, marginTop: -4 }} />
-        </View>
+        <Titulo subtitulo={titulo[0].toUpperCase() + titulo.slice(1)}>Hoje</Titulo>
 
         {porRever ? (
           <Pressable
@@ -81,74 +84,139 @@ export default function AreasEcra() {
           </Pressable>
         ) : null}
 
-        {estadoDaSemana !== 'aceite' && lista.length > 0 ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              escolherSemana(semana);
-              router.navigate('/semana');
-            }}
-            style={({ pressed }) => ({ marginTop: -4, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1, borderColor: cores.tinta, backgroundColor: cores.superficie, opacity: pressed ? 0.7 : 1 })}
-          >
-            <Icone nome="calendario" cor={cores.tinta} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: cores.tinta }}>{estadoDaSemana === 'rascunho' ? 'A proposta desta semana está por aceitar' : 'Esta semana ainda não tem plano'}</Text>
-              <Text style={{ fontFamily: fontes.texto, fontSize: 13, lineHeight: 18, color: cores.texto3 }}>{estadoDaSemana === 'rascunho' ? 'Reveja os blocos e aceite a semana.' : 'Comece por uma cópia da semana passada.'}</Text>
-            </View>
-            <Icone nome="seta-direita" tamanho={18} cor={cores.tinta} espessura={2} />
-          </Pressable>
-        ) : null}
+        {!dia.temAreas ? (
+          <Cartao style={{ padding: 16, gap: 12 }}>
+            <Text style={estilos.corpo}>Ainda não há nada para hoje. Comece por criar as áreas da sua vida e as tarefas de cada uma.</Text>
+            <Botao titulo="Ir para as áreas" variante="contorno" onPress={() => router.navigate('/areas')} />
+          </Cartao>
+        ) : (
+          <>
+            <Seccao titulo="No calendário" direita={deTarefas.length > 0 ? <Text style={estilos.pequeno}>{`${feitos} de ${deTarefas.length} feitos`}</Text> : undefined}>
+              {dia.blocos.length === 0 ? (
+                <Cartao style={{ padding: 16, gap: 12 }}>
+                  <Text style={estilos.corpo}>Não há nada no calendário para hoje.</Text>
+                  <Botao titulo="Abrir o calendário" icone="calendario" variante="contorno" onPress={abrirCalendario} />
+                </Cartao>
+              ) : (
+                <Cartao style={{ overflow: 'hidden' }}>
+                  {dia.blocos.map((b, i) => (
+                    <LinhaDoBloco key={b.id} bloco={b} agora={agora} primeira={i === 0} />
+                  ))}
+                </Cartao>
+              )}
+            </Seccao>
 
-        <Seccao titulo="Áreas" direita={<Text style={estilos.pequeno}>{`${lista.length} de ${MAX_AREAS} no máximo`}</Text>}>
-          <ListaDeAreas
-            itens={lista}
-            aoAbrir={(areaId) => router.push({ pathname: '/area/[id]', params: { id: String(areaId) } })}
-            aoReordenar={(ids) => {
-              try {
-                reordenarAreas(ids);
-                recarregarConsultas();
-              } catch (e) {
-                avisarErro('Não foi possível mudar a ordem', e);
-              }
-            }}
-          />
-          {lista.length > 1 ? <Text style={[estilos.pequeno, { fontSize: 12, lineHeight: 16 }]}>Mantenha uma área premida e arraste para mudar a ordem.</Text> : null}
+            {dia.semHora.length > 0 ? (
+              <Seccao titulo="Sem hora marcada">
+                <Text style={[estilos.pequeno, { marginTop: -4 }]}>Tarefas desta semana que não ocupam tempo no calendário: marque cada vez que as faz.</Text>
+                <View style={[estilos.cartao, { overflow: 'hidden' }]}>
+                  {dia.semHora.flatMap((g) => g.tarefas.map((t) => ({ area: g.area, tarefa: t }))).map(({ area, tarefa }, i) => (
+                    <View key={tarefa.id} style={{ flexDirection: 'row', alignItems: 'stretch' }}>
+                      <View style={{ width: 4, backgroundColor: corDaArea(area.cor).forte }} />
+                      <View style={{ flex: 1 }}>
+                        <LinhaTarefa tarefa={tarefa} semana={dia.semana} semLinha={i === 0} />
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </Seccao>
+            ) : null}
 
-          {lista.length === 0 ? (
-            <View style={{ gap: 12, marginTop: 4 }}>
-              <Text style={estilos.corpo}>Comece por escolher as áreas da sua vida. Pode mudar tudo depois.</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {SUGESTOES_DE_AREAS.map((s) => {
-                  const cor = corDaArea(s.cor);
-                  return (
-                    <Pressable
-                      key={s.nome}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Criar área ${s.nome}`}
-                      disabled={aCriar !== null}
-                      onPress={() => criarSugestao(s)}
-                      style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, borderRadius: 999, backgroundColor: cor.tinta }}
-                    >
-                      <Icone nome={s.icone} tamanho={16} cor={cor.texto} />
-                      <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, color: cor.texto }}>{s.nome}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          ) : null}
-
-          <Botao
-            titulo="Nova área"
-            icone="mais"
-            variante="tracejado"
-            disabled={!podeCriar}
-            onPress={() => router.push('/area/nova')}
-            accessibilityHint={podeCriar ? undefined : `Já tem ${MAX_AREAS} áreas. Arquive uma para criar outra.`}
-            style={{ marginTop: 2 }}
-          />
-        </Seccao>
+            {dia.porAlocar > 0 ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={abrirCalendario}
+                style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1, borderColor: cores.contorno, backgroundColor: cores.superficie, opacity: pressed ? 0.7 : 1 })}
+              >
+                <Icone nome="calendario" cor={cores.tinta} />
+                <Text style={{ flex: 1, fontFamily: fontes.textoMedio, fontSize: 14, lineHeight: 20, color: cores.tinta }}>
+                  {dia.porAlocar === 1 ? 'Há 1 tarefa desta semana ainda sem hora no calendário.' : `Há ${dia.porAlocar} tarefas desta semana ainda sem hora no calendário.`}
+                </Text>
+                <Icone nome="seta-direita" tamanho={18} cor={cores.tinta} espessura={2} />
+              </Pressable>
+            ) : null}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/** Um bloco de hoje: hora, nome e área, e a caixa para o marcar como feito (os "Ocupado" não se marcam). */
+function LinhaDoBloco({ bloco, agora, primeira }: { bloco: BlocoCalendario; agora: number; primeira: boolean }) {
+  const ocupado = bloco.tipo === 'ocupado';
+  const aDecorrer = agora >= bloco.inicioMin && agora < bloco.fimMin;
+  const passou = agora >= bloco.fimMin;
+  const cor = bloco.cor ? corDaArea(bloco.cor) : null;
+  const intervalo = formatarIntervalo(bloco.inicioMin, bloco.fimMin);
+
+  function alternar() {
+    try {
+      marcarBlocoFeito(bloco.id, !bloco.feito);
+    } catch (erro) {
+      avisarErro('Não foi possível marcar o bloco', erro);
+    }
+  }
+
+  const conteudo = (
+    <>
+      <View style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, overflow: 'hidden', backgroundColor: cor ? cor.forte : cores.ocupadoClaro }}>{ocupado ? <Riscas legenda /> : null}</View>
+      <View style={{ flex: 1, minWidth: 0, paddingVertical: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: aDecorrer ? cores.tinta : cores.texto3, fontVariant: ['tabular-nums'] }}>{intervalo}</Text>
+          {aDecorrer ? (
+            <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: cores.tinta }}>
+              <Text style={{ fontFamily: fontes.textoForte, fontSize: 10, lineHeight: 14, color: '#FFFFFF' }}>AGORA</Text>
+            </View>
+          ) : null}
+        </View>
+        <Text
+          numberOfLines={2}
+          style={{ fontFamily: fontes.textoMedio, fontSize: 15, lineHeight: 20, color: ocupado || (passou && !bloco.feito) ? cores.texto2 : cores.tinta, textDecorationLine: bloco.feito ? 'line-through' : 'none' }}
+        >
+          {bloco.nome}
+        </Text>
+        {bloco.area ? <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 16, color: cores.texto3 }}>{bloco.area}</Text> : null}
+      </View>
+      {ocupado ? null : (
+        <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+          <View
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 999,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: bloco.feito ? 0 : 1.5,
+              borderColor: cores.tracejado,
+              backgroundColor: bloco.feito ? cores.tinta : 'transparent',
+            }}
+          >
+            {bloco.feito ? <Icone nome="certo" tamanho={15} cor="#FFFFFF" espessura={2.4} /> : null}
+          </View>
+        </View>
+      )}
+    </>
+  );
+
+  const estilo = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, minHeight: 60, paddingLeft: 12, paddingRight: 6, borderTopWidth: primeira ? 0 : 1, borderTopColor: cores.linhaSuave, backgroundColor: aDecorrer ? cores.fundo : cores.superficie };
+
+  if (ocupado) {
+    return (
+      <View style={estilo} accessible accessibilityLabel={`${bloco.nome}, ${intervalo}, ocupado`}>
+        {conteudo}
+      </View>
+    );
+  }
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityLabel={`${bloco.nome}, ${intervalo}${aDecorrer ? ', a decorrer' : ''}`}
+      accessibilityState={{ checked: bloco.feito }}
+      onPress={alternar}
+      style={({ pressed }) => [estilo, { opacity: pressed ? 0.7 : 1 }]}
+    >
+      {conteudo}
+    </Pressable>
   );
 }

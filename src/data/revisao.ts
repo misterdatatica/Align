@@ -3,7 +3,8 @@ import { and, asc, count, eq, inArray, ne, sql } from 'drizzle-orm';
 import { marcarBlocoFeito } from '@/data/calendario';
 import { carregarDefinicoes } from '@/data/definicoes';
 import { carregarMetasAtivas, type MetaDetalhada } from '@/data/metas';
-import { carregarPlano, garantirSemana } from '@/data/tarefas';
+import { planearSemana } from '@/data/semanas';
+import { carregarPlano } from '@/data/tarefas';
 import { db } from '@/db/client';
 import { areas, blocos, revisoes, tarefas, tarefasSemana } from '@/db/schema';
 import { diaEmQueAbre, revisaoDisponivel } from '@/domain/revisao';
@@ -39,7 +40,7 @@ export type TarefaPorFazer = {
 
 export type RevisaoDaSemana = {
   semana: string;
-  /** Já chegou o dia da revisão; antes disso o ecrã mostra só como a semana vai. */
+  /** Já chegou o dia da revisão, ou foi começada mais cedo; antes disso o ecrã mostra só como a semana vai. */
   disponivel: boolean;
   /** Dia (AAAA-MM-DD) em que a revisão desta semana abre. */
   abreEm: string;
@@ -119,7 +120,8 @@ export function carregarRevisao(hoje: string): RevisaoDaSemana {
 
   return {
     semana,
-    disponivel,
+    // Uma revisão começada mais cedo ("Fazer a revisão agora") fica disponível.
+    disponivel: disponivel || revisao !== undefined,
     abreEm: diaEmQueAbre(semana, carregarDefinicoes().diaRevisao),
     fechadaEm: revisao?.fechadaEm ?? null,
     correuBem: revisao?.correuBem ?? '',
@@ -145,6 +147,11 @@ export function revisaoPorFazer(hoje: string): { semana: string; diaRevisao: num
 }
 
 /** Guarda as notas de reflexão à medida que o utilizador escreve (a revisão continua aberta). */
+/** "Fazer a revisão agora": abre a revisão da semana antes do dia marcado. */
+export function comecarRevisao(semana: string): void {
+  db.insert(revisoes).values({ semana }).onConflictDoNothing().run();
+}
+
 export function guardarReflexao(semana: string, notas: { correuBem?: string; queroMudar?: string }): void {
   const campos = {
     ...(notas.correuBem !== undefined ? { correuBem: notas.correuBem.trim() } : {}),
@@ -216,7 +223,7 @@ export function fecharRevisao(semana: string, transitar: number[], hoje: Date = 
     const aRetirar = transitadas.filter((i) => !passam.has(i.tarefaId) && i.estado === 'por_alocar' && i.blocoId === null).map((i) => i.id);
     if (aRetirar.length) tx.delete(tarefasSemana).where(inArray(tarefasSemana.id, aRetirar)).run();
   });
-  garantirSemana(seguinte, hoje);
+  planearSemana(seguinte, hoje);
 }
 
 /** Volta a abrir uma revisão fechada (ex.: fechada por engano). O que já passou para a semana seguinte fica lá. */

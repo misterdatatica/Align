@@ -20,6 +20,8 @@ export const LARGURA_HORAS = 28;
 export const TOPO_GRELHA = 8;
 /** Altura mínima de meia hora, como no design (14 px); ecrãs altos usam mais. */
 export const MEIA_HORA_MINIMA = 14;
+/** Altura máxima de meia hora, ao ampliar com dois dedos. */
+export const MEIA_HORA_MAXIMA = 72;
 
 export const MODO_NENHUM = 0;
 export const MODO_MOVER = 1;
@@ -67,8 +69,10 @@ export function useArrasto({ inicioMin, fimMin, blocos, aoPegar, aoMudarAlvo, ao
   const bandejaRef = useAnimatedRef<Animated.View>();
   const camadaRef = useAnimatedRef<Animated.View>();
 
-  // Geometria da grelha.
+  // Geometria da grelha. A grelha mostra `numDias` dias seguidos a partir de `primeiroDia` (0 = segunda).
   const larguraColuna = useSharedValue(0);
+  const primeiroDia = useSharedValue(0);
+  const numDias = useSharedValue(7);
   const alturaMeiaHora = useSharedValue(MEIA_HORA_MINIMA);
   const grelhaInicio = useSharedValue(inicioMin);
   const grelhaFim = useSharedValue(fimMin);
@@ -138,7 +142,8 @@ export function useArrasto({ inicioMin, fimMin, blocos, aoPegar, aoMudarAlvo, ao
     const relY = y - origemY.get() - TOPO_GRELHA;
     const altura = ((fimGrelha - inicioGrelha) / 30) * meiaHora;
     const sobreBandeja = y >= bandejaTopo.get();
-    const sobreGrelha = !sobreBandeja && largura > 0 && relX >= -largura / 2 && relX <= largura * 7.5 && relY >= -meiaHora * 2 && relY <= altura + meiaHora * 2;
+    const visiveis = numDias.get();
+    const sobreGrelha = !sobreBandeja && largura > 0 && relX >= -largura / 2 && relX <= largura * (visiveis + 0.5) && relY >= -meiaHora * 2 && relY <= altura + meiaHora * 2;
     const minutos = inicioGrelha + (relY / meiaHora) * 30;
 
     let dia = alvoDia.get();
@@ -148,7 +153,7 @@ export function useArrasto({ inicioMin, fimMin, blocos, aoPegar, aoMudarAlvo, ao
       // Só a hora de fim muda: pelo menos meia hora, no máximo até ao fim da grelha.
       fim = Math.min(Math.max(fimGrelha, inicio + 30), Math.max(inicio + 30, Math.round(minutos / 30) * 30));
     } else if (largura > 0) {
-      dia = Math.min(6, Math.max(0, Math.floor(relX / largura)));
+      dia = primeiroDia.get() + Math.min(visiveis - 1, Math.max(0, Math.floor(relX / largura)));
       const maximo = Math.max(inicioGrelha, fimGrelha - duracao.get());
       inicio = Math.min(maximo, Math.max(inicioGrelha, Math.round((minutos - desvio.get()) / 30) * 30));
       fim = inicio + duracao.get();
@@ -194,7 +199,9 @@ export function useArrasto({ inicioMin, fimMin, blocos, aoPegar, aoMudarAlvo, ao
       const relX = e.absoluteX - origemX.get() - LARGURA_HORAS;
       const relY = e.absoluteY - origemY.get() - TOPO_GRELHA;
       if (largura <= 0 || relX < 0 || relY < 0) return;
-      const dia = Math.floor(relX / largura);
+      const coluna0 = Math.floor(relX / largura);
+      if (coluna0 >= numDias.get()) return;
+      const dia = primeiroDia.get() + coluna0;
       const minutos = grelhaInicio.get() + (relY / meiaHora) * 30;
       const folga = (8 / meiaHora) * 30; // 8 px por baixo do bloco também agarram a borda
 
@@ -204,7 +211,7 @@ export function useArrasto({ inicioMin, fimMin, blocos, aoPegar, aoMudarAlvo, ao
       for (let i = 0; i < lista.length; i++) {
         const b = lista[i];
         if (b.dia !== dia) continue;
-        const coluna = Math.min(b.colunas - 1, Math.floor(((relX - dia * largura) / largura) * b.colunas));
+        const coluna = Math.min(b.colunas - 1, Math.floor(((relX - coluna0 * largura) / largura) * b.colunas));
         if (coluna !== b.coluna) continue;
         if (minutos >= b.inicio && minutos < b.fim) tocado = b;
         else if (minutos >= b.fim && minutos < b.fim + folga) porBaixo = b;
@@ -250,6 +257,8 @@ export function useArrasto({ inicioMin, fimMin, blocos, aoPegar, aoMudarAlvo, ao
     camadaRef,
     gestoGrelha,
     larguraColuna,
+    primeiroDia,
+    numDias,
     alturaMeiaHora,
     grelhaInicio,
     camadaX,

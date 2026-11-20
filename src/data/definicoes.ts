@@ -2,6 +2,7 @@ import { count, eq, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { areas, definicoes } from '@/db/schema';
+import { ErroDaApp } from '@/domain/erros';
 
 /** As definições são um registo único (id 1); enquanto não existir valem estas. */
 export type Definicoes = {
@@ -13,9 +14,11 @@ export type Definicoes = {
   inicioGrelha: number;
   fimGrelha: number;
   lembreteAtivo: boolean;
+  /** Quando foi exportada a última cópia de segurança (ISO); null = nunca. */
+  ultimaCopia: string | null;
 };
 
-export const DEFINICOES_INICIAIS: Definicoes = { diaRevisao: 0, horaRevisao: '18:00', inicioGrelha: 6, fimGrelha: 23, lembreteAtivo: false };
+export const DEFINICOES_INICIAIS: Definicoes = { diaRevisao: 0, horaRevisao: '18:00', inicioGrelha: 6, fimGrelha: 23, lembreteAtivo: false, ultimaCopia: null };
 
 const ID = 1;
 
@@ -28,6 +31,7 @@ export function carregarDefinicoes(): Definicoes {
     inicioGrelha: linha.inicioGrelha,
     fimGrelha: linha.fimGrelha,
     lembreteAtivo: linha.lembreteAtivo,
+    ultimaCopia: linha.ultimaCopia,
   };
 }
 
@@ -44,14 +48,33 @@ export function primeiroArranque(): boolean {
 
 export function guardarDefinicoes(alteracoes: Partial<Definicoes>): Definicoes {
   const novas = { ...carregarDefinicoes(), ...alteracoes };
-  if (!Number.isInteger(novas.diaRevisao) || novas.diaRevisao < 0 || novas.diaRevisao > 6) throw new Error('O dia da revisão não é válido.');
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(novas.horaRevisao)) throw new Error('A hora da revisão não é válida.');
+  if (!Number.isInteger(novas.diaRevisao) || novas.diaRevisao < 0 || novas.diaRevisao > 6) throw new ErroDaApp('O dia da revisão não é válido.');
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(novas.horaRevisao)) throw new ErroDaApp('A hora da revisão não é válida.');
   if (!Number.isInteger(novas.inicioGrelha) || !Number.isInteger(novas.fimGrelha) || novas.inicioGrelha < 0 || novas.fimGrelha > 24 || novas.fimGrelha - novas.inicioGrelha < 4) {
-    throw new Error('O calendário tem de mostrar pelo menos 4 horas.');
+    throw new ErroDaApp('O calendário tem de mostrar pelo menos 4 horas.');
   }
   db.insert(definicoes)
     .values({ id: ID, ...novas })
     .onConflictDoUpdate({ target: definicoes.id, set: { ...novas, atualizadoEm: sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))` } })
     .run();
   return novas;
+}
+
+/** Dias sem cópia de segurança a partir dos quais a app lembra de fazer uma. */
+export const DIAS_SEM_COPIA = 30;
+
+/** Regista que acabou de ser exportada uma cópia de segurança. */
+export function registarCopia(agora: Date = new Date()): void {
+  guardarDefinicoes({ ultimaCopia: agora.toISOString() });
+}
+
+/**
+ * Já é altura de lembrar a cópia de segurança? Sim, se a última foi há mais de 30 dias ou, se nunca
+ * houve nenhuma, se a app já é usada há mais de 30 dias.
+ */
+export function precisaDeCopia(agora: Date = new Date()): boolean {
+  const linha = db.select({ ultimaCopia: definicoes.ultimaCopia, criadoEm: definicoes.criadoEm }).from(definicoes).where(eq(definicoes.id, ID)).get();
+  if (!linha) return false;
+  const desde = Date.parse(linha.ultimaCopia ?? linha.criadoEm);
+  return Number.isFinite(desde) && agora.getTime() - desde > DIAS_SEM_COPIA * 24 * 60 * 60 * 1000;
 }

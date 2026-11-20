@@ -2,7 +2,8 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { avisarErro, confirmar } from '@/components/dialogos';
+import { comDesfazer } from '@/components/AvisoTemporario';
+import { avisarErro } from '@/components/dialogos';
 import { FormularioMeta } from '@/components/FormularioMeta';
 import { Icone } from '@/components/Icone';
 import { AtualizarValor } from '@/components/metas/AtualizarValor';
@@ -19,6 +20,9 @@ import { useHoje, useSemanaAtual } from '@/estado/semana';
 import { cores, corDaArea, fontes } from '@/theme';
 
 const TABELAS = ['areas', 'metas', 'metas_registos', 'tarefas', 'tarefas_semana'] as const;
+
+/** O aviso que aparece ao mudar o estado de uma meta. */
+const TEXTO_DO_ESTADO: Record<EstadoMeta, string> = { concluida: 'Meta concluída', pausada: 'Meta em pausa', abandonada: 'Meta abandonada', ativa: 'Meta ativa outra vez' };
 
 export default function MetaEcra() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,33 +57,22 @@ export default function MetaEcra() {
   const numero = meta.medida === 'numero' && meta.valorInicial !== null && meta.valorAlvo !== null;
   const atrasada = ativa && meta.diasQueFaltam < 0;
 
+  /** Concluir, pausar e abandonar fazem-se logo, com uns segundos para desfazer. */
   function mudarEstado(estado: EstadoMeta) {
-    try {
-      mudarEstadoDaMeta(metaId, estado);
-    } catch (erro) {
-      avisarErro('Não foi possível mudar a meta', erro);
+    if (estado === 'ativa') {
+      try {
+        mudarEstadoDaMeta(metaId, estado);
+      } catch (erro) {
+        avisarErro('Não foi possível mudar a meta', erro);
+      }
+      return;
     }
+    comDesfazer(TEXTO_DO_ESTADO[estado], () => mudarEstadoDaMeta(metaId, estado), 'Não foi possível mudar a meta');
   }
 
-  async function abandonar() {
-    const sim = await confirmar({ titulo: 'Abandonar esta meta?', mensagem: 'A meta e o histórico ficam guardados, e pode voltar a ativá-la.', acao: 'Abandonar' });
-    if (sim) mudarEstado('abandonada');
-  }
-
-  async function apagar() {
-    const sim = await confirmar({
-      titulo: `Apagar a meta “${meta?.descricao}”?`,
-      mensagem: 'O histórico desta meta também é apagado. As tarefas ligadas continuam a existir, sem meta. Para a guardar sem a ter ativa, pause-a.',
-      acao: 'Apagar',
-      destrutiva: true,
-    });
-    if (!sim) return;
-    try {
-      apagarMeta(metaId);
-      router.back();
-    } catch (erro) {
-      avisarErro('Não foi possível apagar a meta', erro);
-    }
+  /** Apaga a meta e o histórico; as tarefas ligadas ficam, sem meta. */
+  function apagar() {
+    if (comDesfazer('Meta apagada', () => apagarMeta(metaId), 'Não foi possível apagar a meta')) router.back();
   }
 
   return (
@@ -164,7 +157,7 @@ export default function MetaEcra() {
               <View key={r.data} style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingLeft: 16, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: cores.linhaSuave }}>
                 <Text style={{ flex: 1, fontFamily: fontes.texto, fontSize: 14, lineHeight: 20, color: cores.texto2 }}>{descreverData(r.data)}</Text>
                 <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, lineHeight: 20, color: cores.tinta, fontVariant: ['tabular-nums'] }}>{formatarValor(r.valor)}</Text>
-                <BotaoIcone icone="fechar" rotulo={`Apagar o registo de ${descreverData(r.data)}`} tamanho={16} cor={cores.texto3} onPress={() => apagarRegisto(meta.id, r.data)} />
+                <BotaoIcone icone="fechar" rotulo={`Apagar o registo de ${descreverData(r.data)}`} tamanho={16} cor={cores.texto3} onPress={() => comDesfazer('Registo apagado', () => apagarRegisto(meta.id, r.data), 'Não foi possível apagar o registo')} />
               </View>
             ))}
           </Cartao>
@@ -176,7 +169,7 @@ export default function MetaEcra() {
         {ativa ? (
           <>
             <Botao titulo="Pausar meta" icone="pausa" variante="texto" onPress={() => mudarEstado('pausada')} style={{ justifyContent: 'center' }} />
-            <Botao titulo="Abandonar meta" variante="texto" onPress={abandonar} style={{ justifyContent: 'center' }} />
+            <Botao titulo="Abandonar meta" variante="texto" onPress={() => mudarEstado('abandonada')} style={{ justifyContent: 'center' }} />
           </>
         ) : (
           <Botao titulo={meta.estado === 'pausada' ? 'Retomar meta' : 'Voltar a ativar'} variante="texto" onPress={() => mudarEstado('ativa')} style={{ justifyContent: 'center' }} />

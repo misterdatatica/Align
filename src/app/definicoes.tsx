@@ -2,10 +2,11 @@ import { ScrollView, Switch, Text, View } from 'react-native';
 
 import { avisar, avisarErro, confirmar } from '@/components/dialogos';
 import { Botao, Cartao, Opcao, Passo, Seccao, estilos } from '@/components/ui';
-import { escolherFicheiro, partilharFicheiro } from '@/copiaFicheiro';
+import { exportarCopia, ONDE_GUARDAR_A_COPIA } from '@/components/exportarCopia';
+import { escolherFicheiro } from '@/copiaFicheiro';
 import { consultaAreasArquivadas, reporArea } from '@/data/areas';
 import { recarregarConsultas, useConsulta } from '@/data/consulta';
-import { exportarDados, importarDados, lerCopia, resumirCopia } from '@/data/copia';
+import { importarDados, lerCopia, resumirCopia } from '@/data/copia';
 import { carregarDefinicoes, guardarDefinicoes, type Definicoes } from '@/data/definicoes';
 import { DIAS_DE_REVISAO } from '@/domain/revisao';
 import { descreverDia, formatarHora, paraDataISO } from '@/domain/semana';
@@ -51,14 +52,6 @@ export default function DefinicoesEcra() {
       guardarDefinicoes({ lembreteAtivo: ativo });
     } catch (erro) {
       avisarErro('Não foi possível mudar o lembrete', erro);
-    }
-  }
-
-  async function exportar() {
-    try {
-      await partilharFicheiro(`align-${paraDataISO(new Date())}.json`, JSON.stringify(exportarDados(), null, 2));
-    } catch (erro) {
-      avisarErro('Não foi possível exportar os dados', erro);
     }
   }
 
@@ -168,7 +161,11 @@ export default function DefinicoesEcra() {
       <Seccao titulo="Cópia de segurança">
         <Cartao style={{ padding: 16, gap: 10 }}>
           <Text style={estilos.pequeno}>Guarde os dados num ficheiro para os recuperar noutro telemóvel ou depois de reinstalar a app.</Text>
-          <Botao titulo="Exportar dados" variante="contorno" onPress={exportar} />
+          <Text style={estilos.pequeno}>{ONDE_GUARDAR_A_COPIA}</Text>
+          <Text style={[estilos.pequeno, { color: cores.texto2 }]}>
+            {definicoes.ultimaCopia ? `Última cópia: ${descreverDia(paraDataISO(new Date(definicoes.ultimaCopia)))}.` : 'Ainda não fez nenhuma cópia.'}
+          </Text>
+          <Botao titulo="Exportar dados" variante="contorno" onPress={exportarCopia} />
           <Botao titulo="Importar dados" variante="contorno" onPress={importar} />
         </Cartao>
       </Seccao>

@@ -50,8 +50,11 @@ export function Bloco({ bloco, esquerda, topo, largura, altura, esbatido, atenca
   const ocupado = bloco.tipo === 'ocupado';
   const cor = ocupado ? null : corDaArea(bloco.cor ?? '');
   const corTexto = cor ? cor.texto : cores.texto2;
+  // Nas vistas de 1 e 3 dias os blocos são largos: cabe o nome inteiro e, se houver altura, a hora.
+  const largo = largura >= 90;
+  const comHora = largo && altura >= 30;
   // 12 px por linha de texto, com 2 px de margem em cima e em baixo.
-  const linhas = Math.max(1, Math.floor((altura - 4) / 12));
+  const linhas = Math.max(1, Math.floor((altura - 4 - (comHora ? 12 : 0)) / 12));
 
   return (
     <Pressable
@@ -81,20 +84,26 @@ export function Bloco({ bloco, esquerda, topo, largura, altura, esbatido, atenca
             <Icone nome="certo" tamanho={9} cor={corTexto} espessura={3.2} />
           </View>
         ) : null}
-        <Text
-          numberOfLines={linhas}
-          style={{
-            flex: 1,
-            fontFamily: fontes.textoForte,
-            fontSize: 10,
-            lineHeight: 12,
-            letterSpacing: -0.1,
-            color: corTexto,
-            textDecorationLine: bloco.feito ? 'line-through' : 'none',
-          }}
-        >
-          {bloco.nomeCurto}
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text
+            numberOfLines={linhas}
+            style={{
+              fontFamily: fontes.textoForte,
+              fontSize: largo ? 11 : 10,
+              lineHeight: 12,
+              letterSpacing: -0.1,
+              color: corTexto,
+              textDecorationLine: bloco.feito ? 'line-through' : 'none',
+            }}
+          >
+            {largo ? bloco.nome : bloco.nomeCurto}
+          </Text>
+          {comHora ? (
+            <Text numberOfLines={1} style={{ fontFamily: fontes.texto, fontSize: 10, lineHeight: 12, color: corTexto, opacity: 0.8 }}>
+              {formatarIntervalo(bloco.inicioMin, bloco.fimMin)}
+            </Text>
+          ) : null}
+        </View>
       </View>
       {/* Pega da borda inferior: puxar por aqui muda a duração. */}
       {altura >= 28 ? <View style={{ position: 'absolute', bottom: 2, alignSelf: 'center', width: 12, height: 2, borderRadius: 1, backgroundColor: corTexto, opacity: 0.35 }} /> : null}

@@ -12,7 +12,7 @@ import { Grelha } from '@/components/calendario/Grelha';
 import { avisarErro } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
 import { SeletorSemana } from '@/components/SeletorSemana';
-import { Botao, BotaoIcone, Titulo, estilos } from '@/components/ui';
+import { BotaoIcone, Titulo, estilos } from '@/components/ui';
 import {
   alocarRestantes,
   alocarTarefa,
@@ -24,15 +24,33 @@ import {
   type TarefaPorAlocar,
 } from '@/data/calendario';
 import { recarregarConsultas, useConsulta } from '@/data/consulta';
-import { aceitarSemana, carregarPlanoDaSemana } from '@/data/semanas';
 import { formatarIntervalo, inicioEncaixado, sobrepostos, type Intervalo } from '@/domain/calendario';
 import { sobreposicoesDaSemana, type Ambito } from '@/domain/proposta';
-import { DIAS_CURTOS, deDataISO } from '@/domain/semana';
+import { DIAS_CURTOS, deDataISO, indiceDoDia, somarSemanas } from '@/domain/semana';
 import { escolherSemana, useHoje, usePrepararSemana, useSemanaEscolhida } from '@/estado/semana';
 import { cores, corDaArea, fontes } from '@/theme';
 
 const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos', 'definicoes'] as const;
-const TABELAS_DO_PLANO = ['areas', 'tarefas', 'tarefas_semana', 'blocos', 'semanas'] as const;
+
+/** Quantos dias a grelha mostra de cada vez. */
+type Vista = 1 | 3 | 7;
+const VISTAS: { dias: Vista; titulo: string }[] = [
+  { dias: 1, titulo: 'Dia' },
+  { dias: 3, titulo: '3 dias' },
+  { dias: 7, titulo: 'Semana' },
+];
+/** A vista escolhida fica entre visitas ao separador. */
+let vistaGuardada: Vista = 7;
+function guardarVista(vista: Vista) {
+  vistaGuardada = vista;
+}
+
+/** Primeiro dia visível ao abrir uma semana: o de hoje, se for esta semana, sem passar do domingo. */
+function primeiroDiaPara(vista: Vista, dias: string[], hoje: string): number {
+  if (vista === 7) return 0;
+  const indice = dias.includes(hoje) ? indiceDoDia(hoje) : 0;
+  return Math.min(indice, 7 - vista);
+}
 
 /** O que está escolhido para pôr no calendário com um toque numa hora (alternativa a arrastar). */
 type Escolha = { tipo: 'tarefa'; tarefaId: number } | { tipo: 'ocupado' };
@@ -49,8 +67,11 @@ export default function CalendarioEcra() {
   usePrepararSemana(semana);
   const calendario = useConsulta(() => carregarCalendario(semana), TABELAS, semana);
   const { dias, blocos, porAlocar, legenda } = calendario;
-  const plano = useConsulta(() => carregarPlanoDaSemana(semana, hoje), TABELAS_DO_PLANO, `${semana}|${hoje}`);
-  const proposta = plano.estado === 'rascunho';
+  const [vista, setVista] = useState<Vista>(vistaGuardada);
+  // O primeiro dia visível vale para uma semana; noutra semana (setas da semana) volta ao início, ou a hoje.
+  const [janela, setJanela] = useState(() => ({ semana, primeiro: primeiroDiaPara(vistaGuardada, dias, hoje) }));
+  const primeiroDia = janela.semana === semana ? janela.primeiro : primeiroDiaPara(vista, dias, hoje);
+  const setPrimeiroDia = (primeiro: number, daSemana = semana) => setJanela({ semana: daSemana, primeiro });
 
   const [pegado, setPegado] = useState<{ modo: number; id: number } | null>(null);
   const [destino, setDestino] = useState('');
@@ -59,8 +80,37 @@ export default function CalendarioEcra() {
   const [aviso, setAviso] = useState<Aviso | null>(null);
   const [pergunta, setPergunta] = useState<Pergunta | null>(null);
 
-  // Numa proposta, os blocos que se sobrepõem ficam destacados até o utilizador os arrumar.
-  const emAtencao = useMemo(() => new Set(proposta ? sobreposicoesDaSemana(blocos).flatMap((s) => [s.a.id, s.b.id]) : []), [proposta, blocos]);
+  // Os blocos que se sobrepõem ficam destacados até o utilizador os arrumar.
+  const emAtencao = useMemo(() => new Set(sobreposicoesDaSemana(blocos).flatMap((s) => [s.a.id, s.b.id])), [blocos]);
+
+  function mudarVista(nova: Vista) {
+    guardarVista(nova);
+    setVista(nova);
+    setPrimeiroDia(nova === 7 ? 0 : Math.min(dias.includes(hoje) && vista === 7 ? indiceDoDia(hoje) : primeiroDia, 7 - nova));
+  }
+
+  /** Setas dos dias (vistas de 1 e 3 dias): andam uma janela; nas pontas passam para a semana ao lado. */
+  function andarDias(sentido: -1 | 1) {
+    const ultimo = 7 - vista;
+    const novo = primeiroDia + sentido * vista;
+    if (novo >= 0 && novo <= ultimo) setPrimeiroDia(novo);
+    else if (sentido < 0 && primeiroDia > 0) setPrimeiroDia(0);
+    else if (sentido > 0 && primeiroDia < ultimo) setPrimeiroDia(ultimo);
+    else {
+      const outra = somarSemanas(semana, sentido);
+      setPrimeiroDia(sentido < 0 ? ultimo : 0, outra);
+      escolherSemana(outra);
+    }
+  }
+
+  /** Na vista da semana, tocar no dia abre esse dia. */
+  function abrirDia(indice: number) {
+    guardarVista(1);
+    setVista(1);
+    setPrimeiroDia(indice);
+  }
+
+  const visiveis = dias.map((dia, i) => ({ dia, i })).slice(primeiroDia, primeiroDia + vista);
 
   // Os avisos saem sozinhos; os que pedem uma decisão ficam mais tempo.
   useEffect(() => {
@@ -194,14 +244,6 @@ export default function CalendarioEcra() {
     recarregarConsultas();
   }
 
-  function aceitar() {
-    try {
-      aceitarSemana(semana);
-    } catch (erro) {
-      avisarErro('Não foi possível aceitar a semana', erro);
-    }
-  }
-
   function aoEscolher(tarefa: TarefaPorAlocar) {
     setAviso(null);
     setEscolha(escolha?.tipo === 'tarefa' && escolha.tarefaId === tarefa.tarefaId ? null : { tipo: 'tarefa', tarefaId: tarefa.tarefaId });
@@ -257,26 +299,51 @@ export default function CalendarioEcra() {
           </Pressable>
         </View>
 
-        {proposta ? (
-          <FaixaDoPlano
-            texto={emAtencao.size > 0 ? `Proposta por aceitar · ${plano.atencao?.sobreposicoes.length === 1 ? '1 sobreposição' : `${plano.atencao?.sobreposicoes.length ?? 0} sobreposições`}` : 'Proposta por aceitar'}
-            acao="Aceitar semana"
-            aoPremir={aceitar}
-          />
-        ) : plano.estado === 'por_planear' && plano.podePlanear ? (
-          <FaixaDoPlano texto="Esta semana ainda não tem plano." acao="Planear" aoPremir={() => router.navigate('/semana')} />
-        ) : null}
+        <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', padding: 2, borderRadius: 10, backgroundColor: cores.pista }} accessibilityRole="radiogroup" accessibilityLabel="Dias visíveis">
+            {VISTAS.map((v) => {
+              const ativa = vista === v.dias;
+              return (
+                <Pressable
+                  key={v.dias}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Mostrar ${v.titulo.toLowerCase()}`}
+                  accessibilityState={{ selected: ativa }}
+                  onPress={() => mudarVista(v.dias)}
+                  hitSlop={{ top: 6, bottom: 6 }}
+                  style={{ minHeight: 30, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 8, backgroundColor: ativa ? cores.superficie : 'transparent' }}
+                >
+                  <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: ativa ? cores.tinta : cores.texto2 }}>{v.titulo}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {vista === 7 ? null : (
+            <View style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', marginRight: -10 }}>
+              <BotaoIcone icone="seta-esquerda" rotulo={vista === 1 ? 'Dia anterior' : 'Dias anteriores'} tamanho={18} onPress={() => andarDias(-1)} />
+              <BotaoIcone icone="seta-direita" rotulo={vista === 1 ? 'Dia seguinte' : 'Dias seguintes'} tamanho={18} onPress={() => andarDias(1)} />
+            </View>
+          )}
+        </View>
 
         <View style={{ marginTop: 10, flexDirection: 'row', paddingLeft: LARGURA_HORAS }}>
-          {dias.map((dia, i) => {
+          {visiveis.map(({ dia, i }) => {
             const eHoje = dia === hoje;
             return (
-              <View key={dia} style={{ flex: 1, alignItems: 'center' }} accessible accessibilityLabel={`${DIAS_CURTOS[i]} ${deDataISO(dia).getDate()}${eHoje ? ', hoje' : ''}`}>
+              <Pressable
+                key={dia}
+                disabled={vista !== 7}
+                onPress={() => abrirDia(i)}
+                style={{ flex: 1, alignItems: 'center' }}
+                accessibilityRole={vista === 7 ? 'button' : 'header'}
+                accessibilityLabel={`${DIAS_CURTOS[i]} ${deDataISO(dia).getDate()}${eHoje ? ', hoje' : ''}`}
+                accessibilityHint={vista === 7 ? 'Mostra só este dia' : undefined}
+              >
                 <Text style={{ fontFamily: fontes.texto, fontSize: 11, lineHeight: 14, color: cores.texto3 }}>{DIAS_CURTOS[i]}</Text>
                 <View style={{ minWidth: 24, height: 22, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: eHoje ? cores.tinta : 'transparent' }}>
                   <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: eHoje ? '#FFFFFF' : cores.tinta }}>{deDataISO(dia).getDate()}</Text>
                 </View>
-              </View>
+              </Pressable>
             );
           })}
         </View>
@@ -289,6 +356,8 @@ export default function CalendarioEcra() {
             blocoArrastado={blocoPegado?.id ?? null}
             corDoArrasto={corPegada ? corDaArea(corPegada) : null}
             blocosEmAtencao={emAtencao}
+            primeiroDia={primeiroDia}
+            numDias={vista}
             aoTocarBloco={(bloco: BlocoCalendario) => {
               setEscolha(null);
               setFolha({ tipo: 'bloco', blocoId: bloco.id });
@@ -344,18 +413,6 @@ export default function CalendarioEcra() {
       <FolhaBloco alvo={folha} calendario={calendario} aoFechar={() => setFolha(null)} />
       <FolhaDeAmbito pergunta={pergunta?.titulo ?? null} aoEscolher={responder} aoCancelar={() => setPergunta(null)} />
     </SafeAreaView>
-  );
-}
-
-/** Faixa por baixo da legenda: a semana é uma proposta por aceitar, ou ainda não tem plano. */
-function FaixaDoPlano({ texto, acao, aoPremir }: { texto: string; acao: string; aoPremir: () => void }) {
-  return (
-    <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 12, paddingRight: 4, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: cores.tinta, backgroundColor: cores.superficie }}>
-      <Text style={{ flex: 1, fontFamily: fontes.textoForte, fontSize: 13, lineHeight: 18, color: cores.tinta }} accessibilityLiveRegion="polite">
-        {texto}
-      </Text>
-      <Botao titulo={acao} onPress={aoPremir} style={{ minHeight: 36, paddingHorizontal: 12, borderRadius: 10 }} />
-    </View>
   );
 }
 

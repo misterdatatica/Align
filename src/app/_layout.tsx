@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { AvisoTemporario } from '@/components/AvisoTemporario';
 import { prepararBaseDeDados } from '@/db/preparar';
 import { configurarLembretes, useAbrirRevisaoPeloLembrete } from '@/lembrete';
 import { cores } from '@/theme';
@@ -83,6 +84,7 @@ export default function RootLayout() {
         <Stack.Screen name="boas-vindas" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="definicoes" options={{ title: 'Definições', headerBackTitle: 'Áreas', headerStyle: { backgroundColor: cores.fundo } }} />
       </Stack>
+      <AvisoTemporario />
     </GestureHandlerRootView>
   );
 }

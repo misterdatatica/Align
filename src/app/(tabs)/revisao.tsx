@@ -3,16 +3,18 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { comDesfazer } from '@/components/AvisoTemporario';
 import { CampoAutoGuardado } from '@/components/CampoAutoGuardado';
 import { avisarErro, confirmar } from '@/components/dialogos';
+import { exportarCopia, ONDE_GUARDAR_A_COPIA } from '@/components/exportarCopia';
 import { Icone } from '@/components/Icone';
 import { AtualizarValor } from '@/components/metas/AtualizarValor';
 import { TEXTO_ESTAGNADA, textoDoPrazo, textoDoProgresso } from '@/components/metas/textos';
 import { BarraProgresso, Botao, Cartao, Seccao, Titulo, estilos } from '@/components/ui';
 import { useConsulta } from '@/data/consulta';
 import { mudarEstadoDaMeta, type MetaDetalhada } from '@/data/metas';
-import { carregarRevisao, fecharRevisao, guardarReflexao, reabrirRevisao, responderBloco, type RevisaoDaSemana } from '@/data/revisao';
-import { abrirProposta } from '@/data/semanas';
+import { precisaDeCopia } from '@/data/definicoes';
+import { carregarRevisao, comecarRevisao, fecharRevisao, guardarReflexao, reabrirRevisao, responderBloco, type RevisaoDaSemana } from '@/data/revisao';
 import { formatarIntervalo } from '@/domain/calendario';
 import { formatarHoras, formatarProgressoHoras, progresso } from '@/domain/regras';
 import { percentagemCumprida } from '@/domain/revisao';
@@ -48,22 +50,22 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
     });
   }
 
-  /** O último passo: abre a proposta da semana seguinte (criada como cópia da que passou, se ainda não existir). */
+  const semCopia = useConsulta(() => precisaDeCopia(), ['definicoes']);
+
+  /** Depois de fechar: a semana seguinte já está planeada (igual a esta); abre-a para a ajustar. */
   function planear() {
-    try {
-      abrirProposta(seguinte);
-    } catch (erro) {
-      avisarErro('Não foi possível criar a proposta da semana', erro);
-    }
     escolherSemana(seguinte);
     router.navigate('/semana');
   }
 
   function concluir(meta: MetaDetalhada) {
-    tentar('Não foi possível concluir a meta', () => {
-      mudarEstadoDaMeta(meta.id, 'concluida');
-      setAlcancadas((atuais) => [...atuais, { id: meta.id, descricao: meta.descricao }]);
-    });
+    const ok = comDesfazer(
+      'Meta concluída',
+      () => mudarEstadoDaMeta(meta.id, 'concluida'),
+      'Não foi possível concluir a meta',
+      () => setAlcancadas((atuais) => atuais.filter((m) => m.id !== meta.id)),
+    );
+    if (ok) setAlcancadas((atuais) => [...atuais, { id: meta.id, descricao: meta.descricao }]);
   }
 
   async function fechar() {
@@ -80,7 +82,6 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
         semana,
         porFazer.filter((t) => !ficam.has(t.tarefaId)).map((t) => t.tarefaId),
       );
-      planear();
     } catch (erro) {
       avisarErro('Não foi possível fechar a revisão', erro);
     }
@@ -112,7 +113,15 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
           <>
             <View style={{ gap: 12, marginTop: -8 }}>
               {disponivel ? null : (
-                <Text style={estilos.pequeno}>{`A revisão desta semana abre ${descreverDia(revisao.abreEm)}. Até lá, é assim que a semana vai.`}</Text>
+                <View style={{ gap: 8 }}>
+                  <Text style={estilos.pequeno}>{`A revisão desta semana abre ${descreverDia(revisao.abreEm)}. Até lá, é assim que a semana vai.`}</Text>
+                  <Botao
+                    titulo="Fazer a revisão agora"
+                    variante="contorno"
+                    accessibilityHint="Abre a revisão desta semana antes do dia marcado"
+                    onPress={() => tentar('Não foi possível abrir a revisão', () => comecarRevisao(semana))}
+                  />
+                </View>
               )}
               <Cartao style={{ padding: 16 }}>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 6 }}>
@@ -128,6 +137,21 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
                 ) : null}
               </Cartao>
             </View>
+
+            {disponivel && semCopia ? (
+              <Cartao style={{ padding: 16, gap: 10 }}>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={{ marginTop: 2 }}>
+                    <Icone nome="aviso" tamanho={18} cor={cores.tinta} />
+                  </View>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: cores.tinta }}>Faça uma cópia de segurança</Text>
+                    <Text style={estilos.pequeno}>{`Os dados ficam só neste telemóvel e já passou mais de um mês sem cópia. ${ONDE_GUARDAR_A_COPIA}`}</Text>
+                  </View>
+                </View>
+                <Botao titulo="Fazer cópia agora" variante="contorno" onPress={exportarCopia} />
+              </Cartao>
+            ) : null}
 
             {areas.length > 0 ? (
               <Seccao titulo="Por área">
@@ -267,18 +291,25 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
               </Seccao>
             ) : null}
 
-            {disponivel ? (
+            {disponivel && !fechada ? (
               <View style={{ gap: 4 }}>
-                {fechada ? <Text style={[estilos.pequeno, { textAlign: 'center' }]}>Revisão fechada.</Text> : null}
+                <Botao titulo="Fechar revisão" icone="certo" accessibilityHint="Dá a semana por revista; o que ficou marcado passa para a semana seguinte" onPress={fechar} style={{ minHeight: 52 }} />
+                <Text style={[estilos.pequeno, { textAlign: 'center' }]}>Depois de fechar, planeia a semana seguinte.</Text>
+              </View>
+            ) : null}
+            {disponivel && fechada ? (
+              <View style={{ gap: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingBottom: 4 }}>
+                  <Icone nome="certo" tamanho={16} cor={cores.texto2} espessura={2.2} />
+                  <Text style={[estilos.pequeno, { color: cores.texto2 }]}>Revisão fechada.</Text>
+                </View>
                 <Botao
-                  titulo={`Planear a semana de ${descreverSemanaPorExtenso(seguinte)}`}
-                  accessibilityHint="Abre a proposta da semana seguinte, para rever e aceitar"
-                  onPress={fechada ? planear : fechar}
+                  titulo={`Planear a semana de ${descreverSemanaPorExtenso(seguinte)} →`}
+                  accessibilityHint="Abre a semana seguinte, que começa igual a esta"
+                  onPress={planear}
                   style={{ minHeight: 52, paddingHorizontal: 12 }}
                 />
-                {fechada ? (
-                  <Botao titulo="Reabrir a revisão" variante="texto" onPress={() => tentar('Não foi possível reabrir a revisão', () => reabrirRevisao(semana))} style={{ justifyContent: 'center' }} />
-                ) : null}
+                <Botao titulo="Reabrir a revisão" variante="texto" onPress={() => tentar('Não foi possível reabrir a revisão', () => reabrirRevisao(semana))} style={{ justifyContent: 'center' }} />
               </View>
             ) : null}
           </>

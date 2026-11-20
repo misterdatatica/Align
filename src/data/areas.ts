@@ -6,13 +6,14 @@ import { db } from '@/db/client';
 import { areas, type Area } from '@/db/schema';
 import { MAX_AREAS, podeCriarArea } from '@/domain/regras';
 import type { ResumoTarefa } from '@/domain/tarefas';
+import { ErroDaApp } from '@/domain/erros';
 
 export const consultaAreasAtivas = () =>
   db.select().from(areas).where(eq(areas.arquivada, false)).orderBy(asc(areas.ordem), asc(areas.id));
 
 export const consultaAreasArquivadas = () => db.select().from(areas).where(eq(areas.arquivada, true)).orderBy(asc(areas.nome));
 
-export class LimiteDeAreasError extends Error {
+export class LimiteDeAreasError extends ErroDaApp {
   constructor() {
     super(`Pode ter no máximo ${MAX_AREAS} áreas ativas. Arquive uma para criar outra.`);
   }
@@ -20,7 +21,7 @@ export class LimiteDeAreasError extends Error {
 
 export async function criarArea(dados: { nome: string; cor: string; icone: string; missao: string }) {
   const nome = dados.nome.trim();
-  if (!nome) throw new Error('A área precisa de um nome.');
+  if (!nome) throw new ErroDaApp('A área precisa de um nome.');
   const [{ total }] = await db.select({ total: count() }).from(areas).where(eq(areas.arquivada, false));
   if (!podeCriarArea(total)) throw new LimiteDeAreasError();
   const [criada] = await db
@@ -36,7 +37,7 @@ export async function atualizarArea(
 ) {
   if (dados.nome !== undefined) {
     dados = { ...dados, nome: dados.nome.trim() };
-    if (!dados.nome) throw new Error('A área precisa de um nome.');
+    if (!dados.nome) throw new ErroDaApp('A área precisa de um nome.');
   }
   await db
     .update(areas)
@@ -54,8 +55,8 @@ export function reordenarAreas(ids: number[]): void {
 }
 
 /** Arquivar esconde a área sem apagar o histórico (opção sugerida pela especificação). */
-export async function arquivarArea(id: number) {
-  await db.update(areas).set({ arquivada: true }).where(eq(areas.id, id));
+export function arquivarArea(id: number): void {
+  db.update(areas).set({ arquivada: true }).where(eq(areas.id, id)).run();
 }
 
 /** Volta a mostrar uma área arquivada, se ainda couber no limite de áreas ativas. */

@@ -29,6 +29,13 @@
       "when": 1794839980295,
       "tag": "0003_metas_resultado_e_proposta",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1795167732363,
+      "tag": "0004_copia_de_seguranca",
+      "breakpoints": true
     }
   ]
 }

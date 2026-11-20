@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 
-import { avisarErro, confirmar } from '@/components/dialogos';
+import { comDesfazer } from '@/components/AvisoTemporario';
+import { avisarErro } from '@/components/dialogos';
 import { Botao, Opcao, Passo, Seccao, estilos } from '@/components/ui';
 import { consultaAreasAtivas } from '@/data/areas';
 import { useConsulta } from '@/data/consulta';
@@ -97,21 +98,9 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoF
     }
   }
 
-  async function apagar() {
+  function apagar() {
     if (!tarefa) return;
-    const sim = await confirmar({
-      titulo: `Apagar “${tarefa.nome}”?`,
-      mensagem: 'Sai desta semana e das seguintes. As semanas anteriores ficam no histórico.',
-      acao: 'Apagar',
-      destrutiva: true,
-    });
-    if (!sim) return;
-    try {
-      apagarTarefa(tarefa.id, semana);
-      aoFechar();
-    } catch (erro) {
-      avisarErro('Não foi possível apagar a tarefa', erro);
-    }
+    if (comDesfazer(`“${tarefa.nome}” apagada`, () => apagarTarefa(tarefa.id, semana), 'Não foi possível apagar a tarefa')) aoFechar();
   }
 
   return (

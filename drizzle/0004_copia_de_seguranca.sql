@@ -1,0 +1,1 @@
+ALTER TABLE `definicoes` ADD `ultima_copia` text;

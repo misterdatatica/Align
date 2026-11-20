@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { GestureDetector, Pressable, ScrollView } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import { GestureDetector, Pressable, ScrollView, usePinchGesture, useSimultaneousGestures } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import type { BlocoCalendario, CalendarioDaSemana } from '@/data/calendario';
 import { cores, fontes, type CorArea } from '@/theme';
 
-import { LARGURA_HORAS, MEIA_HORA_MINIMA, MODO_NENHUM, TOPO_GRELHA, type Arrasto, type RefDeVista } from './arrasto';
+import { LARGURA_HORAS, MEIA_HORA_MAXIMA, MEIA_HORA_MINIMA, MODO_NENHUM, TOPO_GRELHA, type Arrasto, type RefDeVista } from './arrasto';
 import { Bloco } from './Bloco';
 
 type Props = {
@@ -18,31 +19,68 @@ type Props = {
   blocoArrastado: number | null;
   /** Cor da tarefa arrastada, para o contorno tracejado do destino; null = "Ocupado". */
   corDoArrasto: CorArea | null;
-  /** Ids dos blocos a destacar por se sobreporem (só numa proposta por aceitar). */
+  /** Ids dos blocos a destacar por se sobreporem a outros. */
   blocosEmAtencao?: ReadonlySet<number>;
+  /** Os dias visíveis: `numDias` (1, 3 ou 7) a partir de `primeiroDia` (0 = segunda). */
+  primeiroDia: number;
+  numDias: number;
   aoTocarBloco: (bloco: BlocoCalendario) => void;
   /** Toque numa zona livre: dia (0 = segunda) e minutos desde a meia-noite, já na meia hora tocada. */
   aoTocarVazio: (dia: number, minutos: number) => void;
 };
 
-/** A grelha de 7 dias: linhas de hora, blocos e o destino tracejado enquanto se arrasta. */
-export function Grelha({ calendario, arrasto, grelhaRef, blocoArrastado, corDoArrasto, blocosEmAtencao, aoTocarBloco, aoTocarVazio }: Props) {
-  const { inicioMin, fimMin, blocos } = calendario;
+/** Altura de meia hora escolhida com dois dedos; null = a que enche o ecrã. Fica entre visitas ao separador. */
+let zoomGuardado: number | null = null;
+function guardarZoom(altura: number) {
+  zoomGuardado = altura;
+}
+
+/** A grelha dos dias visíveis: linhas de hora, blocos e o destino tracejado enquanto se arrasta. */
+export function Grelha({ calendario, arrasto, grelhaRef, blocoArrastado, corDoArrasto, blocosEmAtencao, primeiroDia, numDias, aoTocarBloco, aoTocarVazio }: Props) {
+  const { inicioMin, fimMin } = calendario;
   const [largura, setLargura] = useState(0);
   const [alturaVisivel, setAlturaVisivel] = useState(0);
+  const [zoom, setZoom] = useState<number | null>(zoomGuardado);
 
   const meiasHoras = (fimMin - inicioMin) / 30;
-  // Design: 14 px por meia hora. Se o ecrã tiver espaço para mais, a grelha estica até o encher.
-  const meiaHora = Math.max(MEIA_HORA_MINIMA, Math.floor((alturaVisivel - TOPO_GRELHA - 10) / meiasHoras));
+  // Design: 14 px por meia hora. Se o ecrã tiver espaço para mais, a grelha estica até o encher; com
+  // dois dedos amplia-se ou reduz-se.
+  const aEncher = Math.max(MEIA_HORA_MINIMA, Math.floor((alturaVisivel - TOPO_GRELHA - 10) / meiasHoras));
+  const meiaHora = zoom ?? aEncher;
   const alturaTotal = meiasHoras * meiaHora;
-  const larguraColuna = Math.max(0, (largura - LARGURA_HORAS) / 7);
+  const larguraColuna = Math.max(0, (largura - LARGURA_HORAS) / numDias);
   const horas = Array.from({ length: meiasHoras / 2 + 1 }, (_, i) => inicioMin / 60 + i);
+  const blocos = calendario.blocos.filter((b) => b.dia >= primeiroDia && b.dia < primeiroDia + numDias);
 
-  const { larguraColuna: larguraPartilhada, alturaMeiaHora, grelhaInicio, modo, naGrelha, aPousar, alvoDia, alvoInicio, alvoFim } = arrasto;
+  const { larguraColuna: larguraPartilhada, alturaMeiaHora, primeiroDia: primeiroPartilhado, numDias: numPartilhado, grelhaInicio, modo, naGrelha, aPousar, alvoDia, alvoInicio, alvoFim } = arrasto;
   useEffect(() => {
     larguraPartilhada.set(larguraColuna);
     alturaMeiaHora.set(meiaHora);
-  }, [larguraColuna, meiaHora, larguraPartilhada, alturaMeiaHora]);
+    primeiroPartilhado.set(primeiroDia);
+    numPartilhado.set(numDias);
+  }, [larguraColuna, meiaHora, primeiroDia, numDias, larguraPartilhada, alturaMeiaHora, primeiroPartilhado, numPartilhado]);
+
+  // Dois dedos: afastar amplia as horas, aproximar reduz. Só avisa o ecrã quando muda um píxel.
+  const alturaNoInicio = useSharedValue(meiaHora);
+  const ultimaAltura = useSharedValue(meiaHora);
+  const mudarZoom = (altura: number) => {
+    guardarZoom(altura);
+    setZoom(altura);
+  };
+  const pinca = usePinchGesture({
+    onActivate: () => {
+      alturaNoInicio.set(alturaMeiaHora.get());
+      ultimaAltura.set(alturaMeiaHora.get());
+    },
+    onUpdate: (e) => {
+      if (modo.get() !== MODO_NENHUM) return;
+      const altura = Math.min(MEIA_HORA_MAXIMA, Math.max(MEIA_HORA_MINIMA, Math.round(alturaNoInicio.get() * e.scale)));
+      if (altura === ultimaAltura.get()) return;
+      ultimaAltura.set(altura);
+      scheduleOnRN(mudarZoom, altura);
+    },
+  });
+  const gestos = useSimultaneousGestures(arrasto.gestoGrelha, pinca);
 
   // O destino do arrasto, encaixado na meia hora (calculado na thread da interface).
   const estiloDestino = useAnimatedStyle(() => {
@@ -50,7 +88,7 @@ export function Grelha({ calendario, arrasto, grelhaRef, blocoArrastado, corDoAr
     const altura = alturaMeiaHora.get();
     return {
       opacity: (modo.get() !== MODO_NENHUM && naGrelha.get()) || aPousar.get() ? 1 : 0,
-      left: LARGURA_HORAS + alvoDia.get() * coluna + 1,
+      left: LARGURA_HORAS + (alvoDia.get() - primeiroPartilhado.get()) * coluna + 1,
       top: TOPO_GRELHA + ((alvoInicio.get() - grelhaInicio.get()) / 30) * altura + 1,
       width: Math.max(0, coluna - 2),
       height: Math.max(0, ((alvoFim.get() - alvoInicio.get()) / 30) * altura - 2),
@@ -60,7 +98,7 @@ export function Grelha({ calendario, arrasto, grelhaRef, blocoArrastado, corDoAr
   return (
     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} onLayout={(e) => setAlturaVisivel(e.nativeEvent.layout.height)}>
       {/* No navegador, "pan-y" deixa a grelha deslizar na vertical com o dedo. */}
-      <GestureDetector gesture={arrasto.gestoGrelha} touchAction="pan-y">
+      <GestureDetector gesture={gestos} touchAction="pan-y">
         <Animated.View
           ref={grelhaRef}
           collapsable={false}
@@ -80,7 +118,7 @@ export function Grelha({ calendario, arrasto, grelhaRef, blocoArrastado, corDoAr
           {horas.map((hora, i) => (
             <View key={`h${hora}`} style={{ position: 'absolute', left: LARGURA_HORAS, right: 0, top: TOPO_GRELHA + i * 2 * meiaHora, height: 1, backgroundColor: cores.grelha }} />
           ))}
-          {Array.from({ length: 8 }, (_, dia) => (
+          {Array.from({ length: numDias + 1 }, (_, dia) => (
             <View
               key={`d${dia}`}
               style={{ position: 'absolute', left: LARGURA_HORAS + Math.min(dia * larguraColuna, Math.max(0, largura - LARGURA_HORAS - 1)), top: TOPO_GRELHA, width: 1, height: alturaTotal, backgroundColor: cores.grelha }}
@@ -100,7 +138,7 @@ export function Grelha({ calendario, arrasto, grelhaRef, blocoArrastado, corDoAr
             accessible={false}
             onPress={(e) => {
               if (larguraColuna <= 0) return;
-              const dia = Math.min(6, Math.max(0, Math.floor(e.nativeEvent.locationX / larguraColuna)));
+              const dia = primeiroDia + Math.min(numDias - 1, Math.max(0, Math.floor(e.nativeEvent.locationX / larguraColuna)));
               const meias = Math.min(meiasHoras - 1, Math.max(0, Math.floor(e.nativeEvent.locationY / meiaHora)));
               aoTocarVazio(dia, inicioMin + meias * 30);
             }}
@@ -112,7 +150,7 @@ export function Grelha({ calendario, arrasto, grelhaRef, blocoArrastado, corDoAr
                 <Bloco
                   key={b.id}
                   bloco={b}
-                  esquerda={LARGURA_HORAS + b.dia * larguraColuna + (b.coluna * larguraColuna) / b.colunas}
+                  esquerda={LARGURA_HORAS + (b.dia - primeiroDia) * larguraColuna + (b.coluna * larguraColuna) / b.colunas}
                   topo={TOPO_GRELHA + ((b.inicioMin - inicioMin) / 30) * meiaHora}
                   largura={larguraColuna / b.colunas}
                   altura={((b.fimMin - b.inicioMin) / 30) * meiaHora}

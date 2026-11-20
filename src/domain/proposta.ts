@@ -1,13 +1,10 @@
-/** Regras da proposta da semana (a cópia que o utilizador revê e aceita) que não dependem da base de dados. */
+/** Regras da cópia de uma semana para a seguinte que não dependem da base de dados. */
 
 import { sobrepoem } from './calendario';
 import { MINUTOS_DIA } from './semana';
 
-/** De onde vem a proposta de uma semana nova. */
-export type OrigemDaSemana = 'passada' | 'modelo' | 'vazia';
-
-/** "por_planear" = a semana ainda não tem plano; "rascunho" = proposta por aceitar. */
-export type EstadoDaSemana = 'por_planear' | 'rascunho' | 'aceite';
+/** "por_planear" = a semana ainda não tem plano (só nas semanas que já passaram). */
+export type EstadoDaSemana = 'por_planear' | 'aceite';
 
 /** Resposta a "Só esta semana" ou "Esta e as seguintes", ao mexer num bloco de uma tarefa recorrente. */
 export type Ambito = 'semana' | 'seguintes';
@@ -70,15 +67,4 @@ export function sobreposicoesDaSemana(blocos: BlocoDaProposta[]): Sobreposicao[]
     }
   }
   return pares;
-}
-
-/** As áreas que ficaram sem nenhum bloco no calendário da semana. */
-export function areasSemTempo<A extends { id: number }>(areas: A[], blocos: Pick<BlocoDaProposta, 'areaId'>[]): A[] {
-  const comTempo = new Set(blocos.map((b) => b.areaId));
-  return areas.filter((a) => !comTempo.has(a.id));
-}
-
-/** A origem escolhida por omissão: a semana passada, se houver alguma para copiar. */
-export function origemPorOmissao(disponiveis: OrigemDaSemana[]): OrigemDaSemana {
-  return disponiveis.includes('passada') ? 'passada' : 'vazia';
 }

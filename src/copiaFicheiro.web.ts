@@ -1,4 +1,5 @@
 import * as DocumentPicker from 'expo-document-picker';
+import { ErroDaApp } from '@/domain/erros';
 
 /*
  * Versão para o navegador de copiaFicheiro.ts: exportar descarrega o ficheiro, importar abre o
@@ -20,6 +21,6 @@ export async function escolherFicheiro(): Promise<string | null> {
   const resultado = await DocumentPicker.getDocumentAsync({ type: ['application/json', '.json'], base64: false });
   if (resultado.canceled) return null;
   const ficheiro = resultado.assets[0].file;
-  if (!ficheiro) throw new Error('Não foi possível ler o ficheiro escolhido.');
+  if (!ficheiro) throw new ErroDaApp('Não foi possível ler o ficheiro escolhido.');
   return ficheiro.text();
 }

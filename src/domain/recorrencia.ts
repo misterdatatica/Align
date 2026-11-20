@@ -1,3 +1,5 @@
+import { ErroDaApp } from './erros';
+
 /** Como uma tarefa se repete ao longo da semana. */
 export type Recorrencia =
   | { tipo: 'diaria' }
@@ -45,13 +47,13 @@ export function normalizarRecorrencia(recorrencia: Recorrencia | null | undefine
       return { tipo: 'diaria' };
     case 'vezes_por_semana': {
       if (!Number.isInteger(recorrencia.vezes) || recorrencia.vezes < 1 || recorrencia.vezes > 7) {
-        throw new Error('As vezes por semana têm de ser um número entre 1 e 7.');
+        throw new ErroDaApp('As vezes por semana têm de ser um número entre 1 e 7.');
       }
       return recorrencia.vezes === 7 ? { tipo: 'diaria' } : { tipo: 'vezes_por_semana', vezes: recorrencia.vezes };
     }
     case 'dias': {
       const dias = [...new Set(recorrencia.dias)].filter((d) => Number.isInteger(d) && d >= 1 && d <= 7).sort((a, b) => a - b);
-      if (dias.length === 0) throw new Error('Escolha pelo menos um dia da semana.');
+      if (dias.length === 0) throw new ErroDaApp('Escolha pelo menos um dia da semana.');
       return dias.length === 7 ? { tipo: 'diaria' } : { tipo: 'dias', dias };
     }
   }

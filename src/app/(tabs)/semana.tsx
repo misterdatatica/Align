@@ -2,19 +2,20 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icone } from '@/components/Icone';
 import { LinhaTarefa } from '@/components/LinhaTarefa';
-import { CartaoPlano } from '@/components/semana/CartaoPlano';
 import { SeletorSemana } from '@/components/SeletorSemana';
 import { Botao, BotaoIcone, Cartao, Titulo, estilos } from '@/components/ui';
 import { useConsulta } from '@/data/consulta';
 import { carregarPlanoDaSemana } from '@/data/semanas';
 import { carregarPlano, type PlanoDaSemana } from '@/data/tarefas';
 import { formatarHoras } from '@/domain/regras';
+import { descreverSemanaPorExtenso, somarSemanas } from '@/domain/semana';
 import { escolherSemana, useHoje, usePrepararSemana, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
 import { cores, corDaArea, fontes } from '@/theme';
 
 const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos'] as const;
-const TABELAS_DO_PLANO = ['areas', 'tarefas', 'tarefas_semana', 'blocos', 'semanas'] as const;
+const TABELAS_DO_PLANO = ['semanas'] as const;
 
 export default function SemanaEcra() {
   const router = useRouter();
@@ -38,8 +39,7 @@ export default function SemanaEcra() {
           )}
         </View>
 
-        {/* A escolha da origem recomeça quando se muda de semana ou a proposta é criada. */}
-        <CartaoPlano key={`${semana}|${planoDaSemana.estado}`} plano={planoDaSemana} aoRever={() => router.navigate('/calendario')} />
+        <OrigemDaSemana estado={planoDaSemana.estado} semana={semana} origemSemana={planoDaSemana.origemSemana} />
 
         <Cartao style={{ padding: 16, gap: 14 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -50,7 +50,6 @@ export default function SemanaEcra() {
           <Botao
             titulo="Alocar no calendário"
             icone="calendario"
-            variante={planoDaSemana.estado === 'aceite' ? 'primario' : 'contorno'}
             onPress={() => router.navigate('/calendario')}
             style={{ borderRadius: 12 }}
           />
@@ -59,7 +58,7 @@ export default function SemanaEcra() {
         {plano.areas.length === 0 ? (
           <Cartao style={{ padding: 16, gap: 12 }}>
             <Text style={estilos.corpo}>As tarefas organizam-se por área. Crie primeiro as áreas da sua vida.</Text>
-            <Botao titulo="Ir para as áreas" variante="contorno" onPress={() => router.navigate('/')} />
+            <Botao titulo="Ir para as áreas" variante="contorno" onPress={() => router.navigate('/areas')} />
           </Cartao>
         ) : (
           <View style={{ gap: 12 }}>
@@ -70,6 +69,22 @@ export default function SemanaEcra() {
         )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/** De onde veio a semana: começa sempre igual à anterior, sem nada para aceitar. */
+function OrigemDaSemana({ estado, semana, origemSemana }: { estado: 'por_planear' | 'aceite'; semana: string; origemSemana: string | null }) {
+  let texto: string | null = null;
+  if (estado === 'por_planear') texto = 'Esta semana já passou e não chegou a ser planeada.';
+  else if (origemSemana) {
+    texto = origemSemana === somarSemanas(semana, -1) ? 'Começou igual à semana passada. Mude o que quiser: a semana seguinte começa igual a esta.' : `Começou igual à semana de ${descreverSemanaPorExtenso(origemSemana)}, a última planeada.`;
+  }
+  if (!texto) return null;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: -4 }}>
+      <Icone nome="repetir" tamanho={14} cor={cores.texto3} espessura={2} />
+      <Text style={[estilos.pequeno, { flex: 1 }]}>{texto}</Text>
+    </View>
   );
 }
 

@@ -10,18 +10,17 @@ import { exportarDados, importarDados, lerCopia, resumirCopia } from './copia.ts
 import { carregarDefinicoes, guardarDefinicoes } from './definicoes.ts';
 import { carregarMetasDaArea, criarMeta, registarValor } from './metas.ts';
 import { carregarRevisao, guardarReflexao } from './revisao.ts';
-import { carregarPlanoDaSemana, marcarSemanaModelo } from './semanas.ts';
+import { carregarPlanoDaSemana } from './semanas.ts';
 import { carregarPlano, criarTarefa, garantirSemana } from './tarefas.ts';
 
 const S1 = '2026-11-09';
 
-/** Um pouco de tudo: área, meta com histórico, tarefas, blocos, semana modelo, revisão e definições. */
+/** Um pouco de tudo: área, meta com histórico, tarefas, blocos, semana planeada, revisão e definições. */
 function encherDeDados() {
   const area = db.insert(areas).values({ nome: 'Espiritual', cor: 'violeta', icone: 'folha', missao: 'Viver com calma e clareza.' }).returning({ id: areas.id }).get().id;
   const meta = criarMeta({ areaId: area, descricao: 'Conseguir meditar 1 h seguida', prazo: '2027-03-31', medida: 'numero', valorInicial: 20, valorAlvo: 60, unidade: 'min seguidos' });
   registarValor(meta, 25, '2026-11-12');
   garantirSemana(S1, new Date(2026, 10, 9));
-  marcarSemanaModelo(S1, true);
   const meditar = criarTarefa({ areaId: area, metaId: meta, nome: 'Meditar', duracaoMin: 120, recorrencia: { tipo: 'diaria' } }, S1);
   criarTarefa({ areaId: area, nome: 'Lição ACIM', duracaoMin: null, recorrencia: { tipo: 'dias', dias: [1, 3, 5] } }, S1);
   marcarBlocoFeito(alocarTarefa(meditar, S1, '2026-11-09', 390), true);

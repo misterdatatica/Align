@@ -1,27 +1,16 @@
-import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, isNull, lt, ne, or, sql } from 'drizzle-orm';
 
-import { consultaAreasAtivas } from '@/data/areas';
-import { carregarCalendario } from '@/data/calendario';
-import { recorrentesEmVigor, type Bd } from '@/data/tarefas';
+import { garantirSemana, recorrentesEmVigor, type Bd } from '@/data/tarefas';
 import { db } from '@/db/client';
 import { areas, blocos, revisoes, semanas, tarefas, tarefasSemana } from '@/db/schema';
-import {
-  areasSemTempo,
-  fimCopiado,
-  lugaresACopiar,
-  origemPorOmissao,
-  sobreposicoesDaSemana,
-  type EstadoDaSemana,
-  type Lugar,
-  type OrigemDaSemana,
-  type Sobreposicao,
-} from '@/domain/proposta';
+import { fimCopiado, lugaresACopiar, type EstadoDaSemana, type Lugar } from '@/domain/proposta';
 import { instanciasPorSemana } from '@/domain/recorrencia';
 import { deDataISO, diasDaSemana, inicioDaSemana, limitesDaSemana, paraDataHora, partirDataHora, somarSemanas } from '@/domain/semana';
 
 /*
- * O plano de cada semana. Uma semana nova não começa do zero: começa como uma proposta (rascunho),
- * copiada da última semana planeada ou da semana modelo, que o utilizador revê e aceita.
+ * O plano de cada semana. Uma semana nova não começa do zero: começa sempre igual à semana anterior,
+ * sem nada para aceitar. Se faltarem semanas entre a última planeada e a que se abre, planeiam-se
+ * todas por ordem, cada uma copiada da anterior.
  *
  * O que a cópia leva:
  *  - blocos das tarefas recorrentes e blocos "Ocupado": para o mesmo dia e hora;
@@ -31,70 +20,28 @@ import { deDataISO, diasDaSemana, inicioDaSemana, limitesDaSemana, paraDataHora,
 
 const AGORA = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;
 
-export type AtencaoDaProposta = {
-  sobreposicoes: Sobreposicao[];
-  /** Áreas ativas sem nenhum bloco no calendário desta semana. */
-  areasSemTempo: { id: number; nome: string; cor: string }[];
-};
-
 export type PlanoDaSemana = {
   semana: string;
+  /** "por_planear" só acontece nas semanas que já passaram sem plano. */
   estado: EstadoDaSemana;
-  origem: OrigemDaSemana | null;
-  /** A semana copiada, se a proposta veio de uma cópia. */
+  /** A semana copiada, se a semana veio de uma cópia. */
   origemSemana: string | null;
-  /** Esta é a semana modelo. */
-  modelo: boolean;
-  /** A semana modelo, se houver (pode ser esta). */
-  semanaModelo: string | null;
-  /** A última semana planeada antes desta: é a que "igual à semana passada" copia. */
-  ultimaPlaneada: string | null;
   /** Só se planeiam a semana atual e as seguintes. */
   podePlanear: boolean;
-  /** Origens que se podem escolher para esta semana, e a que vem escolhida. */
-  origens: OrigemDaSemana[];
-  origemPorOmissao: OrigemDaSemana;
-  /** O que a proposta destaca; null fora do rascunho. */
-  atencao: AtencaoDaProposta | null;
 };
 
 function ultimaPlaneadaAntes(bd: Bd, semana: string): string | null {
   return bd.select({ semana: semanas.semana }).from(semanas).where(lt(semanas.semana, semana)).orderBy(desc(semanas.semana)).limit(1).get()?.semana ?? null;
 }
 
-function lerSemanaModelo(bd: Bd): string | null {
-  return bd.select({ semana: semanas.semana }).from(semanas).where(eq(semanas.modelo, true)).get()?.semana ?? null;
-}
-
-/** Sobreposições e áreas sem tempo no calendário de uma semana. */
-export function atencaoDaSemana(semana: string): AtencaoDaProposta {
-  const { blocos: doCalendario } = carregarCalendario(semana);
-  const lista = consultaAreasAtivas().all();
-  return {
-    sobreposicoes: sobreposicoesDaSemana(doCalendario),
-    areasSemTempo: areasSemTempo(lista, doCalendario).map((a) => ({ id: a.id, nome: a.nome, cor: a.cor })),
-  };
-}
-
-/** O plano de uma semana e o que se pode fazer com ele. `hoje` é AAAA-MM-DD. */
+/** O plano de uma semana. `hoje` é AAAA-MM-DD. */
 export function carregarPlanoDaSemana(semana: string, hoje: string): PlanoDaSemana {
   const linha = db.select().from(semanas).where(eq(semanas.semana, semana)).get();
-  const semanaModelo = lerSemanaModelo(db);
-  const ultimaPlaneada = ultimaPlaneadaAntes(db, semana);
-  const estado: EstadoDaSemana = linha?.estado ?? 'por_planear';
-  const origens: OrigemDaSemana[] = [...(ultimaPlaneada ? (['passada'] as const) : []), ...(semanaModelo && semanaModelo !== semana ? (['modelo'] as const) : []), 'vazia'];
   return {
     semana,
-    estado,
-    origem: linha?.origem ?? null,
+    estado: linha ? 'aceite' : 'por_planear',
     origemSemana: linha?.origemSemana ?? null,
-    modelo: linha?.modelo ?? false,
-    semanaModelo,
-    ultimaPlaneada,
     podePlanear: semana >= inicioDaSemana(deDataISO(hoje)),
-    origens,
-    origemPorOmissao: origemPorOmissao(origens),
-    atencao: estado === 'rascunho' ? atencaoDaSemana(semana) : null,
   };
 }
 
@@ -103,30 +50,6 @@ function lugarDe(dias: string[], inicio: string, fim: string): Lugar | null {
   const a = partirDataHora(inicio);
   const dia = dias.indexOf(a.dia);
   return dia === -1 ? null : { dia, inicioMin: a.minutos, fimMin: partirDataHora(fim).minutos };
-}
-
-/** Esvazia uma proposta para a refazer: saem os blocos por fazer e os "Ocupado"; as tarefas ficam, por alocar. */
-function limpar(tx: Bd, semana: string) {
-  const porFazer = tx
-    .select({ blocoId: blocos.id })
-    .from(blocos)
-    .innerJoin(tarefasSemana, eq(blocos.tarefaSemanaId, tarefasSemana.id))
-    .where(and(eq(tarefasSemana.semana, semana), ne(tarefasSemana.estado, 'feita')))
-    .all()
-    .map((b) => b.blocoId);
-  if (porFazer.length) tx.delete(blocos).where(inArray(blocos.id, porFazer)).run();
-  tx.update(tarefasSemana)
-    .set({ estado: 'por_alocar', atualizadoEm: AGORA })
-    .where(and(eq(tarefasSemana.semana, semana), eq(tarefasSemana.estado, 'alocada')))
-    .run();
-  tx.update(tarefasSemana)
-    .set({ habitualInicio: null, habitualFim: null })
-    .where(and(eq(tarefasSemana.semana, semana), ne(tarefasSemana.estado, 'feita')))
-    .run();
-  const { desde, ate } = limitesDaSemana(semana);
-  tx.delete(blocos)
-    .where(and(isNull(blocos.tarefaSemanaId), gte(blocos.inicio, desde), lt(blocos.inicio, ate)))
-    .run();
 }
 
 /**
@@ -264,60 +187,33 @@ function gerar(tx: Bd, semana: string, origem: string | null, ultimaPlaneada: st
   if (ultimaPlaneada) transitar(tx, ultimaPlaneada, semana);
 }
 
-/**
- * Cria a proposta de uma semana a partir da origem escolhida. A proposta fica em rascunho até
- * "Aceitar semana". Chamar outra vez com a semana ainda em rascunho refaz a proposta com a origem nova.
- */
-export function criarProposta(semana: string, origem: OrigemDaSemana, hoje: Date = new Date()): void {
-  if (semana < inicioDaSemana(hoje)) throw new Error('Só se planeiam a semana atual e as seguintes.');
+/** Cria o plano de uma semana como cópia da última semana planeada antes dela (ou vazia, se não houver). */
+function criarSemana(semana: string) {
   db.transaction((tx) => {
-    const linha = tx.select({ estado: semanas.estado }).from(semanas).where(eq(semanas.semana, semana)).get();
-    if (linha?.estado === 'aceite') throw new Error('Esta semana já foi aceite.');
-
-    const ultimaPlaneada = ultimaPlaneadaAntes(tx, semana);
-    let copiada: string | null = null;
-    if (origem === 'passada') {
-      if (!ultimaPlaneada) throw new Error('Ainda não há nenhuma semana anterior para copiar.');
-      copiada = ultimaPlaneada;
-    } else if (origem === 'modelo') {
-      const modelo = lerSemanaModelo(tx);
-      if (!modelo || modelo === semana) throw new Error('Ainda não marcou nenhuma semana como modelo.');
-      copiada = modelo;
-    }
-
-    if (linha) limpar(tx, semana);
-    gerar(tx, semana, copiada, ultimaPlaneada);
+    if (tx.select({ semana: semanas.semana }).from(semanas).where(eq(semanas.semana, semana)).get()) return;
+    const anterior = ultimaPlaneadaAntes(tx, semana);
+    gerar(tx, semana, anterior, anterior);
     tx.insert(semanas)
-      .values({ semana, estado: 'rascunho', origem, origemSemana: copiada })
-      .onConflictDoUpdate({ target: semanas.semana, set: { estado: 'rascunho', origem, origemSemana: copiada, atualizadoEm: AGORA } })
+      .values({ semana, estado: 'aceite', origem: anterior ? 'passada' : 'vazia', origemSemana: anterior })
       .run();
   });
 }
 
 /**
- * Abre a proposta de uma semana: se ainda não tem plano, cria-a com a origem por omissão (igual à
- * semana passada, se houver). É o último passo da revisão. Devolve o estado em que a semana ficou.
+ * Garante que a semana tem plano, copiado da semana anterior. As semanas que faltarem entre a última
+ * planeada e esta são planeadas primeiro, por ordem, para cada uma ser igual à que vem antes. As
+ * semanas que já passaram sem plano ficam como estão. A primeira semana de todas é a de
+ * `garantirSemana`, que começa vazia.
  */
-export function abrirProposta(semana: string, hoje: Date = new Date()): EstadoDaSemana {
-  const linha = db.select({ estado: semanas.estado }).from(semanas).where(eq(semanas.semana, semana)).get();
-  if (linha) return linha.estado;
-  if (semana < inicioDaSemana(hoje)) return 'por_planear';
-  criarProposta(semana, ultimaPlaneadaAntes(db, semana) ? 'passada' : 'vazia', hoje);
-  return 'rascunho';
-}
-
-/** "Aceitar semana": a proposta passa a ser o plano. */
-export function aceitarSemana(semana: string): void {
-  const aceite = db.update(semanas).set({ estado: 'aceite', atualizadoEm: AGORA }).where(eq(semanas.semana, semana)).returning({ semana: semanas.semana }).all();
-  if (aceite.length === 0) throw new Error('Esta semana ainda não tem uma proposta.');
-}
-
-/** Marca (ou desmarca) uma semana como semana modelo. Só há uma: marcar outra substitui a anterior. */
-export function marcarSemanaModelo(semana: string, modelo: boolean): void {
-  db.transaction((tx) => {
-    const linha = tx.select({ semana: semanas.semana }).from(semanas).where(eq(semanas.semana, semana)).get();
-    if (!linha) throw new Error('Planeie a semana antes de a marcar como modelo.');
-    if (modelo) tx.update(semanas).set({ modelo: false, atualizadoEm: AGORA }).where(eq(semanas.modelo, true)).run();
-    tx.update(semanas).set({ modelo, atualizadoEm: AGORA }).where(eq(semanas.semana, semana)).run();
-  });
+export function planearSemana(semana: string, hoje: Date = new Date()): void {
+  // As propostas por aceitar de versões anteriores da app passam a ser o plano.
+  db.update(semanas).set({ estado: 'aceite', atualizadoEm: AGORA }).where(eq(semanas.estado, 'rascunho')).run();
+  const atual = inicioDaSemana(hoje);
+  if (semana >= atual && !db.select({ semana: semanas.semana }).from(semanas).where(eq(semanas.semana, semana)).get()) {
+    const anterior = ultimaPlaneadaAntes(db, semana);
+    if (anterior) {
+      for (let s = anterior < atual ? atual : somarSemanas(anterior, 1); s <= semana; s = somarSemanas(s, 1)) criarSemana(s);
+    }
+  }
+  garantirSemana(semana, hoje);
 }
