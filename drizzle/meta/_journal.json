@@ -43,6 +43,13 @@
       "when": 1795175546438,
       "tag": "0005_aparencia",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1795180167219,
+      "tag": "0006_idioma_e_dias",
+      "breakpoints": true
     }
   ]
 }

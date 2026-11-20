@@ -54,6 +54,8 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoF
   const [repeticao, setRepeticao] = useState<TipoRepeticao>(tipoDe(tarefa?.recorrencia));
   const [vezes, setVezes] = useState(tarefa?.recorrencia?.tipo === 'vezes_por_semana' ? tarefa.recorrencia.vezes : 3);
   const [dias, setDias] = useState<number[]>(tarefa?.recorrencia?.tipo === 'dias' ? tarefa.recorrencia.dias : []);
+  /** Dia de uma tarefa única sem duração (0 = segunda … 6 = domingo); null = qualquer dia. */
+  const [diaUnico, setDiaUnico] = useState<number | null>(tarefa?.dia ?? null);
   const [metaId, setMetaId] = useState<number | null>(tarefa?.metaId ?? metaInicial ?? null);
   const [aGuardar, setAGuardar] = useState(false);
 
@@ -89,6 +91,7 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoF
       nomeCurto: semDuracao ? null : nomeCurto,
       duracaoMin: semDuracao ? null : duracaoMin,
       recorrencia,
+      dia: semDuracao && repeticao === 'nenhuma' ? diaUnico : null,
     };
     setAGuardar(true);
     try {
@@ -177,7 +180,20 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoF
           </View>
         ) : null}
         {resumo ? <Text style={estilos.pequeno}>{resumo}</Text> : null}
+        {semDuracao && (repeticao === 'diaria' || repeticao === 'dias') ? <Text style={estilos.pequeno}>{t('Aparece no ecrã Hoje em cada um destes dias, para a marcar como feita.')}</Text> : null}
       </Seccao>
+
+      {semDuracao && repeticao === 'nenhuma' ? (
+        <Seccao titulo={t('Dia (opcional)')}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }} accessibilityRole="radiogroup" accessibilityLabel={t('Dia da tarefa')}>
+            <Opcao titulo={t('Qualquer dia')} ativa={diaUnico === null} onPress={() => setDiaUnico(null)} />
+            {DIAS_CURTOS.map((curto, i) => (
+              <Opcao key={curto} titulo={t(curto)} rotulo={t(DIAS_LONGOS[i])} ativa={diaUnico === i} onPress={() => setDiaUnico(i)} style={{ paddingHorizontal: 10 }} />
+            ))}
+          </View>
+          <Text style={estilos.pequeno}>{diaUnico === null ? t('Faz-se em qualquer dia da semana.') : t('Aparece no ecrã Hoje: {dia}.', { dia: t(DIAS_LONGOS[diaUnico]) })}</Text>
+        </Seccao>
+      ) : null}
 
       {listaMetas.length > 0 ? (
         <Seccao titulo={t('Meta (opcional)')}>

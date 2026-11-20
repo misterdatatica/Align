@@ -207,6 +207,14 @@ const cenarios = {
       await b.verTexto('1/7');
     });
 
+    await passo('uma tarefa sem duração de todos os dias aparece no Hoje e marca-se lá', async () => {
+      await b.clicar('Hoje');
+      await b.verTexto('PARA HOJE, SEM HORA');
+      await b.clicar('Lição ACIM, Espiritual');
+      await b.clicar('Semana', { indice: -1 });
+      await b.verTexto('2/7'); // 1 vez já marcada na semana + a de hoje
+    });
+
     await passo('alterar a repetição acerta as instâncias', async () => {
       await b.clicar('Meditar');
       await b.verTexto('Guardar alterações');
@@ -564,6 +572,19 @@ const cenarios = {
       await b.verTexto('18:30');
       await b.clicar('Mais última hora do calendário');
       await b.verTexto('24:00');
+    });
+
+    await passo('o idioma escolhe-se nas definições, e as definições voltam a abrir já no idioma novo', async () => {
+      await b.clicar('English');
+      await b.verTexto('LANGUAGE');
+      await b.verTexto('Settings');
+      await b.verTexto('Automatic follows your phone');
+      await b.clicar('Português');
+      await b.verTexto('IDIOMA');
+      await b.verTexto('Definições');
+      await b.avaliar('history.back()');
+      await b.verTexto('As minhas áreas');
+      await b.clicar('Definições');
     });
 
     await passo('exporta os dados para um ficheiro', async () => {

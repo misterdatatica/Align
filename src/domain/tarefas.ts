@@ -1,7 +1,7 @@
 /** Regras das tarefas e das suas instâncias semanais que não dependem da base de dados. */
 
 import { t } from '../i18n/index.ts';
-import type { Recorrencia } from './recorrencia';
+import { DIAS_ABREVIADOS, type Recorrencia } from './recorrencia';
 import { formatarHoras } from './regras';
 import { minutosEntre } from './semana';
 
@@ -36,7 +36,42 @@ export type TarefaBase = {
   /** null = não ocupa tempo no calendário; conta só quando é marcada como feita. */
   duracaoMin: number | null;
   recorrencia: Recorrencia | null;
+  /** Dia escolhido de uma tarefa única sem duração (0 = segunda … 6 = domingo); null = qualquer dia. */
+  dia?: number | null;
 };
+
+/**
+ * Os dias da semana (0 = segunda … 6 = domingo) em que se faz uma tarefa sem duração: todos, os dias
+ * certos da recorrência, ou o dia escolhido de uma tarefa única. Vazio quando não tem dias (com
+ * duração, "vezes por semana", ou tarefa única para qualquer dia).
+ */
+export function diasDaTarefa(t: Pick<TarefaBase, 'duracaoMin' | 'recorrencia' | 'dia'>): number[] {
+  if (t.duracaoMin !== null) return [];
+  const r = t.recorrencia;
+  if (!r) return t.dia !== null && t.dia !== undefined && t.dia >= 0 && t.dia <= 6 ? [t.dia] : [];
+  if (r.tipo === 'diaria') return [0, 1, 2, 3, 4, 5, 6];
+  if (r.tipo === 'dias') return [...new Set(r.dias)].filter((d) => d >= 1 && d <= 7).sort((a, b) => a - b).map((d) => d - 1);
+  return [];
+}
+
+/**
+ * Liga as instâncias de uma tarefa numa semana aos seus dias (AAAA-MM-DD). As que já estão num dia
+ * certo ficam onde estão; as outras ocupam os dias que faltam, pela ordem; as que sobram ficam sem dia.
+ * Devolve só as instâncias cujo dia muda.
+ */
+export function distribuirDias(instancias: { id: number; dia: string | null }[], dias: string[]): { id: number; dia: string | null }[] {
+  const usados = new Set<string>();
+  const novo = new Map<number, string | null>();
+  for (const i of instancias) {
+    if (i.dia !== null && dias.includes(i.dia) && !usados.has(i.dia)) {
+      usados.add(i.dia);
+      novo.set(i.id, i.dia);
+    }
+  }
+  const livres = dias.filter((d) => !usados.has(d));
+  for (const i of instancias) if (!novo.has(i.id)) novo.set(i.id, livres.shift() ?? null);
+  return instancias.filter((i) => novo.get(i.id) !== i.dia).map((i) => ({ id: i.id, dia: novo.get(i.id) ?? null }));
+}
 
 export type InstanciaSemana = {
   id: number;
@@ -140,8 +175,10 @@ export function estadoDaLinha(r: Pick<ResumoTarefa, 'duracaoMin' | 'total' | 'no
 }
 
 /** Linha por baixo do nome: "2 h · todos os dias", "30 min · vem da semana passada". */
-export function detalheDaLinha(r: Pick<ResumoTarefa, 'duracaoMin' | 'veioDaSemanaPassada'>, recorrencia: string | null): string {
-  const partes = [formatarDuracao(r.duracaoMin), recorrencia, r.veioDaSemanaPassada ? t('vem da semana passada') : null].filter(Boolean);
+export function detalheDaLinha(r: Pick<ResumoTarefa, 'duracaoMin' | 'veioDaSemanaPassada' | 'recorrencia' | 'dia'>, recorrencia: string | null): string {
+  // Uma tarefa única sem duração com dia escolhido mostra-o ("qua").
+  const dia = r.duracaoMin === null && !r.recorrencia && r.dia !== null && r.dia !== undefined ? t(DIAS_ABREVIADOS[r.dia]) : null;
+  const partes = [formatarDuracao(r.duracaoMin), recorrencia, dia, r.veioDaSemanaPassada ? t('vem da semana passada') : null].filter(Boolean);
   return partes.length ? partes.join(' · ') : t('sem duração');
 }
 

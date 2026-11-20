@@ -11,7 +11,8 @@ import { Botao, Cartao, Seccao, Titulo } from '@/components/ui';
 import { marcarBlocoFeito, type BlocoCalendario } from '@/data/calendario';
 import { useConsulta } from '@/data/consulta';
 import { primeiroArranque } from '@/data/definicoes';
-import { carregarHoje } from '@/data/hoje';
+import { carregarHoje, type DiaDeHoje } from '@/data/hoje';
+import { marcarInstancia } from '@/data/tarefas';
 import { revisaoPorFazer } from '@/data/revisao';
 import { formatarIntervalo } from '@/domain/calendario';
 import { DIAS_DE_REVISAO } from '@/domain/revisao';
@@ -108,9 +109,19 @@ export default function HojeEcra() {
               )}
             </Seccao>
 
+            {dia.paraHoje.length > 0 ? (
+              <Seccao titulo={t('Para hoje, sem hora')}>
+                <Cartao style={{ overflow: 'hidden' }}>
+                  {dia.paraHoje.map((item, i) => (
+                    <LinhaParaHoje key={item.instanciaId} item={item} primeira={i === 0} />
+                  ))}
+                </Cartao>
+              </Seccao>
+            ) : null}
+
             {dia.semHora.length > 0 ? (
-              <Seccao titulo={t('Sem hora marcada')}>
-                <Text style={[estilos.pequeno, { marginTop: -4 }]}>{t('Tarefas desta semana que não ocupam tempo no calendário: marque cada vez que as faz.')}</Text>
+              <Seccao titulo={t('Esta semana, em qualquer dia')}>
+                <Text style={[estilos.pequeno, { marginTop: -4 }]}>{t('Tarefas sem hora nem dia certo: marque cada vez que as faz.')}</Text>
                 <View style={[estilos.cartao, { overflow: 'hidden' }]}>
                   {dia.semHora.flatMap((g) => g.tarefas.map((tf) => ({ area: g.area, tarefa: tf }))).map(({ area, tarefa }, i) => (
                     <View key={tarefa.id} style={{ flexDirection: 'row', alignItems: 'stretch' }}>
@@ -141,6 +152,43 @@ export default function HojeEcra() {
         )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/** Uma tarefa sem duração marcada para hoje: nome, área e a caixa para a dar como feita. */
+function LinhaParaHoje({ item, primeira }: { item: DiaDeHoje['paraHoje'][number]; primeira: boolean }) {
+  const { cores, corDaArea } = useTema();
+  const { tarefa, area, feita, instanciaId } = item;
+
+  function alternar() {
+    try {
+      marcarInstancia(instanciaId, !feita);
+    } catch (erro) {
+      avisarErro(t('Não foi possível marcar a tarefa'), erro);
+    }
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityLabel={`${tarefa.nome}, ${area.nome}`}
+      accessibilityState={{ checked: feita }}
+      onPress={alternar}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingLeft: 12, paddingRight: 6, borderTopWidth: primeira ? 0 : 1, borderTopColor: cores.linhaSuave, opacity: pressed ? 0.7 : 1 })}
+    >
+      <View style={{ width: 4, alignSelf: 'stretch', marginVertical: 8, borderRadius: 2, backgroundColor: corDaArea(area.cor).forte }} />
+      <View style={{ flex: 1, minWidth: 0, paddingVertical: 8 }}>
+        <Text numberOfLines={2} style={{ fontFamily: fontes.textoMedio, fontSize: 15, lineHeight: 20, color: cores.tinta, textDecorationLine: feita ? 'line-through' : 'none' }}>
+          {tarefa.nome}
+        </Text>
+        <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 16, color: cores.texto3 }}>{area.nome}</Text>
+      </View>
+      <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 26, height: 26, borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: feita ? 0 : 1.5, borderColor: cores.tracejado, backgroundColor: feita ? cores.tinta : 'transparent' }}>
+          {feita ? <Icone nome="certo" tamanho={15} cor={cores.sobreTinta} espessura={2.4} /> : null}
+        </View>
+      </View>
+    </Pressable>
   );
 }
 

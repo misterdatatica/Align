@@ -3,8 +3,8 @@ import { and, asc, count, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, or, 
 import { db } from '@/db/client';
 import { areas, blocos, metas, revisoes, semanas, tarefas, tarefasSemana, type Area, type Tarefa } from '@/db/schema';
 import { instanciasPorSemana, normalizarRecorrencia, type Recorrencia } from '@/domain/recorrencia';
-import { inicioDaSemana, MINUTOS_DIA, minutosEntre, paraDataHora, partirDataHora } from '@/domain/semana';
-import { acertarInstancias, DURACAO_MAXIMA_MIN, montarPlano, type PlanoSemana } from '@/domain/tarefas';
+import { diasDaSemana, inicioDaSemana, MINUTOS_DIA, minutosEntre, paraDataHora, partirDataHora } from '@/domain/semana';
+import { acertarInstancias, diasDaTarefa, distribuirDias, DURACAO_MAXIMA_MIN, montarPlano, type PlanoSemana } from '@/domain/tarefas';
 import { ErroDaApp } from '@/domain/erros';
 import { t } from '@/i18n';
 
@@ -32,6 +32,8 @@ export type DadosTarefa = {
   /** Minutos; null = não ocupa tempo no calendário, conta só quando é marcada como feita. */
   duracaoMin: number | null;
   recorrencia: Recorrencia | null;
+  /** Só nas tarefas únicas sem duração: dia da semana (0 = segunda … 6 = domingo); null = qualquer dia. */
+  dia?: number | null;
 };
 
 function normalizar(dados: DadosTarefa) {
@@ -41,13 +43,16 @@ function normalizar(dados: DadosTarefa) {
   if (duracaoMin !== null && (!Number.isInteger(duracaoMin) || duracaoMin <= 0 || duracaoMin > DURACAO_MAXIMA_MIN)) {
     throw new ErroDaApp(t('A duração tem de estar entre 30 minutos e 12 horas.'));
   }
+  const recorrencia = normalizarRecorrencia(dados.recorrencia);
+  const dia = duracaoMin === null && recorrencia === null && Number.isInteger(dados.dia) && dados.dia! >= 0 && dados.dia! <= 6 ? dados.dia! : null;
   return {
     areaId: dados.areaId,
     metaId: dados.metaId ?? null,
     nome,
     nomeCurto: dados.nomeCurto?.trim() || null,
     duracaoMin,
-    recorrencia: normalizarRecorrencia(dados.recorrencia),
+    recorrencia,
+    dia,
   };
 }
 
@@ -78,8 +83,34 @@ export function criarTarefa(dados: DadosTarefa, semana: string): number {
       .returning({ id: tarefas.id })
       .get();
     criarInstancias(tx, id, semana, instanciasPorSemana(d.recorrencia));
+    atribuirDias(tx, semana);
     return id;
   });
+}
+
+/**
+ * Nas tarefas sem duração que têm dias (todos os dias, dias certos, ou o dia escolhido de uma tarefa
+ * única), liga cada instância da semana ao seu dia. Só mexe no que está fora do sítio, por isso pode
+ * chamar-se sempre que as instâncias mudam.
+ */
+export function atribuirDias(tx: Bd, semana: string): void {
+  const datas = diasDaSemana(semana);
+  const linhas = tx
+    .select({ id: tarefasSemana.id, dia: tarefasSemana.dia, tarefaId: tarefas.id, duracaoMin: tarefas.duracaoMin, recorrencia: tarefas.recorrencia, diaEscolhido: tarefas.dia })
+    .from(tarefasSemana)
+    .innerJoin(tarefas, eq(tarefasSemana.tarefaId, tarefas.id))
+    .where(eq(tarefasSemana.semana, semana))
+    .orderBy(asc(tarefasSemana.id))
+    .all();
+  const porTarefa = new Map<number, typeof linhas>();
+  for (const l of linhas) porTarefa.set(l.tarefaId, [...(porTarefa.get(l.tarefaId) ?? []), l]);
+  for (const instancias of porTarefa.values()) {
+    const { duracaoMin, recorrencia, diaEscolhido } = instancias[0];
+    const dias = diasDaTarefa({ duracaoMin, recorrencia, dia: diaEscolhido }).map((d) => datas[d]);
+    for (const { id, dia } of distribuirDias(instancias, dias)) {
+      tx.update(tarefasSemana).set({ dia, atualizadoEm: AGORA }).where(eq(tarefasSemana.id, id)).run();
+    }
+  }
 }
 
 /**
@@ -100,7 +131,9 @@ export function garantirSemana(semana: string, hoje: Date = new Date()): number 
       if (outras > 0) return 0;
       tx.insert(semanas).values({ semana, estado: 'aceite', origem: 'vazia' }).run();
     }
-    return criarInstanciasEmFalta(tx, semana);
+    const criadas = criarInstanciasEmFalta(tx, semana);
+    atribuirDias(tx, semana);
+    return criadas;
   });
 }
 
@@ -190,7 +223,9 @@ export function editarTarefa(id: number, semana: string, dados: DadosTarefa): nu
       const { criar, remover } = acertarInstancias([...daSemana.values()], alvo);
       if (remover.length) tx.delete(tarefasSemana).where(inArray(tarefasSemana.id, remover)).run();
       criarInstancias(tx, emVigor, s, criar);
+      atribuirDias(tx, s);
     }
+    atribuirDias(tx, semana);
 
     if (atual.duracaoMin !== d.duracaoMin) {
       const noCalendario = tx
@@ -292,6 +327,28 @@ export function marcarVez(tarefaId: number, semana: string, feita: boolean): voi
   });
 }
 
+/**
+ * Marca (ou desmarca) uma instância de uma tarefa sem duração: é assim que o ecrã Hoje marca a tarefa
+ * do dia, sem mexer nas dos outros dias.
+ */
+export function marcarInstancia(instanciaId: number, feita: boolean): void {
+  db.transaction((tx) => {
+    const instancia = tx
+      .select({ semana: tarefasSemana.semana, duracaoMin: tarefas.duracaoMin })
+      .from(tarefasSemana)
+      .innerJoin(tarefas, eq(tarefasSemana.tarefaId, tarefas.id))
+      .where(eq(tarefasSemana.id, instanciaId))
+      .get();
+    if (!instancia) throw new ErroDaApp(t('A tarefa já não existe.'));
+    if (instancia.duracaoMin !== null) throw new ErroDaApp(t('As tarefas com duração marcam-se como feitas no calendário.'));
+    const revisao = tx.select({ fechadaEm: revisoes.fechadaEm }).from(revisoes).where(eq(revisoes.semana, instancia.semana)).get();
+    tx.update(tarefasSemana)
+      .set({ estado: feita ? 'feita' : revisao?.fechadaEm ? 'nao_feita' : 'por_alocar', atualizadoEm: AGORA })
+      .where(eq(tarefasSemana.id, instanciaId))
+      .run();
+  });
+}
+
 export type PlanoDaSemana = PlanoSemana<Area>;
 
 /** Tudo o que os ecrãs precisam sobre uma semana: áreas ativas, tarefas, estados e horas. */
@@ -314,6 +371,7 @@ export function carregarPlano(semana: string): PlanoDaSemana {
       nomeCurto: tarefas.nomeCurto,
       duracaoMin: tarefas.duracaoMin,
       recorrencia: tarefas.recorrencia,
+      dia: tarefas.dia,
     })
     .from(tarefas)
     .where(inArray(tarefas.id, [...new Set(instancias.map((i) => i.tarefaId))]))

@@ -88,7 +88,7 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
   fixas: os componentes pedem `useTema()`. No telemóvel, "Claro" e "Escuro" também se aplicam aos
   componentes do sistema (`Appearance.setColorScheme`); no Android o modo automático precisa do
   `expo-system-ui`.
-- **Idiomas:** português de Portugal e inglês, pelo idioma do telemóvel (`expo-localization`; qualquer
+- **Idiomas:** português de Portugal e inglês, pelo idioma do telemóvel ou escolhido nas Definições (`definicoes.idioma`) (`expo-localization`; qualquer
   `pt-*` dá português, o resto inglês). O texto português fica no código e é a chave da tradução:
   `t('Revisão de {dia}', { dia })`. Os textos novos vão para `src/i18n/en.ts`; `npm test` falha se
   algum ficar sem tradução, se as `{chavetas}` não baterem certo ou se sobrar uma tradução que já não se usa.
@@ -98,7 +98,10 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
 - Mover ou retirar um bloco de uma tarefa recorrente pede um âmbito. "Só esta semana" guarda o
   horário habitual na instância (`habitualInicio/Fim`), e a semana seguinte copia o habitual;
   "Esta e as seguintes" muda o hábito e acerta as semanas seguintes que já existem.
-- Tarefas **sem duração** não vão ao calendário: contam-se marcando-as como feitas.
+- Tarefas **sem duração** não vão ao calendário: contam-se marcando-as como feitas. As que têm dias
+  (todos os dias, dias certos, ou o dia escolhido de uma tarefa única) ficam com cada instância ligada
+  ao seu dia (`tarefas_semana.dia`, acertado por `atribuirDias`) e aparecem no ecrã Hoje nesse dia; as
+  de "vezes por semana" e as tarefas únicas sem dia contam-se na semana, em qualquer dia.
 - As escritas são transações síncronas do SQLite, por isso nunca ficam a meio.
 - A migração `0003` converte as metas antigas (alvo semanal) em metas pausadas, com o alvo antigo na
   descrição e um prazo provisório, para serem reescritas como resultados. As tarefas continuam

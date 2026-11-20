@@ -7,6 +7,7 @@ import m0002 from './0002_tarefas_por_semana.sql';
 import m0003 from './0003_metas_resultado_e_proposta.sql';
 import m0004 from './0004_copia_de_seguranca.sql';
 import m0005 from './0005_aparencia.sql';
+import m0006 from './0006_idioma_e_dias.sql';
 
   export default {
     journal,
@@ -16,7 +17,8 @@ m0001,
 m0002,
 m0003,
 m0004,
-m0005
+m0005,
+m0006
     }
   }
   

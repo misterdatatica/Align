@@ -7,7 +7,8 @@ import { escolherFicheiro } from '@/copiaFicheiro';
 import { consultaAreasArquivadas, reporArea } from '@/data/areas';
 import { recarregarConsultas, useConsulta } from '@/data/consulta';
 import { importarDados, lerCopia, resumirCopia } from '@/data/copia';
-import { carregarDefinicoes, guardarDefinicoes, type Definicoes, type PreferenciaDeTema } from '@/data/definicoes';
+import { carregarDefinicoes, guardarDefinicoes, type Definicoes, type PreferenciaDeIdioma, type PreferenciaDeTema } from '@/data/definicoes';
+import { pedirParaReabrirDefinicoes } from '@/estado/reabrir';
 import { DIAS_DE_REVISAO } from '@/domain/revisao';
 import { descreverDia, formatarHora, paraDataISO } from '@/domain/semana';
 import { agendarLembrete, cancelarLembrete, lembretesDisponiveis, pedirPermissaoDeLembrete } from '@/lembrete';
@@ -16,6 +17,13 @@ import { t } from '@/i18n';
 
 /** Dias pela ordem da semana portuguesa (segunda primeiro), com o número que as definições guardam (0 = domingo). */
 const DIAS = [1, 2, 3, 4, 5, 6, 0];
+
+/** Os nomes dos idiomas ficam sempre na própria língua, para se encontrarem em qualquer idioma. */
+const IDIOMAS = (): { valor: PreferenciaDeIdioma; titulo: string }[] => [
+  { valor: 'automatico', titulo: t('Automático') },
+  { valor: 'pt', titulo: 'Português' },
+  { valor: 'en', titulo: 'English' },
+];
 
 const APARENCIAS = (): { valor: PreferenciaDeTema; titulo: string; ajuda: string }[] => [
   { valor: 'automatico', titulo: t('Automático'), ajuda: t('Segue o modo claro ou escuro do telemóvel.') },
@@ -100,6 +108,27 @@ export default function DefinicoesEcra() {
             ))}
           </View>
           <Text style={estilos.pequeno}>{APARENCIAS().find((a) => a.valor === definicoes.tema)?.ajuda}</Text>
+        </Cartao>
+      </Seccao>
+
+      <Seccao titulo={t('Idioma')}>
+        <Cartao style={{ padding: 16, gap: 10 }}>
+          <View style={{ flexDirection: 'row', gap: 6 }} accessibilityRole="radiogroup" accessibilityLabel={t('Idioma')}>
+            {IDIOMAS().map((i) => (
+              <Opcao
+                key={i.valor}
+                titulo={i.titulo}
+                ativa={definicoes.idioma === i.valor}
+                onPress={() => {
+                  if (definicoes.idioma === i.valor) return;
+                  pedirParaReabrirDefinicoes();
+                  mudar({ idioma: i.valor });
+                }}
+                style={{ flex: 1, paddingHorizontal: 0 }}
+              />
+            ))}
+          </View>
+          <Text style={estilos.pequeno}>{t('Automático segue o idioma do telemóvel.')}</Text>
         </Cartao>
       </Seccao>
 

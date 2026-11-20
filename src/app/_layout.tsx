@@ -1,6 +1,6 @@
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, useFonts } from '@expo-google-fonts/inter';
 import { SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold } from '@expo-google-fonts/space-grotesk';
-import { DarkTheme, DefaultTheme, SplashScreen, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, router, SplashScreen, Stack, ThemeProvider } from 'expo-router';
 import { useLocales } from 'expo-localization';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
@@ -11,7 +11,8 @@ import { AvisoTemporario } from '@/components/AvisoTemporario';
 import { useConsulta } from '@/data/consulta';
 import { carregarDefinicoes, type PreferenciaDeTema } from '@/data/definicoes';
 import { prepararBaseDeDados } from '@/db/preparar';
-import { definirIdioma, escolherIdioma, t } from '@/i18n';
+import { deveReabrirDefinicoes } from '@/estado/reabrir';
+import { definirIdioma, escolherIdioma, t, type Idioma } from '@/i18n';
 import { configurarLembretes, useAbrirRevisaoPeloLembrete } from '@/lembrete';
 import { ContextoDoTema, TEMAS, type Esquema } from '@/theme';
 
@@ -60,9 +61,9 @@ function aplicarAoSistema(preferencia: PreferenciaDeTema) {
 
 export default function RootLayout() {
   const esquemaDoSistema = useEsquemaDoSistema();
-  // Português para quem tem o telemóvel em português; inglês para todos os outros.
-  const idioma = escolherIdioma(useLocales().map((l) => l.languageTag));
-  definirIdioma(idioma);
+  // Português para quem tem o telemóvel em português; inglês para todos os outros (a não ser que se
+  // escolha outro nas Definições: ver AppComTema).
+  const idiomaDoSistema = escolherIdioma(useLocales().map((l) => l.languageTag));
   const [fontesProntas] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -83,6 +84,7 @@ export default function RootLayout() {
     // A causa (o erro original do SQLite) ajuda a perceber o que falhou.
     const causa = erroBd.cause instanceof Error ? erroBd.cause.message : null;
     const { cores } = TEMAS[esquemaDoSistema];
+    definirIdioma(idiomaDoSistema);
     return (
       <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 8, backgroundColor: cores.fundo }}>
         <Text style={{ fontSize: 17, fontWeight: '600', color: cores.tinta }}>{t('Não foi possível preparar a base de dados.')}</Text>
@@ -92,14 +94,30 @@ export default function RootLayout() {
     );
   }
 
-  // Mudar de idioma volta a desenhar tudo, para os textos já mostrados também mudarem.
-  return <AppComTema key={idioma} />;
+  return <AppComTema idiomaDoSistema={idiomaDoSistema} />;
+}
+
+/** Depois de mudar o idioma nas Definições, a app volta a desenhar-se e reabre as Definições. */
+function ReabrirDefinicoes() {
+  useEffect(() => {
+    if (!deveReabrirDefinicoes()) return;
+    // Por cima das Áreas, de onde as Definições se abrem: voltar leva para lá, como antes.
+    const temporizador = setTimeout(() => {
+      router.navigate('/areas');
+      router.push('/definicoes');
+    }, 0);
+    return () => clearTimeout(temporizador);
+  }, []);
+  return null;
 }
 
 /** A app depois de a base de dados estar pronta: o tema vem das definições e do sistema. */
-function AppComTema() {
+function AppComTema({ idiomaDoSistema }: { idiomaDoSistema: Idioma }) {
   const esquemaDoSistema = useEsquemaDoSistema();
   const preferencia = useConsulta(() => carregarDefinicoes().tema, ['definicoes']);
+  const preferenciaDeIdioma = useConsulta(() => carregarDefinicoes().idioma, ['definicoes']);
+  const idioma: Idioma = preferenciaDeIdioma === 'automatico' ? idiomaDoSistema : preferenciaDeIdioma;
+  definirIdioma(idioma);
   useEffect(() => aplicarAoSistema(preferencia), [preferencia]);
   const tema = TEMAS[preferencia === 'automatico' ? esquemaDoSistema : preferencia];
   const { cores } = tema;
@@ -111,7 +129,8 @@ function AppComTema() {
   }, [tema, cores]);
 
   return (
-    <ContextoDoTema.Provider value={tema}>
+    // Mudar de idioma volta a desenhar tudo (key), para os textos já mostrados também mudarem.
+    <ContextoDoTema.Provider key={idioma} value={tema}>
       <ThemeProvider value={temaDaNavegacao}>
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: cores.fundo }}>
           <StatusBar style={tema.escuro ? 'light' : 'dark'} />
@@ -129,6 +148,7 @@ function AppComTema() {
             <Stack.Screen name="definicoes" options={{ title: t('Definições'), headerBackTitle: t('Áreas'), headerStyle: { backgroundColor: cores.fundo } }} />
           </Stack>
           <AvisoTemporario />
+          <ReabrirDefinicoes />
         </GestureHandlerRootView>
       </ThemeProvider>
     </ContextoDoTema.Provider>

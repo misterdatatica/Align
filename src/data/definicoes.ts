@@ -19,12 +19,17 @@ export type Definicoes = {
   ultimaCopia: string | null;
   /** Aparência: segue o telemóvel, ou fica sempre clara ou escura. */
   tema: PreferenciaDeTema;
+  /** Idioma: o do telemóvel, ou sempre português ou inglês. */
+  idioma: PreferenciaDeIdioma;
 };
+
+export type PreferenciaDeIdioma = 'automatico' | 'pt' | 'en';
+const PREFERENCIAS_DE_IDIOMA: readonly PreferenciaDeIdioma[] = ['automatico', 'pt', 'en'];
 
 export type PreferenciaDeTema = 'automatico' | 'claro' | 'escuro';
 const PREFERENCIAS_DE_TEMA: readonly PreferenciaDeTema[] = ['automatico', 'claro', 'escuro'];
 
-export const DEFINICOES_INICIAIS: Definicoes = { diaRevisao: 0, horaRevisao: '18:00', inicioGrelha: 6, fimGrelha: 23, lembreteAtivo: false, ultimaCopia: null, tema: 'automatico' };
+export const DEFINICOES_INICIAIS: Definicoes = { diaRevisao: 0, horaRevisao: '18:00', inicioGrelha: 6, fimGrelha: 23, lembreteAtivo: false, ultimaCopia: null, tema: 'automatico', idioma: 'automatico' };
 
 const ID = 1;
 
@@ -39,6 +44,7 @@ export function carregarDefinicoes(): Definicoes {
     lembreteAtivo: linha.lembreteAtivo,
     ultimaCopia: linha.ultimaCopia,
     tema: linha.tema,
+    idioma: linha.idioma,
   };
 }
 
@@ -61,6 +67,7 @@ export function guardarDefinicoes(alteracoes: Partial<Definicoes>): Definicoes {
     throw new ErroDaApp(t('O calendário tem de mostrar pelo menos 4 horas.'));
   }
   if (!PREFERENCIAS_DE_TEMA.includes(novas.tema)) throw new ErroDaApp(t('A aparência escolhida não é válida.'));
+  if (!PREFERENCIAS_DE_IDIOMA.includes(novas.idioma)) throw new ErroDaApp(t('O idioma escolhido não é válido.'));
   db.insert(definicoes)
     .values({ id: ID, ...novas })
     .onConflictDoUpdate({ target: definicoes.id, set: { ...novas, atualizadoEm: sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))` } })

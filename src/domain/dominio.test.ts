@@ -55,6 +55,32 @@ describe('semana', () => {
   });
 });
 
+describe('dias das tarefas sem duração', () => {
+  it('diz os dias de cada tipo de tarefa', async () => {
+    const { diasDaTarefa } = await import('./tarefas.ts');
+    assert.deepEqual(diasDaTarefa({ duracaoMin: null, recorrencia: { tipo: 'diaria' } }), [0, 1, 2, 3, 4, 5, 6]);
+    assert.deepEqual(diasDaTarefa({ duracaoMin: null, recorrencia: { tipo: 'dias', dias: [5, 1, 3] } }), [0, 2, 4]);
+    assert.deepEqual(diasDaTarefa({ duracaoMin: null, recorrencia: { tipo: 'vezes_por_semana', vezes: 3 } }), []);
+    assert.deepEqual(diasDaTarefa({ duracaoMin: null, recorrencia: null, dia: 6 }), [6]);
+    assert.deepEqual(diasDaTarefa({ duracaoMin: null, recorrencia: null, dia: null }), []);
+    assert.deepEqual(diasDaTarefa({ duracaoMin: 60, recorrencia: { tipo: 'diaria' } }), [], 'com duração, o dia é o do bloco');
+  });
+
+  it('distribui as instâncias pelos dias, mantendo as que já estão num dia certo', async () => {
+    const { distribuirDias } = await import('./tarefas.ts');
+    const instancias = [
+      { id: 1, dia: 'qua' },
+      { id: 2, dia: null },
+      { id: 3, dia: 'ter' },
+    ];
+    assert.deepEqual(distribuirDias(instancias, ['seg', 'qua']), [
+      { id: 2, dia: 'seg' },
+      { id: 3, dia: null },
+    ]);
+    assert.deepEqual(distribuirDias([{ id: 1, dia: 'seg' }], ['seg']), [], 'nada a mudar');
+  });
+});
+
 describe('semana na frase', () => {
   it('diz a semana em relação à atual, com a preposição contraída', () => {
     const atual = '2026-11-16';

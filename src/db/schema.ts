@@ -95,6 +95,11 @@ export const tarefas = sqliteTable(
      * uma versão nova, e é por aqui que se sabe que "Meditar" de hoje é a mesma de há um mês.
      */
     serieId: integer('serie_id'),
+    /**
+     * Só nas tarefas únicas sem duração: dia da semana em que se fazem (0 = segunda … 6 = domingo);
+     * null = qualquer dia. As que repetem em dias certos (ou todos os dias) já dizem os dias na recorrência.
+     */
+    dia: integer('dia'),
     ...timestamps,
   },
   (t) => [index('tarefas_area_idx').on(t.areaId)],
@@ -121,6 +126,11 @@ export const tarefasSemana = sqliteTable(
      */
     habitualInicio: text('habitual_inicio'),
     habitualFim: text('habitual_fim'),
+    /**
+     * Dia (AAAA-MM-DD) desta instância, nas tarefas sem duração que têm dias: todos os dias, dias certos
+     * ou o dia escolhido. null = qualquer dia da semana (ou tarefa com duração: o dia é o do bloco).
+     */
+    dia: text('dia'),
     ...timestamps,
   },
   (t) => [index('tarefas_semana_semana_idx').on(t.semana), index('tarefas_semana_tarefa_idx').on(t.tarefaId)],
@@ -187,6 +197,10 @@ export const definicoes = sqliteTable('definicoes', {
   ultimaCopia: text('ultima_copia'),
   /** Aparência: segue o telemóvel, ou fica sempre clara ou escura. */
   tema: text('tema', { enum: ['automatico', 'claro', 'escuro'] })
+    .notNull()
+    .default('automatico'),
+  /** Idioma: o do telemóvel, ou sempre português ou inglês. */
+  idioma: text('idioma', { enum: ['automatico', 'pt', 'en'] })
     .notNull()
     .default('automatico'),
   ...timestamps,
