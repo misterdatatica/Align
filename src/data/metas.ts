@@ -113,7 +113,10 @@ export function mudarEstadoDaMeta(id: number, estado: EstadoMeta): void {
     if (!atual) throw new ErroDaApp(t('A meta já não existe.'));
     if (atual.estado === estado) return;
     if (estado === 'ativa' && !podeAtivarMeta(contarAtivas(tx, atual.areaId, id))) throw new LimiteDeMetasError();
-    tx.update(metas).set({ estado, atualizadoEm: AGORA }).where(eq(metas.id, id)).run();
+    tx.update(metas)
+      .set({ estado, concluidaEm: estado === 'concluida' ? AGORA : null, atualizadoEm: AGORA })
+      .where(eq(metas.id, id))
+      .run();
   });
 }
 

@@ -584,6 +584,21 @@ const cenarios = {
       await b.clicar('Hoje');
       await b.naoVerTexto('Como correu a semana');
     });
+
+    await passo('as estatísticas juntam as horas, as áreas e as reflexões do mês e do ano', async () => {
+      await b.clicar('Revisão');
+      await b.clicar('Estatísticas e histórico');
+      await b.verTexto('POR SEMANA');
+      await b.verTexto('POR ÁREA');
+      await b.verTexto('REFLEXÕES');
+      await b.verTexto('Meditei quase todos os dias.');
+      await b.verTexto('revisão fechada');
+      await b.verTexto('Fazer um retiro de silêncio'); // o marco concluído na revisão
+      await b.clicar('Ano');
+      await b.verTexto('POR MÊS');
+      await b.avaliar('history.back()');
+      await b.verTexto('Revisão da semana');
+    });
   },
 
   /** Primeiro arranque, definições e cópia de segurança (critério 11). */

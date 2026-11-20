@@ -47,6 +47,8 @@ export const metas = sqliteTable(
     estado: text('estado', { enum: ['ativa', 'concluida', 'pausada', 'abandonada'] })
       .notNull()
       .default('ativa'),
+    /** Quando foi concluída (ISO); null enquanto não está concluída. Para as estatísticas. */
+    concluidaEm: text('concluida_em'),
     ...timestamps,
   },
   (t) => [index('metas_area_idx').on(t.areaId)],

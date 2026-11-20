@@ -34,6 +34,7 @@ src/
     tarefa/nova.tsx      criar tarefa          tarefa/[id].tsx   alterar ou apagar tarefa
     definicoes.tsx       revisão (dia, hora, lembrete), horas do calendário, cópia de segurança
     pesquisa.tsx         pesquisar áreas, metas e tarefas pelo nome (sem acentos nem maiúsculas)
+    estatisticas.tsx     estatísticas e histórico do mês ou do ano (Align Plus)
     metas.tsx            "As minhas metas": todas as metas, por estado (ativas, pausadas, concluídas, abandonadas)
     boas-vindas.tsx      primeiro arranque, em três passos
   db/schema.ts           as entidades (Drizzle + SQLite), incluindo o histórico das metas e o plano das semanas
@@ -95,6 +96,12 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
   `t('Revisão de {dia}', { dia })`. Os textos novos vão para `src/i18n/en.ts`; `npm test` falha se
   algum ficar sem tradução, se as `{chavetas}` não baterem certo ou se sobrar uma tradução que já não se usa.
   Datas, meses, dias da semana e o separador decimal também mudam com o idioma.
+- **Align Plus:** as funcionalidades pagas perguntam a `temPlus()` (`src/plus.ts`), que por agora
+  responde sempre que sim. Quando houver pagamentos, só aí se muda. `SoPlus` e `EtiquetaPlus` estão
+  em `src/components/Plus.tsx`.
+- **Estatísticas** (`src/data/estatisticas.ts`): um mês ou um ano, com as mesmas contas da revisão.
+  Uma semana conta para o mês da sua quinta-feira. Só contam as semanas que já começaram e as áreas
+  por arquivar. `metas.concluida_em` guarda quando uma meta foi concluída (migração 0007).
 - `definicoes.ultima_copia` guarda a data da última cópia de segurança; a revisão lembra de fazer
   uma quando passaram mais de 30 dias.
 - Mover ou retirar um bloco de uma tarefa recorrente pede um âmbito. "Só esta semana" guarda o

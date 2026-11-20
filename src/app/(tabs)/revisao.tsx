@@ -10,7 +10,8 @@ import { exportarCopia, ondeGuardarACopia } from '@/components/exportarCopia';
 import { Icone } from '@/components/Icone';
 import { AtualizarValor } from '@/components/metas/AtualizarValor';
 import { textoEstagnada, textoDoPrazo, textoDoProgresso } from '@/components/metas/textos';
-import { BarraProgresso, Botao, Cartao, Seccao, Titulo } from '@/components/ui';
+import { EtiquetaPlus } from '@/components/Plus';
+import { BarraProgresso, Botao, BotaoIcone, Cartao, Seccao, Titulo } from '@/components/ui';
 import { useConsulta } from '@/data/consulta';
 import { mudarEstadoDaMeta, type MetaDetalhada } from '@/data/metas';
 import { precisaDeCopia } from '@/data/definicoes';
@@ -102,9 +103,14 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
   return (
     <SafeAreaView style={estilos.ecra} edges={['top']}>
       <ScrollView contentContainerStyle={[estilos.conteudo, { gap: 24 }]} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
-        <Titulo tamanho={28} subtitulo={t('Semana de {semana}', { semana: descreverSemanaPorExtenso(semana) })}>
-          {t('Revisão da semana')}
-        </Titulo>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+          <View style={{ flex: 1 }}>
+            <Titulo tamanho={28} subtitulo={t('Semana de {semana}', { semana: descreverSemanaPorExtenso(semana) })}>
+              {t('Revisão da semana')}
+            </Titulo>
+          </View>
+          <BotaoIcone icone="grafico" rotulo={t('Estatísticas e histórico')} tamanho={22} cor={cores.texto2} onPress={() => router.push('/estatisticas')} style={{ marginRight: -10, marginTop: -4 }} />
+        </View>
 
         {!revisao.temTarefas ? (
           <Cartao style={{ padding: 16, gap: 12 }}>
@@ -316,6 +322,23 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
             ) : null}
           </>
         )}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityHint={t('Horas por área, metas e reflexões ao longo dos meses')}
+          onPress={() => router.push('/estatisticas')}
+          style={({ pressed }) => [estilos.cartao, { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, opacity: pressed ? 0.7 : 1 }]}
+        >
+          <Icone nome="grafico" cor={cores.tinta} />
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: cores.tinta }}>{t('Estatísticas e histórico')}</Text>
+              <EtiquetaPlus />
+            </View>
+            <Text style={estilos.pequeno}>{t('Horas por área, metas e reflexões ao longo dos meses')}</Text>
+          </View>
+          <Icone nome="seta-direita" tamanho={18} cor={cores.texto3} espessura={2} />
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );

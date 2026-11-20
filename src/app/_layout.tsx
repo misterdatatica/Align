@@ -205,6 +205,7 @@ function AppComTema({ idiomaDoSistema }: { idiomaDoSistema: Idioma }) {
             <Stack.Screen name="tarefa/[id]" options={{ title: t('Alterar tarefa'), presentation: 'modal' }} />
             <Stack.Screen name="boas-vindas" options={{ headerShown: false, gestureEnabled: false }} />
             <Stack.Screen name="pesquisa" options={{ title: t('Pesquisar') }} />
+            <Stack.Screen name="estatisticas" options={{ title: t('Estatísticas'), headerBackTitle: t('Revisão') }} />
             <Stack.Screen name="metas" options={{ title: t('As minhas metas') }} />
             <Stack.Screen name="definicoes" options={{ title: t('Definições'), headerBackTitle: t('Áreas'), headerStyle: { backgroundColor: cores.fundo } }} />
           </Stack>

@@ -271,3 +271,26 @@ export function SeletorIcone({ valor, cor, onChange }: { valor: string; cor: str
     </View>
   );
 }
+
+/** Escolha entre poucas opções lado a lado (ex.: Mês | Ano), num fundo cinzento com a escolhida em relevo. */
+export function Segmentado<V extends string | number>({ opcoes, valor, aoMudar, rotulo }: { opcoes: { valor: V; titulo: string }[]; valor: V; aoMudar: (valor: V) => void; rotulo: string }) {
+  const { cores } = useTema();
+  return (
+    <View style={{ flexDirection: 'row', alignSelf: 'flex-start', padding: 2, borderRadius: 10, backgroundColor: cores.pista }} accessibilityRole="radiogroup" accessibilityLabel={rotulo}>
+      {opcoes.map((o) => {
+        const ativa = o.valor === valor;
+        return (
+          <Pressable
+            key={String(o.valor)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: ativa }}
+            onPress={() => aoMudar(o.valor)}
+            style={{ minHeight: 34, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 8, backgroundColor: ativa ? cores.superficie : 'transparent' }}
+          >
+            <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, lineHeight: 18, color: ativa ? cores.tinta : cores.texto2 }}>{o.titulo}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}

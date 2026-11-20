@@ -7,6 +7,8 @@ import { t } from '../i18n/index.ts';
 
 /** Meses abreviados, em português; `mes()` dá-os no idioma da app. */
 export const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'] as const;
+/** Meses por extenso, em português; traduzem-se com `t()`. */
+export const MESES_LONGOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'] as const;
 const mes = (indice: number) => t(MESES[indice]);
 
 function pad(n: number): string {
