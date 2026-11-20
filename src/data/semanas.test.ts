@@ -9,7 +9,7 @@ import { db } from '../db/client.ts';
 import { areas, semanas, tarefasSemana } from '../db/schema.ts';
 import { alocarTarefa, carregarCalendario, criarOcupado, marcarBlocoFeito, moverBloco, retirarBloco } from './calendario.ts';
 import { fecharRevisao } from './revisao.ts';
-import { carregarPlanoDaSemana, planearSemana } from './semanas.ts';
+import { carregarPlanoDaSemana, planearSemana, refazerSemana } from './semanas.ts';
 import { carregarPlano, criarTarefa, editarTarefa, garantirSemana } from './tarefas.ts';
 
 // Quatro semanas seguidas; "hoje" é o domingo da primeira (o dia da revisão).
@@ -181,6 +181,42 @@ describe('planear uma semana nova', () => {
 
     planearSemana(S3, HOJE);
     assert.deepEqual(blocosDe(S3, 'Meditar').slice(0, 5), ['Meditar 0 390-450', 'Meditar 1 390-450', 'Meditar 2 390-450', 'Meditar 3 390-450', 'Meditar 4 390-450']);
+  });
+});
+
+describe('refazer a partir da semana anterior', () => {
+  it('apanha o que mudou na semana anterior depois de esta ter sido criada', () => {
+    const { meditar } = primeiraSemana();
+    planearSemana(S2, HOJE); // aberta cedo demais…
+    // …e depois, na semana anterior, aparece um compromisso novo e o Meditar de segunda muda de hora.
+    criarOcupado(dia(S1, 4), 12 * 60, 13 * 60, 'Almoço');
+    moverBloco(blocoEm(S1, 'Meditar', 0).id, dia(S1, 0), 7 * 60, 9 * 60, 'semana');
+    assert.deepEqual(blocosDe(S2, 'Almoço'), [], 'antes de refazer, S2 não sabe do almoço');
+
+    refazerSemana(S2, HOJE);
+    assert.deepEqual(blocosDe(S2, 'Almoço'), ['Almoço 4 720-780']);
+    assert.deepEqual(blocosDe(S2, 'Meditar')[0], 'Meditar 0 390-510', 'a exceção "só esta semana" de S1 não passa: copia-se o horário habitual');
+    assert.equal(db.select().from(tarefasSemana).where(eq(tarefasSemana.semana, S2)).all().length, 7 + 2 + 7 + 2, 'não duplica tarefas');
+    assert.ok(meditar > 0);
+  });
+
+  it('perde os blocos mudados na própria semana, mas não o que já foi feito', () => {
+    primeiraSemana();
+    planearSemana(S2, HOJE);
+    criarOcupado(dia(S2, 5), 10 * 60, 11 * 60, 'Mercado');
+    const terca = blocoEm(S2, 'Meditar', 1);
+    marcarBlocoFeito(terca.id, true);
+    refazerSemana(S2, HOJE);
+    assert.deepEqual(blocosDe(S2, 'Mercado'), [], 'o "Ocupado" acrescentado só nesta semana sai');
+    assert.deepEqual(blocosDe(S2, 'Meditar').filter((b) => b.endsWith('feito')), ['Meditar 1 390-510 feito'], 'o que foi feito fica');
+    assert.equal(blocosDe(S2, 'Meditar').length, 5);
+  });
+
+  it('não refaz semanas que já passaram nem a primeira semana de todas', () => {
+    primeiraSemana();
+    assert.throws(() => refazerSemana('2026-11-02', HOJE), /atual e as seguintes/);
+    assert.throws(() => refazerSemana(S1, HOJE), /anterior para copiar/);
+    assert.throws(() => refazerSemana(S3, HOJE), /ainda não tem plano/);
   });
 });
 

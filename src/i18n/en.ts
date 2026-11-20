@@ -1,5 +1,12 @@
 /** Traduções para inglês (britânico), pelo texto em português (ver index.ts). */
 export const EN: Record<string, string> = {
+  "Só se refazem a semana atual e as seguintes.": "Only the current and upcoming weeks can be redone.",
+  "Esta semana ainda não tem plano.": "This week doesn't have a plan yet.",
+  "Não há nenhuma semana anterior para copiar.": "There's no previous week to copy.",
+  "Volta a copiar a semana anterior, com o que lá mudou entretanto. Os blocos mudados só nesta semana perdem-se; as tarefas e o que já foi feito ficam.": "Copies the previous week again, including what changed there since. Blocks changed only in this week are lost; tasks and what's already done are kept.",
+  "Semana refeita a partir da semana anterior": "Week redone from the previous week",
+  "Não foi possível refazer a semana": "Couldn't redo the week",
+  "Refazer a partir da semana anterior": "Redo from the previous week",
   "Sair": "Leave",
   "A meta não é criada.": "The goal won't be created.",
   "As alterações a esta meta perdem-se.": "Your changes to this goal will be lost.",

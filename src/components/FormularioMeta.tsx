@@ -58,9 +58,16 @@ export function FormularioMeta({ areaId, meta, hoje, aoFechar }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guardada]);
 
-  usePreventRemove(alterado && !guardada, ({ data }) => {
+  // Ao confirmar "Sair", o aviso desliga-se primeiro e a saída repete-se só depois: se se repetisse logo,
+  // voltava a ser travada e a pergunta aparecia outra vez.
+  const [saida, setSaida] = useState<Parameters<typeof navigation.dispatch>[0] | null>(null);
+  useEffect(() => {
+    if (saida) navigation.dispatch(saida);
+  }, [saida, navigation]);
+
+  usePreventRemove(alterado && !guardada && !saida, ({ data }) => {
     confirmar({ titulo: t('Sair sem guardar?'), mensagem: meta ? t('As alterações a esta meta perdem-se.') : t('A meta não é criada.'), acao: t('Sair'), destrutiva: true }).then((sim) => {
-      if (sim) navigation.dispatch(data.action);
+      if (sim) setSaida(data.action);
     });
   });
 

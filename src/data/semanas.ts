@@ -1,7 +1,9 @@
-import { and, asc, desc, eq, gt, gte, isNull, lt, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
 
 import { garantirSemana, recorrentesEmVigor, type Bd } from '@/data/tarefas';
 import { db } from '@/db/client';
+import { ErroDaApp } from '@/domain/erros';
+import { t } from '@/i18n';
 import { areas, blocos, revisoes, semanas, tarefas, tarefasSemana } from '@/db/schema';
 import { fimCopiado, lugaresACopiar, type EstadoDaSemana, type Lugar } from '@/domain/proposta';
 import { instanciasPorSemana } from '@/domain/recorrencia';
@@ -187,6 +189,33 @@ function gerar(tx: Bd, semana: string, origem: string | null, ultimaPlaneada: st
   if (ultimaPlaneada) transitar(tx, ultimaPlaneada, semana);
 }
 
+/**
+ * Esvazia uma semana para a refazer: saem os blocos por fazer e os "Ocupado"; as tarefas ficam, por
+ * alocar. O que já foi feito fica como está.
+ */
+function limpar(tx: Bd, semana: string) {
+  const porFazer = tx
+    .select({ blocoId: blocos.id })
+    .from(blocos)
+    .innerJoin(tarefasSemana, eq(blocos.tarefaSemanaId, tarefasSemana.id))
+    .where(and(eq(tarefasSemana.semana, semana), ne(tarefasSemana.estado, 'feita')))
+    .all()
+    .map((b) => b.blocoId);
+  if (porFazer.length) tx.delete(blocos).where(inArray(blocos.id, porFazer)).run();
+  tx.update(tarefasSemana)
+    .set({ estado: 'por_alocar', atualizadoEm: AGORA })
+    .where(and(eq(tarefasSemana.semana, semana), eq(tarefasSemana.estado, 'alocada')))
+    .run();
+  tx.update(tarefasSemana)
+    .set({ habitualInicio: null, habitualFim: null })
+    .where(and(eq(tarefasSemana.semana, semana), ne(tarefasSemana.estado, 'feita')))
+    .run();
+  const { desde, ate } = limitesDaSemana(semana);
+  tx.delete(blocos)
+    .where(and(isNull(blocos.tarefaSemanaId), gte(blocos.inicio, desde), lt(blocos.inicio, ate)))
+    .run();
+}
+
 /** Cria o plano de uma semana como cópia da última semana planeada antes dela (ou vazia, se não houver). */
 function criarSemana(semana: string) {
   db.transaction((tx) => {
@@ -215,5 +244,24 @@ export function planearSemana(semana: string, hoje: Date = new Date()): void {
       for (let s = anterior < atual ? atual : somarSemanas(anterior, 1); s <= semana; s = somarSemanas(s, 1)) criarSemana(s);
     }
   }
+  garantirSemana(semana, hoje);
+}
+
+/**
+ * "Refazer a partir da semana anterior": volta a copiar a semana anterior para esta, para apanhar o
+ * que mudou lá depois de esta semana ter sido criada (um "Ocupado" novo, uma tarefa única que ficou
+ * por fazer…). Os blocos mudados ou acrescentados nesta semana perdem-se; as tarefas e o que já foi
+ * feito ficam. Só para a semana atual e as seguintes.
+ */
+export function refazerSemana(semana: string, hoje: Date = new Date()): void {
+  if (semana < inicioDaSemana(hoje)) throw new ErroDaApp(t('Só se refazem a semana atual e as seguintes.'));
+  db.transaction((tx) => {
+    if (!tx.select({ semana: semanas.semana }).from(semanas).where(eq(semanas.semana, semana)).get()) throw new ErroDaApp(t('Esta semana ainda não tem plano.'));
+    const anterior = ultimaPlaneadaAntes(tx, semana);
+    if (!anterior) throw new ErroDaApp(t('Não há nenhuma semana anterior para copiar.'));
+    limpar(tx, semana);
+    gerar(tx, semana, anterior, anterior);
+    tx.update(semanas).set({ origem: 'passada', origemSemana: anterior, atualizadoEm: AGORA }).where(eq(semanas.semana, semana)).run();
+  });
   garantirSemana(semana, hoje);
 }

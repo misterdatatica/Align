@@ -228,6 +228,20 @@ const cenarios = {
       await b.verTexto(descreverSemanaComAno(ESTA));
     });
 
+    await passo('refazer a semana seguinte apanha o que mudou nesta depois de ela ter sido criada', async () => {
+      await criarTarefa(b, 'Família', 'Comprar prenda', { menos: 1 });
+      await b.clicar('Semana seguinte');
+      await b.verTexto('Começou igual à semana passada.');
+      await b.naoVerTexto('Comprar prenda');
+      await b.clicar('Refazer a partir da semana anterior');
+      await b.verTexto('Semana refeita a partir da semana anterior');
+      await b.verTexto('Comprar prenda');
+      await b.verTexto('30 min · vem da semana passada');
+      await b.clicar('Voltar a esta semana');
+      await b.verTexto(descreverSemanaComAno(ESTA));
+      await b.naoVerTexto('Refazer a partir da semana anterior'); // a primeira semana não tem anterior
+    });
+
     await passo('as áreas e o detalhe da área seguem a semana que se está a planear', async () => {
       await b.clicar('Semana seguinte');
       await b.clicar('Áreas');

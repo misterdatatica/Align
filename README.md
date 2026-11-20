@@ -77,7 +77,9 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
   faltarem semanas pelo meio, planeiam-se todas por ordem. A cópia leva os blocos das tarefas
   recorrentes e os "Ocupado" para o mesmo dia e hora, passa as tarefas únicas por fazer para
   "Por alocar" (respeitando a revisão) e nunca copia o "feito". A primeira semana de todas começa
-  vazia. As semanas que já passaram sem plano ficam assim. (As colunas `estado = 'rascunho'` e
+  vazia. As semanas que já passaram sem plano ficam assim. Uma semana criada cedo (aberta com
+  antecedência) não apanha o que muda depois na anterior: "Refazer a partir da semana anterior"
+  (`refazerSemana`) volta a copiá-la, mantendo as tarefas e o que já foi feito. (As colunas `estado = 'rascunho'` e
   `modelo` vêm de versões anteriores e já não se usam.)
 - Apagar, arquivar, concluir, pausar ou abandonar faz-se logo e mostra um aviso com **Desfazer**
   durante 5 s. Desfazer repõe uma fotografia dos dados tirada antes da ação; o aviso sai assim que

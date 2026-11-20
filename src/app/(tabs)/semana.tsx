@@ -2,12 +2,13 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { comDesfazer } from '@/components/AvisoTemporario';
 import { Icone } from '@/components/Icone';
 import { LinhaTarefa } from '@/components/LinhaTarefa';
 import { SeletorSemana } from '@/components/SeletorSemana';
 import { Botao, BotaoIcone, Cartao, Titulo } from '@/components/ui';
 import { useConsulta } from '@/data/consulta';
-import { carregarPlanoDaSemana } from '@/data/semanas';
+import { carregarPlanoDaSemana, refazerSemana } from '@/data/semanas';
 import { carregarPlano, type PlanoDaSemana } from '@/data/tarefas';
 import { formatarHoras } from '@/domain/regras';
 import { descreverSemanaPorExtenso, somarSemanas } from '@/domain/semana';
@@ -41,7 +42,7 @@ export default function SemanaEcra() {
           )}
         </View>
 
-        <OrigemDaSemana estado={planoDaSemana.estado} semana={semana} origemSemana={planoDaSemana.origemSemana} />
+        <OrigemDaSemana estado={planoDaSemana.estado} semana={semana} origemSemana={planoDaSemana.origemSemana} podeRefazer={planoDaSemana.podePlanear} />
 
         <Cartao style={{ padding: 16, gap: 14 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -75,7 +76,11 @@ export default function SemanaEcra() {
 }
 
 /** De onde veio a semana: começa sempre igual à anterior, sem nada para aceitar. */
-function OrigemDaSemana({ estado, semana, origemSemana }: { estado: 'por_planear' | 'aceite'; semana: string; origemSemana: string | null }) {
+/**
+ * De onde veio a semana, e "Refazer a partir da semana anterior" para as semanas criadas antes de a
+ * anterior mudar (ex.: abertas com antecedência).
+ */
+function OrigemDaSemana({ estado, semana, origemSemana, podeRefazer }: { estado: 'por_planear' | 'aceite'; semana: string; origemSemana: string | null; podeRefazer: boolean }) {
   const { cores, estilos } = useTema();
   let texto: string | null = null;
   if (estado === 'por_planear') texto = t('Esta semana já passou e não chegou a ser planeada.');
@@ -84,9 +89,21 @@ function OrigemDaSemana({ estado, semana, origemSemana }: { estado: 'por_planear
   }
   if (!texto) return null;
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: -4 }}>
-      <Icone nome="repetir" tamanho={14} cor={cores.texto3} espessura={2} />
-      <Text style={[estilos.pequeno, { flex: 1 }]}>{texto}</Text>
+    <View style={{ gap: 2, marginTop: -4 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Icone nome="repetir" tamanho={14} cor={cores.texto3} espessura={2} />
+        <Text style={[estilos.pequeno, { flex: 1 }]}>{texto}</Text>
+      </View>
+      {podeRefazer && origemSemana ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityHint={t('Volta a copiar a semana anterior, com o que lá mudou entretanto. Os blocos mudados só nesta semana perdem-se; as tarefas e o que já foi feito ficam.')}
+          onPress={() => comDesfazer(t('Semana refeita a partir da semana anterior'), () => refazerSemana(semana), t('Não foi possível refazer a semana'))}
+          style={({ pressed }) => ({ minHeight: 40, alignSelf: 'flex-start', justifyContent: 'center', paddingLeft: 22, opacity: pressed ? 0.6 : 1 })}
+        >
+          <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, color: cores.tinta, textDecorationLine: 'underline' }}>{t('Refazer a partir da semana anterior')}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
