@@ -5,6 +5,7 @@ import { FormularioMeta } from '@/components/FormularioMeta';
 import { Botao } from '@/components/ui';
 import { useHoje } from '@/estado/semana';
 import { useTema } from '@/theme';
+import { t } from '@/i18n';
 
 export default function NovaMetaEcra() {
   const { estilos } = useTema();
@@ -16,8 +17,8 @@ export default function NovaMetaEcra() {
   if (!Number.isInteger(area) || area <= 0) {
     return (
       <View style={[estilos.ecra, estilos.conteudo]}>
-        <Text style={estilos.corpo}>As metas criam-se a partir de uma área.</Text>
-        <Botao titulo="Voltar" variante="contorno" onPress={() => router.back()} />
+        <Text style={estilos.corpo}>{t('As metas criam-se a partir de uma área.')}</Text>
+        <Botao titulo={t('Voltar')} variante="contorno" onPress={() => router.back()} />
       </View>
     );
   }

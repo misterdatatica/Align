@@ -18,6 +18,7 @@ import { DIAS_DE_REVISAO } from '@/domain/revisao';
 import { descreverDia, descreverSemanaPorExtenso } from '@/domain/semana';
 import { escolherSemana, useHoje, usePrepararSemana } from '@/estado/semana';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos', 'definicoes'] as const;
 const TABELAS_DA_REVISAO = ['tarefas_semana', 'revisoes', 'definicoes'] as const;
@@ -66,7 +67,7 @@ export default function HojeEcra() {
   return (
     <SafeAreaView style={estilos.ecra} edges={['top']}>
       <ScrollView contentContainerStyle={estilos.conteudo}>
-        <Titulo subtitulo={titulo[0].toUpperCase() + titulo.slice(1)}>Hoje</Titulo>
+        <Titulo subtitulo={titulo[0].toUpperCase() + titulo.slice(1)}>{t('Hoje')}</Titulo>
 
         {porRever ? (
           <Pressable
@@ -78,8 +79,8 @@ export default function HojeEcra() {
               <Icone nome="revisao" cor={cores.sobreTinta} />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: cores.sobreTinta }}>{`Revisão de ${DIAS_DE_REVISAO[porRever.diaRevisao]}`}</Text>
-              <Text style={{ fontFamily: fontes.texto, fontSize: 13, lineHeight: 18, color: cores.textoSobreTinta }}>{`Como correu a semana de ${descreverSemanaPorExtenso(porRever.semana)}?`}</Text>
+              <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: cores.sobreTinta }}>{t('Revisão de {dia}', { dia: t(DIAS_DE_REVISAO[porRever.diaRevisao]) })}</Text>
+              <Text style={{ fontFamily: fontes.texto, fontSize: 13, lineHeight: 18, color: cores.textoSobreTinta }}>{t('Como correu a semana de {semana}?', { semana: descreverSemanaPorExtenso(porRever.semana) })}</Text>
             </View>
             <Icone nome="seta-direita" tamanho={18} cor={cores.sobreTinta} espessura={2} />
           </Pressable>
@@ -87,16 +88,16 @@ export default function HojeEcra() {
 
         {!dia.temAreas ? (
           <Cartao style={{ padding: 16, gap: 12 }}>
-            <Text style={estilos.corpo}>Ainda não há nada para hoje. Comece por criar as áreas da sua vida e as tarefas de cada uma.</Text>
-            <Botao titulo="Ir para as áreas" variante="contorno" onPress={() => router.navigate('/areas')} />
+            <Text style={estilos.corpo}>{t('Ainda não há nada para hoje. Comece por criar as áreas da sua vida e as tarefas de cada uma.')}</Text>
+            <Botao titulo={t('Ir para as áreas')} variante="contorno" onPress={() => router.navigate('/areas')} />
           </Cartao>
         ) : (
           <>
-            <Seccao titulo="No calendário" direita={deTarefas.length > 0 ? <Text style={estilos.pequeno}>{`${feitos} de ${deTarefas.length} feitos`}</Text> : undefined}>
+            <Seccao titulo={t('No calendário')} direita={deTarefas.length > 0 ? <Text style={estilos.pequeno}>{t('{n} de {total} feitos', { n: feitos, total: deTarefas.length })}</Text> : undefined}>
               {dia.blocos.length === 0 ? (
                 <Cartao style={{ padding: 16, gap: 12 }}>
-                  <Text style={estilos.corpo}>Não há nada no calendário para hoje.</Text>
-                  <Botao titulo="Abrir o calendário" icone="calendario" variante="contorno" onPress={abrirCalendario} />
+                  <Text style={estilos.corpo}>{t('Não há nada no calendário para hoje.')}</Text>
+                  <Botao titulo={t('Abrir o calendário')} icone="calendario" variante="contorno" onPress={abrirCalendario} />
                 </Cartao>
               ) : (
                 <Cartao style={{ overflow: 'hidden' }}>
@@ -108,10 +109,10 @@ export default function HojeEcra() {
             </Seccao>
 
             {dia.semHora.length > 0 ? (
-              <Seccao titulo="Sem hora marcada">
-                <Text style={[estilos.pequeno, { marginTop: -4 }]}>Tarefas desta semana que não ocupam tempo no calendário: marque cada vez que as faz.</Text>
+              <Seccao titulo={t('Sem hora marcada')}>
+                <Text style={[estilos.pequeno, { marginTop: -4 }]}>{t('Tarefas desta semana que não ocupam tempo no calendário: marque cada vez que as faz.')}</Text>
                 <View style={[estilos.cartao, { overflow: 'hidden' }]}>
-                  {dia.semHora.flatMap((g) => g.tarefas.map((t) => ({ area: g.area, tarefa: t }))).map(({ area, tarefa }, i) => (
+                  {dia.semHora.flatMap((g) => g.tarefas.map((tf) => ({ area: g.area, tarefa: tf }))).map(({ area, tarefa }, i) => (
                     <View key={tarefa.id} style={{ flexDirection: 'row', alignItems: 'stretch' }}>
                       <View style={{ width: 4, backgroundColor: corDaArea(area.cor).forte }} />
                       <View style={{ flex: 1 }}>
@@ -131,7 +132,7 @@ export default function HojeEcra() {
               >
                 <Icone nome="calendario" cor={cores.tinta} />
                 <Text style={{ flex: 1, fontFamily: fontes.textoMedio, fontSize: 14, lineHeight: 20, color: cores.tinta }}>
-                  {dia.porAlocar === 1 ? 'Há 1 tarefa desta semana ainda sem hora no calendário.' : `Há ${dia.porAlocar} tarefas desta semana ainda sem hora no calendário.`}
+                  {dia.porAlocar === 1 ? t('Há 1 tarefa desta semana ainda sem hora no calendário.') : t('Há {n} tarefas desta semana ainda sem hora no calendário.', { n: dia.porAlocar })}
                 </Text>
                 <Icone nome="seta-direita" tamanho={18} cor={cores.tinta} espessura={2} />
               </Pressable>
@@ -156,7 +157,7 @@ function LinhaDoBloco({ bloco, agora, primeira }: { bloco: BlocoCalendario; agor
     try {
       marcarBlocoFeito(bloco.id, !bloco.feito);
     } catch (erro) {
-      avisarErro('Não foi possível marcar o bloco', erro);
+      avisarErro(t('Não foi possível marcar o bloco'), erro);
     }
   }
 
@@ -168,7 +169,7 @@ function LinhaDoBloco({ bloco, agora, primeira }: { bloco: BlocoCalendario; agor
           <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: aDecorrer ? cores.tinta : cores.texto3, fontVariant: ['tabular-nums'] }}>{intervalo}</Text>
           {aDecorrer ? (
             <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: cores.tinta }}>
-              <Text style={{ fontFamily: fontes.textoForte, fontSize: 10, lineHeight: 14, color: cores.sobreTinta }}>AGORA</Text>
+              <Text style={{ fontFamily: fontes.textoForte, fontSize: 10, lineHeight: 14, color: cores.sobreTinta }}>{t('AGORA')}</Text>
             </View>
           ) : null}
         </View>
@@ -205,7 +206,7 @@ function LinhaDoBloco({ bloco, agora, primeira }: { bloco: BlocoCalendario; agor
 
   if (ocupado) {
     return (
-      <View style={estilo} accessible accessibilityLabel={`${bloco.nome}, ${intervalo}, ocupado`}>
+      <View style={estilo} accessible accessibilityLabel={`${bloco.nome}, ${intervalo}, ${t('ocupado')}`}>
         {conteudo}
       </View>
     );
@@ -213,7 +214,7 @@ function LinhaDoBloco({ bloco, agora, primeira }: { bloco: BlocoCalendario; agor
   return (
     <Pressable
       accessibilityRole="checkbox"
-      accessibilityLabel={`${bloco.nome}, ${intervalo}${aDecorrer ? ', a decorrer' : ''}`}
+      accessibilityLabel={`${bloco.nome}, ${intervalo}${aDecorrer ? `, ${t('a decorrer')}` : ''}`}
       accessibilityState={{ checked: bloco.feito }}
       onPress={alternar}
       style={({ pressed }) => [estilo, { opacity: pressed ? 0.7 : 1 }]}

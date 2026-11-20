@@ -2,6 +2,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { ErroDaApp } from '@/domain/erros';
+import { t } from '@/i18n';
 
 /*
  * Guardar e abrir o ficheiro da cópia de segurança no telemóvel.
@@ -15,8 +16,8 @@ export async function partilharFicheiro(nome: string, texto: string): Promise<vo
   if (ficheiro.exists) ficheiro.delete();
   ficheiro.create();
   await ficheiro.write(texto);
-  if (!(await Sharing.isAvailableAsync())) throw new ErroDaApp('Este telemóvel não permite partilhar ficheiros.');
-  await Sharing.shareAsync(ficheiro.uri, { mimeType: 'application/json', UTI: 'public.json', dialogTitle: 'Guardar a cópia de segurança' });
+  if (!(await Sharing.isAvailableAsync())) throw new ErroDaApp(t('Este telemóvel não permite partilhar ficheiros.'));
+  await Sharing.shareAsync(ficheiro.uri, { mimeType: 'application/json', UTI: 'public.json', dialogTitle: t('Guardar a cópia de segurança') });
 }
 
 /** Deixa o utilizador escolher um ficheiro e devolve o seu texto, ou null se desistir. */

@@ -6,6 +6,7 @@ import { Botao } from '@/components/ui';
 import { registarValor, type MetaDetalhada } from '@/data/metas';
 import { formatarValor, lerValor } from '@/domain/metas';
 import { useTema } from '@/theme';
+import { t } from '@/i18n';
 
 type Props = {
   meta: Pick<MetaDetalhada, 'id' | 'descricao' | 'valorAtual' | 'unidade' | 'registos'>;
@@ -28,7 +29,7 @@ export function AtualizarValor({ meta, hoje }: Props) {
     try {
       registarValor(meta.id, valor, hoje);
     } catch (erro) {
-      avisarErro('Não foi possível registar o valor', erro);
+      avisarErro(t('Não foi possível registar o valor'), erro);
     }
   }
 
@@ -41,7 +42,7 @@ export function AtualizarValor({ meta, hoje }: Props) {
           keyboardType="decimal-pad"
           maxLength={9}
           selectTextOnFocus
-          accessibilityLabel={`Valor atual de ${meta.descricao}`}
+          accessibilityLabel={t('Valor atual de {meta}', { meta: meta.descricao })}
           placeholderTextColor={cores.texto3}
           style={[estilos.campo, { width: 92, textAlign: 'center' }]}
         />
@@ -51,15 +52,15 @@ export function AtualizarValor({ meta, hoje }: Props) {
           </Text>
         ) : null}
         <Botao
-          titulo={registadoHoje ? 'Corrigir' : 'Registar'}
+          titulo={registadoHoje ? t('Corrigir') : t('Registar')}
           variante={registadoHoje ? 'contorno' : 'primario'}
-          accessibilityLabel={`${registadoHoje ? 'Corrigir' : 'Registar'} o valor de ${meta.descricao}`}
+          accessibilityLabel={registadoHoje ? t('Corrigir o valor de {meta}', { meta: meta.descricao }) : t('Registar o valor de {meta}', { meta: meta.descricao })}
           onPress={registar}
           disabled={valor === null}
           style={{ marginLeft: 'auto', minHeight: 44, paddingHorizontal: 14 }}
         />
       </View>
-      {registadoHoje ? <Text style={estilos.pequeno}>{`Registado hoje: ${formatarValor(meta.valorAtual ?? 0)}.`}</Text> : null}
+      {registadoHoje ? <Text style={estilos.pequeno}>{t('Registado hoje: {valor}.', { valor: formatarValor(meta.valorAtual ?? 0) })}</Text> : null}
     </View>
   );
 }

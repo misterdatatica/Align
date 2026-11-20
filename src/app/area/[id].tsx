@@ -15,6 +15,7 @@ import { MAX_METAS_ATIVAS, podeAtivarMeta } from '@/domain/metas';
 import { semanaNaFrase } from '@/domain/semana';
 import { useHoje, usePrepararSemana, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 const TABELAS = ['areas', 'metas', 'metas_registos', 'tarefas', 'tarefas_semana', 'blocos'] as const;
 
@@ -41,11 +42,11 @@ export default function AreaEcra() {
 
   /** A área deixa de aparecer, mas o histórico fica guardado (e pode ser reposta nas definições). */
   function arquivar() {
-    if (comDesfazer(`“${area.nome}” arquivada`, () => arquivarArea(areaId), 'Não foi possível arquivar a área')) router.back();
+    if (comDesfazer(`“${area.nome}” arquivada`, () => arquivarArea(areaId), t('Não foi possível arquivar a área'))) router.back();
   }
 
   function mudar(campos: Parameters<typeof atualizarArea>[1]) {
-    atualizarArea(areaId, campos).catch((e: unknown) => avisarErro('Não foi possível guardar', e));
+    atualizarArea(areaId, campos).catch((e: unknown) => avisarErro(t('Não foi possível guardar'), e));
   }
 
   return (
@@ -60,49 +61,49 @@ export default function AreaEcra() {
           inicial={area.nome}
           guardar={(nome) => atualizarArea(areaId, { nome })}
           obrigatorio
-          erro="Não foi possível guardar o nome"
+          erro={t('Não foi possível guardar o nome')}
           maxLength={40}
-          accessibilityLabel="Nome da área"
-          placeholder="Nome da área"
+          accessibilityLabel={t('Nome da área')}
+          placeholder={t('Nome da área')}
           contentor={{ flex: 1 }}
           style={[estilos.titulo, { paddingVertical: 4 }]}
         />
       </View>
 
-      <Seccao titulo="Missão">
+      <Seccao titulo={t('Missão')}>
         <CampoAutoGuardado
           key={`missao-${area.id}`}
           inicial={area.missao}
           guardar={(missao) => atualizarArea(areaId, { missao })}
-          erro="Não foi possível guardar a missão"
-          placeholder="Porque é que esta área importa?"
+          erro={t('Não foi possível guardar a missão')}
+          placeholder={t('Porque é que esta área importa?')}
           multiline
           maxLength={140}
-          accessibilityLabel="Missão"
+          accessibilityLabel={t('Missão')}
           style={[estilos.cartao, { padding: 16, fontFamily: fontes.tituloMedio, fontSize: 20, lineHeight: 26, color: cores.tinta }]}
         />
       </Seccao>
 
-      <Seccao titulo="Metas" direita={<Text style={estilos.pequeno}>{`${ativas.length} de ${MAX_METAS_ATIVAS} ativas`}</Text>}>
+      <Seccao titulo={t('Metas')} direita={<Text style={estilos.pequeno}>{t('{n} de {max} ativas', { n: ativas.length, max: MAX_METAS_ATIVAS })}</Text>}>
         <Cartao>
           {ativas.map((m, i) => (
             <View key={m.id} style={i === 0 ? null : { borderTopWidth: 1, borderTopColor: cores.linhaSuave }}>
               <CartaoMeta meta={m} cor={cor.forte} aoAbrir={() => abrirMeta(m.id)} quando={semanaNaFrase(semana, atual, 'em')} />
             </View>
           ))}
-          {ativas.length === 0 ? <Text style={[estilos.pequeno, { padding: 16, paddingBottom: 4 }]}>Onde quer chegar nesta área? Uma meta é um resultado com prazo, não uma atividade.</Text> : null}
+          {ativas.length === 0 ? <Text style={[estilos.pequeno, { padding: 16, paddingBottom: 4 }]}>{t('Onde quer chegar nesta área? Uma meta é um resultado com prazo, não uma atividade.')}</Text> : null}
           <View style={[{ paddingHorizontal: 8 }, ativas.length > 0 ? { borderTopWidth: 1, borderTopColor: cores.linhaSuave } : null]}>
             <Botao
-              titulo="Adicionar meta"
+              titulo={t('Adicionar meta')}
               icone="mais"
               variante="texto"
               disabled={!podeCriarMeta}
-              accessibilityHint={podeCriarMeta ? undefined : `Já tem ${MAX_METAS_ATIVAS} metas ativas nesta área.`}
+              accessibilityHint={podeCriarMeta ? undefined : t('Já tem {max} metas ativas nesta área.', { max: MAX_METAS_ATIVAS })}
               onPress={() => router.push({ pathname: '/meta/nova', params: { areaId: String(areaId) } })}
             />
           </View>
         </Cartao>
-        {podeCriarMeta ? null : <Text style={estilos.pequeno}>{`O máximo são ${MAX_METAS_ATIVAS} metas ativas por área. Conclua, pause ou abandone uma para criar outra.`}</Text>}
+        {podeCriarMeta ? null : <Text style={estilos.pequeno}>{t('O máximo são {max} metas ativas por área. Conclua, pause ou abandone uma para criar outra.', { max: MAX_METAS_ATIVAS })}</Text>}
         {outras.length > 0 ? (
           <Cartao style={{ marginTop: 4 }}>
             {outras.map((m, i) => (
@@ -114,15 +115,15 @@ export default function AreaEcra() {
         ) : null}
       </Seccao>
 
-      <Seccao titulo={`Tarefas ${semanaNaFrase(semana, atual, 'de')}`}>
+      <Seccao titulo={t('Tarefas {quando}', { quando: semanaNaFrase(semana, atual, 'de') })}>
         <AvisoDeSemana semana={semana} />
         <View style={[estilos.cartao, { overflow: 'hidden' }]}>
-          {tarefas.map((t, i) => (
-            <LinhaTarefa key={t.id} tarefa={t} semana={semana} porExtenso semLinha={i === 0} />
+          {tarefas.map((tf, i) => (
+            <LinhaTarefa key={tf.id} tarefa={tf} semana={semana} porExtenso semLinha={i === 0} />
           ))}
           <View style={[{ paddingHorizontal: 8 }, tarefas.length > 0 ? { borderTopWidth: 1, borderTopColor: cores.linhaSuave } : null]}>
             <Botao
-              titulo="Nova tarefa"
+              titulo={t('Nova tarefa')}
               icone="mais"
               variante="texto"
               onPress={() => router.push({ pathname: '/tarefa/nova', params: { areaId: String(areaId), semana } })}
@@ -131,15 +132,15 @@ export default function AreaEcra() {
         </View>
       </Seccao>
 
-      <Seccao titulo="Cor">
+      <Seccao titulo={t('Cor')}>
         <SeletorCor valor={area.cor} onChange={(c) => mudar({ cor: c })} />
       </Seccao>
 
-      <Seccao titulo="Ícone">
+      <Seccao titulo={t('Ícone')}>
         <SeletorIcone valor={area.icone} cor={area.cor} onChange={(i) => mudar({ icone: i })} />
       </Seccao>
 
-      <Botao titulo="Arquivar área" variante="texto" onPress={arquivar} />
+      <Botao titulo={t('Arquivar área')} variante="texto" onPress={arquivar} />
     </ScrollView>
   );
 }

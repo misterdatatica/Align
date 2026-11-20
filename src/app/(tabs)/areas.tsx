@@ -17,6 +17,7 @@ import { descreverSemanaPorExtenso, semanaNaFrase } from '@/domain/semana';
 import { usePrepararSemana, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
 import { SUGESTOES_DE_AREAS } from '@/sugestoes';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos'] as const;
 
@@ -36,9 +37,9 @@ export default function AreasEcra() {
   async function criarSugestao(s: (typeof SUGESTOES_DE_AREAS)[number]) {
     setACriar(s.nome);
     try {
-      await criarArea({ ...s, missao: '' });
+      await criarArea({ ...s, nome: t(s.nome), missao: '' });
     } catch (e) {
-      avisarErro('Não foi possível criar a área', e);
+      avisarErro(t('Não foi possível criar a área'), e);
     } finally {
       setACriar(null);
     }
@@ -49,12 +50,12 @@ export default function AreasEcra() {
       <ScrollView contentContainerStyle={estilos.conteudo}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
           <View style={{ flex: 1 }}>
-            <Titulo subtitulo={`Semana de ${descreverSemanaPorExtenso(semana)}`}>As minhas áreas</Titulo>
+            <Titulo subtitulo={t('Semana de {semana}', { semana: descreverSemanaPorExtenso(semana) })}>{t('As minhas áreas')}</Titulo>
           </View>
-          <BotaoIcone icone="engrenagem" rotulo="Definições" tamanho={22} cor={cores.texto2} onPress={() => router.push('/definicoes')} style={{ marginRight: -10, marginTop: -4 }} />
+          <BotaoIcone icone="engrenagem" rotulo={t('Definições')} tamanho={22} cor={cores.texto2} onPress={() => router.push('/definicoes')} style={{ marginRight: -10, marginTop: -4 }} />
         </View>
 
-        <Seccao titulo="Áreas" direita={<Text style={estilos.pequeno}>{`${lista.length} de ${MAX_AREAS} no máximo`}</Text>}>
+        <Seccao titulo={t('Áreas')} direita={<Text style={estilos.pequeno}>{t('{n} de {max} no máximo', { n: lista.length, max: MAX_AREAS })}</Text>}>
           <AvisoDeSemana semana={semana} />
           <ListaDeAreas
             itens={lista}
@@ -65,15 +66,15 @@ export default function AreasEcra() {
                 reordenarAreas(ids);
                 recarregarConsultas();
               } catch (e) {
-                avisarErro('Não foi possível mudar a ordem', e);
+                avisarErro(t('Não foi possível mudar a ordem'), e);
               }
             }}
           />
-          {lista.length > 1 ? <Text style={[estilos.pequeno, { fontSize: 12, lineHeight: 16 }]}>Mantenha uma área premida e arraste para mudar a ordem.</Text> : null}
+          {lista.length > 1 ? <Text style={[estilos.pequeno, { fontSize: 12, lineHeight: 16 }]}>{t('Mantenha uma área premida e arraste para mudar a ordem.')}</Text> : null}
 
           {lista.length === 0 ? (
             <View style={{ gap: 12, marginTop: 4 }}>
-              <Text style={estilos.corpo}>Comece por escolher as áreas da sua vida. Pode mudar tudo depois.</Text>
+              <Text style={estilos.corpo}>{t('Comece por escolher as áreas da sua vida. Pode mudar tudo depois.')}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {SUGESTOES_DE_AREAS.map((s) => {
                   const cor = corDaArea(s.cor);
@@ -81,13 +82,13 @@ export default function AreasEcra() {
                     <Pressable
                       key={s.nome}
                       accessibilityRole="button"
-                      accessibilityLabel={`Criar área ${s.nome}`}
+                      accessibilityLabel={t('Criar área {nome}', { nome: t(s.nome) })}
                       disabled={aCriar !== null}
                       onPress={() => criarSugestao(s)}
                       style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, borderRadius: 999, backgroundColor: cor.tinta }}
                     >
                       <Icone nome={s.icone} tamanho={16} cor={cor.texto} />
-                      <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, color: cor.texto }}>{s.nome}</Text>
+                      <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, color: cor.texto }}>{t(s.nome)}</Text>
                     </Pressable>
                   );
                 })}
@@ -96,12 +97,12 @@ export default function AreasEcra() {
           ) : null}
 
           <Botao
-            titulo="Nova área"
+            titulo={t('Nova área')}
             icone="mais"
             variante="tracejado"
             disabled={!podeCriar}
             onPress={() => router.push('/area/nova')}
-            accessibilityHint={podeCriar ? undefined : `Já tem ${MAX_AREAS} áreas. Arquive uma para criar outra.`}
+            accessibilityHint={podeCriar ? undefined : t('Já tem {max} áreas. Arquive uma para criar outra.', { max: MAX_AREAS })}
             style={{ marginTop: 2 }}
           />
         </Seccao>

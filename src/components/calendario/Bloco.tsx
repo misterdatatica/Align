@@ -7,6 +7,7 @@ import type { BlocoCalendario } from '@/data/calendario';
 import { formatarIntervalo } from '@/domain/calendario';
 import { DIAS_LONGOS } from '@/domain/semana';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 /**
  * Riscas diagonais dos blocos "Ocupado" (compromissos fixos, sem área).
@@ -61,8 +62,8 @@ export function Bloco({ bloco, esquerda, topo, largura, altura, esbatido, atenca
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${bloco.nome}, ${DIAS_LONGOS[bloco.dia]}, ${formatarIntervalo(bloco.inicioMin, bloco.fimMin)}${bloco.feito ? ', feito' : ''}${atencao ? ', sobreposto a outro bloco' : ''}`}
-      accessibilityHint="Abre os detalhes do bloco"
+      accessibilityLabel={`${bloco.nome}, ${t(DIAS_LONGOS[bloco.dia])}, ${formatarIntervalo(bloco.inicioMin, bloco.fimMin)}${bloco.feito ? `, ${t('feito')}` : ''}${atencao ? `, ${t('sobreposto a outro bloco')}` : ''}`}
+      accessibilityHint={t('Abre os detalhes do bloco')}
       onPress={() => aoTocar(bloco)}
       style={{
         position: 'absolute',

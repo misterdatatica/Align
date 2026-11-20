@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { AndroidImportance, IosAuthorizationStatus, SchedulableTriggerInputTypes } from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
+import { t } from '@/i18n';
 
 /*
  * Lembrete local da revisão semanal: uma notificação que repete todas as semanas, agendada no
@@ -23,7 +24,7 @@ export function configurarLembretes() {
 
 /** No Android as notificações precisam de um canal; no iOS esta chamada não faz nada. */
 async function criarCanal() {
-  await Notifications.setNotificationChannelAsync(CANAL, { name: 'Revisão semanal', importance: AndroidImportance.DEFAULT });
+  await Notifications.setNotificationChannelAsync(CANAL, { name: t('Revisão semanal'), importance: AndroidImportance.DEFAULT });
 }
 
 function concedida(permissao: Notifications.NotificationPermissionsStatus): boolean {
@@ -55,7 +56,7 @@ export async function agendarLembrete(diaRevisao: number, horaRevisao: string): 
   await criarCanal();
   await Notifications.scheduleNotificationAsync({
     identifier: IDENTIFICADOR,
-    content: { title: 'Revisão da semana', body: 'Veja como correu a semana e planeie a próxima.' },
+    content: { title: t('Revisão da semana'), body: t('Veja como correu a semana e planeie a próxima.') },
     // Nas notificações semanais o domingo é o dia 1.
     trigger: { type: SchedulableTriggerInputTypes.WEEKLY, weekday: diaRevisao + 1, hour: hora, minute: minuto, channelId: CANAL },
   });

@@ -13,6 +13,7 @@ import { apagarTarefa, marcarVez } from '@/data/tarefas';
 import { descreverRecorrencia } from '@/domain/recorrencia';
 import { detalheDaLinha, estadoDaLinha, type EstadoLinha, type ResumoTarefa } from '@/domain/tarefas';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 type Props = {
   tarefa: ResumoTarefa;
@@ -37,14 +38,14 @@ export function LinhaTarefa({ tarefa, semana, porExtenso, semLinha }: Props) {
 
   /** Sai desta semana e das seguintes (as anteriores ficam no histórico), com uns segundos para desfazer. */
   function apagar() {
-    if (!comDesfazer(`“${tarefa.nome}” apagada`, () => apagarTarefa(tarefa.id, semana), 'Não foi possível apagar a tarefa')) deslizante.current?.close();
+    if (!comDesfazer(`“${tarefa.nome}” apagada`, () => apagarTarefa(tarefa.id, semana), t('Não foi possível apagar a tarefa'))) deslizante.current?.close();
   }
 
   function contar(feita: boolean) {
     try {
       marcarVez(tarefa.id, semana, feita);
     } catch (erro) {
-      avisarErro('Não foi possível marcar a tarefa', erro);
+      avisarErro(t('Não foi possível marcar a tarefa'), erro);
     }
   }
 
@@ -72,8 +73,8 @@ export function LinhaTarefa({ tarefa, semana, porExtenso, semLinha }: Props) {
         <PressableDeGestos
           accessibilityRole="button"
           accessibilityLabel={`${tarefa.nome}, ${detalhe}${estado.tipo === 'contagem' ? '' : `, ${textoDoEstado(estado, porExtenso)}`}`}
-          accessibilityHint="Abre a tarefa para a alterar"
-          accessibilityActions={[{ name: 'apagar', label: 'Apagar' }]}
+          accessibilityHint={t('Abre a tarefa para a alterar')}
+          accessibilityActions={[{ name: 'apagar', label: t('Apagar') }]}
           onAccessibilityAction={(e) => {
             if (e.nativeEvent.actionName === 'apagar') apagar();
           }}
@@ -105,16 +106,16 @@ function AcaoApagar({ progresso, nome, aoApagar }: { progresso: SharedValue<numb
   const visivel = useAnimatedStyle(() => ({ opacity: progresso.value > 0.01 ? 1 : 0 }));
   return (
     <Animated.View style={[{ width: 88, backgroundColor: cores.perigo }, visivel]}>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Apagar ${nome}`} onPress={aoApagar} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('Apagar {nome}', { nome })} onPress={aoApagar} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
         <Icone nome="lixo" tamanho={18} cor={cores.sobreTinta} />
-        <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, color: cores.sobreTinta }}>Apagar</Text>
+        <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, color: cores.sobreTinta }}>{t('Apagar')}</Text>
       </Pressable>
     </Animated.View>
   );
 }
 
 function textoDoEstado(estado: Exclude<EstadoLinha, { tipo: 'contagem' }>, porExtenso?: boolean): string {
-  return porExtenso && /^\d+\/\d+$/.test(estado.texto) ? `${estado.texto} no calendário` : estado.texto;
+  return porExtenso && /^\d+\/\d+$/.test(estado.texto) ? t('{n} no calendário', { n: estado.texto }) : estado.texto;
 }
 
 function Estado({ estado, porExtenso }: { estado: Exclude<EstadoLinha, { tipo: 'contagem' }>; porExtenso?: boolean }) {
@@ -167,14 +168,14 @@ function Contagem({ nome, feitas, total, aoContar }: { nome: string; feitas: num
   }
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <BotaoIcone icone="menos" rotulo={`Desfazer uma vez de ${nome}`} tamanho={18} disabled={feitas === 0} onPress={() => aoContar(false)} style={{ width: 36 }} />
+      <BotaoIcone icone="menos" rotulo={t('Desfazer uma vez de {nome}', { nome })} tamanho={18} disabled={feitas === 0} onPress={() => aoContar(false)} style={{ width: 36 }} />
       <Text
-        accessibilityLabel={`${feitas} de ${total} feitas`}
+        accessibilityLabel={t('{n} de {total} feitas', { n: feitas, total })}
         style={{ minWidth: 34, textAlign: 'center', fontFamily: fontes.textoForte, fontSize: 13, lineHeight: 18, color: feitas === total ? cores.tinta : cores.texto2, fontVariant: ['tabular-nums'] }}
       >
         {`${feitas}/${total}`}
       </Text>
-      <BotaoIcone icone="mais" rotulo={`Marcar mais uma vez de ${nome}`} tamanho={18} disabled={feitas === total} onPress={() => aoContar(true)} style={{ width: 36 }} />
+      <BotaoIcone icone="mais" rotulo={t('Marcar mais uma vez de {nome}', { nome })} tamanho={18} disabled={feitas === total} onPress={() => aoContar(true)} style={{ width: 36 }} />
     </View>
   );
 }

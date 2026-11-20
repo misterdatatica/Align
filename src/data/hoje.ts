@@ -34,9 +34,9 @@ export function carregarHoje(hoje: string): DiaDeHoje {
     semana,
     blocos: calendario.blocos.filter((b) => b.dia === indice).sort((a, b) => a.inicioMin - b.inicioMin || a.fimMin - b.fimMin || a.id - b.id),
     semHora: plano.areas
-      .map(({ area, tarefas }) => ({ area: { id: area.id, nome: area.nome, cor: area.cor }, tarefas: tarefas.filter((t) => t.duracaoMin === null) }))
+      .map(({ area, tarefas }) => ({ area: { id: area.id, nome: area.nome, cor: area.cor }, tarefas: tarefas.filter((tf) => tf.duracaoMin === null) }))
       .filter((g) => g.tarefas.length > 0),
-    porAlocar: calendario.porAlocar.reduce((soma, t) => soma + t.quantas, 0),
+    porAlocar: calendario.porAlocar.reduce((soma, tf) => soma + tf.quantas, 0),
     temAreas: plano.areas.length > 0,
   };
 }

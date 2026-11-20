@@ -5,6 +5,7 @@ import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 import { formatarValor, valorComUnidade, type PontoDaLinha } from '@/domain/metas';
 import { deDataISO, descreverData, descreverDataCurta } from '@/domain/semana';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 type Props = {
   /** O valor inicial seguido das atualizações, por ordem de data (ver `pontosDaLinha`). */
@@ -50,16 +51,24 @@ export function GraficoMeta({ pontos, alvo, prazo, unidade, cor }: Props) {
 
   const yAlvo = y(alvo);
   const yInicial = y(pontos[0].valor);
-  const resumo = `Linha de progresso. Começou em ${valorComUnidade(pontos[0].valor, unidade)} a ${descreverData(pontos[0].data)}${
-    ultimo > 0 ? ` e vai em ${valorComUnidade(pontos[ultimo].valor, unidade)} a ${descreverData(pontos[ultimo].data)}` : ''
-  }. Alvo: ${valorComUnidade(alvo, unidade)} até ${descreverData(prazo)}.`;
+  const inicio = { valor: valorComUnidade(pontos[0].valor, unidade), dia: descreverData(pontos[0].data) };
+  const fim = { alvo: valorComUnidade(alvo, unidade), prazo: descreverData(prazo) };
+  const resumo =
+    ultimo > 0
+      ? t('Linha de progresso. Começou em {valor} a {dia} e vai em {atual} a {hoje}. Alvo: {alvo} até {prazo}.', {
+          ...inicio,
+          ...fim,
+          atual: valorComUnidade(pontos[ultimo].valor, unidade),
+          hoje: descreverData(pontos[ultimo].data),
+        })
+      : t('Linha de progresso. Começou em {valor} a {dia}. Alvo: {alvo} até {prazo}.', { ...inicio, ...fim });
 
   return (
     <View style={{ gap: 4 }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }} accessibilityLiveRegion="polite">
         <View style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: cor }} />
         <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, lineHeight: 18, color: cores.tinta, fontVariant: ['tabular-nums'] }}>{valorComUnidade(ponto.valor, unidade)}</Text>
-        <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 18, color: cores.texto3 }}>{indice === 0 ? `ponto de partida · ${descreverData(ponto.data)}` : descreverData(ponto.data)}</Text>
+        <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 18, color: cores.texto3 }}>{indice === 0 ? `${t('ponto de partida')} · ${descreverData(ponto.data)}` : descreverData(ponto.data)}</Text>
       </View>
 
       <View style={{ height: ALTURA }} onLayout={(e) => setLargura(e.nativeEvent.layout.width)} accessible accessibilityRole="image" accessibilityLabel={resumo}>
@@ -81,7 +90,7 @@ export function GraficoMeta({ pontos, alvo, prazo, unidade, cor }: Props) {
             {Math.abs(yInicial - yAlvo) >= 14 ? (
               <Text style={[estiloEixo, { position: 'absolute', left: 0, width: MARGEM.esquerda - 6, top: yInicial - 7, textAlign: 'right' }]}>{formatarValor(pontos[0].valor)}</Text>
             ) : null}
-            <Text style={[estiloEixo, { position: 'absolute', right: MARGEM.direita, top: yAlvo - 15 }]}>alvo</Text>
+            <Text style={[estiloEixo, { position: 'absolute', right: MARGEM.direita, top: yAlvo - 15 }]}>{t('alvo')}</Text>
             <Text style={[estiloEixo, { position: 'absolute', left: MARGEM.esquerda, bottom: 0 }]}>{descreverDataCurta(pontos[0].data)}</Text>
             <Text style={[estiloEixo, { position: 'absolute', right: MARGEM.direita, bottom: 0 }]}>{`prazo · ${descreverData(prazo)}`}</Text>
 

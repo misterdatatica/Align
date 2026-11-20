@@ -1,6 +1,7 @@
 import { Alert, Platform } from 'react-native';
 
 import { ErroDaApp } from '@/domain/erros';
+import { t } from '@/i18n';
 
 /*
  * Avisos e confirmações. No telemóvel usam os diálogos nativos; no navegador o `Alert` do
@@ -16,7 +17,7 @@ export function avisar(titulo: string, mensagem?: string) {
 }
 
 /** Mensagem para os erros técnicos, que não diriam nada a quem usa a app. */
-export const MENSAGEM_GENERICA = 'Tente outra vez. Os seus dados estão seguros.';
+export const mensagemGenerica = () => t('Tente outra vez. Os seus dados estão seguros.');
 
 export type ErroRegistado = { quando: string; titulo: string; detalhe: string };
 
@@ -42,7 +43,7 @@ export function avisarErro(titulo: string, erro: unknown) {
   registo.push({ quando: new Date().toISOString(), titulo, detalhe });
   if (registo.length > MAXIMO_NO_REGISTO) registo.shift();
   console.warn(`${titulo} — ${detalhe}`);
-  avisar(titulo, __DEV__ ? `${MENSAGEM_GENERICA}\n\n${detalhe}` : MENSAGEM_GENERICA);
+  avisar(titulo, __DEV__ ? `${mensagemGenerica()}\n\n${detalhe}` : mensagemGenerica());
 }
 
 type Confirmacao = {
@@ -63,7 +64,7 @@ export function confirmar({ titulo, mensagem, acao, destrutiva }: Confirmacao): 
       titulo,
       mensagem,
       [
-        { text: 'Cancelar', style: 'cancel', onPress: () => resolver(false) },
+        { text: t('Cancelar'), style: 'cancel', onPress: () => resolver(false) },
         { text: acao, style: destrutiva ? 'destructive' : 'default', onPress: () => resolver(true) },
       ],
       { cancelable: true, onDismiss: () => resolver(false) },

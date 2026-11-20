@@ -1,3 +1,5 @@
+import { separadorDecimal, t } from '../i18n/index.ts';
+
 /** Regras de negócio da especificação v1 que não dependem da base de dados. */
 
 export const MAX_AREAS = 7;
@@ -10,14 +12,14 @@ export function podeCriarArea(areasAtivas: number): boolean {
 export function formatarHoras(horas: number): string {
   if (horas > 0 && horas < 1) return `${Math.round(horas * 60)} min`;
   const arredondado = Math.round(horas * 10) / 10;
-  return `${String(arredondado).replace('.', ',')} h`;
+  return `${String(arredondado).replace('.', separadorDecimal())} h`;
 }
 
 /** "14 de 14 h", "7,5 de 10 h", "30 min de 2 h" — o que já está contra o alvo. */
 export function formatarProgressoHoras(horas: number, alvo: number): string {
   const feito = formatarHoras(horas);
   const total = formatarHoras(alvo);
-  return feito.endsWith(' h') && total.endsWith(' h') ? `${feito.slice(0, -2)} de ${total}` : `${feito} de ${total}`;
+  return t('{feito} de {total}', { feito: feito.endsWith(' h') && total.endsWith(' h') ? feito.slice(0, -2) : feito, total });
 }
 
 export function minutosParaHoras(min: number): number {

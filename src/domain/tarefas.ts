@@ -1,5 +1,6 @@
 /** Regras das tarefas e das suas instâncias semanais que não dependem da base de dados. */
 
+import { t } from '../i18n/index.ts';
 import type { Recorrencia } from './recorrencia';
 import { formatarHoras } from './regras';
 import { minutosEntre } from './semana';
@@ -127,21 +128,21 @@ export type EstadoLinha =
 export function estadoDaLinha(r: Pick<ResumoTarefa, 'duracaoMin' | 'total' | 'noCalendario' | 'feitas' | 'naoFeitas'>): EstadoLinha {
   if (r.duracaoMin === null) return { tipo: 'contagem', feitas: r.feitas, total: r.total };
   if (r.total === 1) {
-    if (r.feitas === 1) return { tipo: 'completa', texto: 'Feita' };
-    if (r.naoFeitas === 1) return { tipo: 'neutra', texto: 'Não feita' };
-    if (r.noCalendario === 1) return { tipo: 'completa', texto: 'Alocada' };
-    return { tipo: 'por_alocar', texto: 'Por alocar' };
+    if (r.feitas === 1) return { tipo: 'completa', texto: t('Feita') };
+    if (r.naoFeitas === 1) return { tipo: 'neutra', texto: t('Não feita') };
+    if (r.noCalendario === 1) return { tipo: 'completa', texto: t('Alocada') };
+    return { tipo: 'por_alocar', texto: t('Por alocar') };
   }
-  if (r.feitas === r.total) return { tipo: 'completa', texto: `${r.feitas}/${r.total} feitas` };
-  if (r.naoFeitas > 0) return { tipo: 'neutra', texto: `${r.feitas}/${r.total} feitas` };
+  if (r.feitas === r.total) return { tipo: 'completa', texto: t('{feitas}/{total} feitas', { feitas: r.feitas, total: r.total }) };
+  if (r.naoFeitas > 0) return { tipo: 'neutra', texto: t('{feitas}/{total} feitas', { feitas: r.feitas, total: r.total }) };
   if (r.noCalendario === r.total) return { tipo: 'completa', texto: `${r.noCalendario}/${r.total}` };
   return { tipo: 'por_alocar', texto: `${r.noCalendario}/${r.total}` };
 }
 
 /** Linha por baixo do nome: "2 h · todos os dias", "30 min · vem da semana passada". */
 export function detalheDaLinha(r: Pick<ResumoTarefa, 'duracaoMin' | 'veioDaSemanaPassada'>, recorrencia: string | null): string {
-  const partes = [formatarDuracao(r.duracaoMin), recorrencia, r.veioDaSemanaPassada ? 'vem da semana passada' : null].filter(Boolean);
-  return partes.length ? partes.join(' · ') : 'sem duração';
+  const partes = [formatarDuracao(r.duracaoMin), recorrencia, r.veioDaSemanaPassada ? t('vem da semana passada') : null].filter(Boolean);
+  return partes.length ? partes.join(' · ') : t('sem duração');
 }
 
 export type InstanciaParaAcertar = { id: number; estado: EstadoInstancia; temBloco: boolean };
@@ -197,8 +198,8 @@ export function montarPlano<A extends { id: number }>(
   const plano: PlanoSemana<A> = { semana, areas: [], minutosPlaneados: 0, minutosCalendario: 0, minutosFeitos: 0, porAlocar: 0, minutosPorAlocar: 0 };
   for (const area of areas) {
     const resumos = tarefas
-      .filter((t) => t.areaId === area.id && instanciasPorTarefa.has(t.id))
-      .map((t) => resumirTarefa(t, instanciasPorTarefa.get(t.id) ?? [], blocosPorTarefa.get(t.id) ?? []))
+      .filter((tf) => tf.areaId === area.id && instanciasPorTarefa.has(tf.id))
+      .map((tf) => resumirTarefa(tf, instanciasPorTarefa.get(tf.id) ?? [], blocosPorTarefa.get(tf.id) ?? []))
       .sort((a, b) => a.ordem - b.ordem);
     const minutosPlaneados = resumos.reduce((soma, r) => soma + r.minutosPlaneados, 0);
     plano.areas.push({ area, tarefas: resumos, minutosPlaneados });

@@ -10,6 +10,7 @@ import type { Recorrencia } from '@/domain/recorrencia';
 import { diasDaSemana, limitesDaSemana, MINUTOS_DIA, paraDataHora, partirDataHora } from '@/domain/semana';
 import { nomeCurtoDe } from '@/domain/tarefas';
 import { ErroDaApp } from '@/domain/erros';
+import { t } from '@/i18n';
 
 /*
  * Blocos do calendário. Um bloco pertence a uma instância de tarefa (tarefas_semana) ou, sem ela,
@@ -22,7 +23,6 @@ import { ErroDaApp } from '@/domain/erros';
  */
 
 const AGORA = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;
-const TITULO_OCUPADO = 'Ocupado';
 
 export type BlocoCalendario = {
   id: number;
@@ -139,7 +139,7 @@ export function carregarCalendario(semana: string): CalendarioDaSemana {
     .all();
   for (const b of ocupados) {
     const inicio = partirDataHora(b.inicio);
-    const titulo = b.titulo?.trim() || TITULO_OCUPADO;
+    const titulo = b.titulo?.trim() || t('Ocupado');
     lista.push({
       id: b.id,
       tipo: 'ocupado',
@@ -179,7 +179,7 @@ export function carregarCalendario(semana: string): CalendarioDaSemana {
 
 function validarIntervalo(inicioMin: number, fimMin: number) {
   if (!Number.isInteger(inicioMin) || !Number.isInteger(fimMin) || inicioMin < 0 || fimMin > MINUTOS_DIA || fimMin <= inicioMin) {
-    throw new ErroDaApp('As horas do bloco não são válidas.');
+    throw new ErroDaApp(t('As horas do bloco não são válidas.'));
   }
 }
 
@@ -190,9 +190,9 @@ function validarIntervalo(inicioMin: number, fimMin: number) {
 export function alocarTarefa(tarefaId: number, semana: string, dia: string, inicioMin: number): number {
   return db.transaction((tx) => {
     const tarefa = tx.select({ duracaoMin: tarefas.duracaoMin }).from(tarefas).where(eq(tarefas.id, tarefaId)).get();
-    if (!tarefa) throw new ErroDaApp('A tarefa já não existe.');
-    if (tarefa.duracaoMin === null) throw new ErroDaApp('Esta tarefa não ocupa tempo no calendário.');
-    if (!diasDaSemana(semana).includes(dia)) throw new ErroDaApp('O dia escolhido não pertence a esta semana.');
+    if (!tarefa) throw new ErroDaApp(t('A tarefa já não existe.'));
+    if (tarefa.duracaoMin === null) throw new ErroDaApp(t('Esta tarefa não ocupa tempo no calendário.'));
+    if (!diasDaSemana(semana).includes(dia)) throw new ErroDaApp(t('O dia escolhido não pertence a esta semana.'));
     const fimMin = Math.min(MINUTOS_DIA, inicioMin + tarefa.duracaoMin);
     validarIntervalo(inicioMin, fimMin);
 
@@ -205,7 +205,7 @@ export function alocarTarefa(tarefaId: number, semana: string, dia: string, inic
       .orderBy(sql`${tarefasSemana.habitualInicio} is not null`, asc(tarefasSemana.id))
       .limit(1)
       .get();
-    if (!livre) throw new ErroDaApp('Esta tarefa já está toda no calendário.');
+    if (!livre) throw new ErroDaApp(t('Esta tarefa já está toda no calendário.'));
 
     const inicio = paraDataHora(dia, inicioMin);
     const fim = paraDataHora(dia, fimMin);
@@ -338,9 +338,9 @@ export function moverBloco(id: number, dia: string, inicioMin: number, fimMin: n
   validarIntervalo(inicioMin, fimMin);
   db.transaction((tx) => {
     const bloco = lerBloco(tx, id);
-    if (!bloco) throw new ErroDaApp('O bloco já não existe.');
+    if (!bloco) throw new ErroDaApp(t('O bloco já não existe.'));
     // Um bloco de tarefa não sai da semana da sua instância.
-    if (bloco.semana && !diasDaSemana(bloco.semana).includes(dia)) throw new ErroDaApp('O dia escolhido não pertence a esta semana.');
+    if (bloco.semana && !diasDaSemana(bloco.semana).includes(dia)) throw new ErroDaApp(t('O dia escolhido não pertence a esta semana.'));
     const novo = { inicio: paraDataHora(dia, inicioMin), fim: paraDataHora(dia, fimMin) };
     tx.update(blocos)
       .set({ ...novo, atualizadoEm: AGORA })
@@ -367,8 +367,8 @@ export function moverBloco(id: number, dia: string, inicioMin: number, fimMin: n
 export function marcarBlocoFeito(id: number, feito: boolean): void {
   db.transaction((tx) => {
     const bloco = tx.select({ instanciaId: blocos.tarefaSemanaId }).from(blocos).where(eq(blocos.id, id)).get();
-    if (!bloco) throw new ErroDaApp('O bloco já não existe.');
-    if (bloco.instanciaId === null) throw new ErroDaApp('Os blocos “Ocupado” não se marcam como feitos.');
+    if (!bloco) throw new ErroDaApp(t('O bloco já não existe.'));
+    if (bloco.instanciaId === null) throw new ErroDaApp(t('Os blocos “Ocupado” não se marcam como feitos.'));
     tx.update(blocos).set({ feito, atualizadoEm: AGORA }).where(eq(blocos.id, id)).run();
     tx.update(tarefasSemana)
       .set({ estado: feito ? 'feita' : 'alocada', atualizadoEm: AGORA })

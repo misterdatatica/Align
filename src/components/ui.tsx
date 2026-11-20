@@ -3,6 +3,7 @@ import { Pressable, Text, View, type PressableProps, type ViewStyle } from 'reac
 
 import { fontes, useTema } from '@/theme';
 import { Icone, iconesArea, type NomeIcone } from './Icone';
+import { t } from '@/i18n';
 
 /** Altura de linha de cada tamanho de título do design. */
 const ALTURA_TITULO = { 30: 36, 28: 34, 24: 32 } as const;
@@ -187,9 +188,9 @@ export function Passo({
       }}
       style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1, borderColor: cores.contorno, backgroundColor: cores.superficie }}
     >
-      <BotaoIcone icone="menos" rotulo={`Menos ${rotulo.toLowerCase()}`} disabled={valor <= minimo} onPress={() => onChange(Math.max(minimo, valor - passo))} />
+      <BotaoIcone icone="menos" rotulo={t('Menos {campo}', { campo: rotulo.toLowerCase() })} disabled={valor <= minimo} onPress={() => onChange(Math.max(minimo, valor - passo))} />
       <Text style={{ minWidth: 64, textAlign: 'center', fontFamily: fontes.textoForte, fontSize: 16, color: cores.tinta, fontVariant: ['tabular-nums'] }}>{texto}</Text>
-      <BotaoIcone icone="mais" rotulo={`Mais ${rotulo.toLowerCase()}`} disabled={valor >= maximo} onPress={() => onChange(Math.min(maximo, valor + passo))} />
+      <BotaoIcone icone="mais" rotulo={t('Mais {campo}', { campo: rotulo.toLowerCase() })} disabled={valor >= maximo} onPress={() => onChange(Math.min(maximo, valor + passo))} />
     </View>
   );
 }
@@ -216,7 +217,7 @@ export function SeletorCor({ valor, onChange }: { valor: string; onChange: (id: 
           <Pressable
             key={c.id}
             accessibilityRole="radio"
-            accessibilityLabel={c.nome}
+            accessibilityLabel={t(c.nome)}
             accessibilityState={{ selected: ativa }}
             onPress={() => onChange(c.id)}
             style={{
@@ -242,7 +243,7 @@ export function SeletorIcone({ valor, cor, onChange }: { valor: string; cor: str
   const { cores, corDaArea } = useTema();
   const c = corDaArea(cor);
   return (
-    <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }} accessibilityRole="radiogroup" accessibilityLabel="Ícone">
+    <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }} accessibilityRole="radiogroup" accessibilityLabel={t('Ícone')}>
       {iconesArea.map((i) => {
         const ativo = i === valor;
         return (

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icone, type NomeIcone } from '@/components/Icone';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 function iconeTab(nome: NomeIcone) {
   return function IconeTab({ focused, color }: { focused: boolean; color: ColorValue }) {
@@ -48,11 +49,11 @@ export default function TabsLayout() {
         sceneStyle: { backgroundColor: cores.fundo },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Hoje', tabBarIcon: iconeTab('sol') }} />
-      <Tabs.Screen name="areas" options={{ title: 'Áreas', tabBarIcon: iconeTab('grelha') }} />
-      <Tabs.Screen name="semana" options={{ title: 'Semana', tabBarIcon: iconeTab('lista') }} />
-      <Tabs.Screen name="calendario" options={{ title: 'Calendário', tabBarIcon: iconeTab('calendario') }} />
-      <Tabs.Screen name="revisao" options={{ title: 'Revisão', tabBarIcon: iconeTab('grafico') }} />
+      <Tabs.Screen name="index" options={{ title: t('Hoje'), tabBarIcon: iconeTab('sol') }} />
+      <Tabs.Screen name="areas" options={{ title: t('Áreas'), tabBarIcon: iconeTab('grelha') }} />
+      <Tabs.Screen name="semana" options={{ title: t('Semana'), tabBarIcon: iconeTab('lista') }} />
+      <Tabs.Screen name="calendario" options={{ title: t('Calendário'), tabBarIcon: iconeTab('calendario') }} />
+      <Tabs.Screen name="revisao" options={{ title: t('Revisão'), tabBarIcon: iconeTab('grafico') }} />
     </Tabs>
   );
 }

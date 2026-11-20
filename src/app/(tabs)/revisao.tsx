@@ -6,10 +6,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { comDesfazer } from '@/components/AvisoTemporario';
 import { CampoAutoGuardado } from '@/components/CampoAutoGuardado';
 import { avisarErro, confirmar } from '@/components/dialogos';
-import { exportarCopia, ONDE_GUARDAR_A_COPIA } from '@/components/exportarCopia';
+import { exportarCopia, ondeGuardarACopia } from '@/components/exportarCopia';
 import { Icone } from '@/components/Icone';
 import { AtualizarValor } from '@/components/metas/AtualizarValor';
-import { TEXTO_ESTAGNADA, textoDoPrazo, textoDoProgresso } from '@/components/metas/textos';
+import { textoEstagnada, textoDoPrazo, textoDoProgresso } from '@/components/metas/textos';
 import { BarraProgresso, Botao, Cartao, Seccao, Titulo } from '@/components/ui';
 import { useConsulta } from '@/data/consulta';
 import { mudarEstadoDaMeta, type MetaDetalhada } from '@/data/metas';
@@ -22,6 +22,7 @@ import { DIAS_CURTOS, descreverDia, descreverSemanaPorExtenso, somarSemanas } fr
 import { formatarDuracao } from '@/domain/tarefas';
 import { escolherSemana, useHoje } from '@/estado/semana';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 const TABELAS = ['areas', 'metas', 'metas_registos', 'tarefas', 'tarefas_semana', 'blocos', 'revisoes', 'definicoes'] as const;
 
@@ -61,9 +62,9 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
 
   function concluir(meta: MetaDetalhada) {
     const ok = comDesfazer(
-      'Meta concluída',
+      t('Meta concluída'),
       () => mudarEstadoDaMeta(meta.id, 'concluida'),
-      'Não foi possível concluir a meta',
+      t('Não foi possível concluir a meta'),
       () => setAlcancadas((atuais) => atuais.filter((m) => m.id !== meta.id)),
     );
     if (ok) setAlcancadas((atuais) => [...atuais, { id: meta.id, descricao: meta.descricao }]);
@@ -72,19 +73,19 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
   async function fechar() {
     if (porConfirmar.length > 0) {
       const sim = await confirmar({
-        titulo: porConfirmar.length === 1 ? 'Há 1 bloco por marcar' : `Há ${porConfirmar.length} blocos por marcar`,
-        mensagem: 'Os blocos por marcar contam como não feitos. Fechar a revisão assim?',
-        acao: 'Fechar revisão',
+        titulo: porConfirmar.length === 1 ? t('Há 1 bloco por marcar') : t('Há {n} blocos por marcar', { n: porConfirmar.length }),
+        mensagem: t('Os blocos por marcar contam como não feitos. Fechar a revisão assim?'),
+        acao: t('Fechar revisão'),
       });
       if (!sim) return;
     }
     try {
       fecharRevisao(
         semana,
-        porFazer.filter((t) => !ficam.has(t.tarefaId)).map((t) => t.tarefaId),
+        porFazer.filter((tf) => !ficam.has(tf.tarefaId)).map((tf) => tf.tarefaId),
       );
     } catch (erro) {
-      avisarErro('Não foi possível fechar a revisão', erro);
+      avisarErro(t('Não foi possível fechar a revisão'), erro);
     }
   }
 
@@ -101,26 +102,26 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
   return (
     <SafeAreaView style={estilos.ecra} edges={['top']}>
       <ScrollView contentContainerStyle={[estilos.conteudo, { gap: 24 }]} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
-        <Titulo tamanho={28} subtitulo={`Semana de ${descreverSemanaPorExtenso(semana)}`}>
-          Revisão da semana
+        <Titulo tamanho={28} subtitulo={t('Semana de {semana}', { semana: descreverSemanaPorExtenso(semana) })}>
+          {t('Revisão da semana')}
         </Titulo>
 
         {!revisao.temTarefas ? (
           <Cartao style={{ padding: 16, gap: 12 }}>
-            <Text style={estilos.corpo}>Ainda não há nada para rever nesta semana. Planeie as tarefas e ponha-as no calendário; no fim da semana, a revisão mostra como correu.</Text>
-            <Botao titulo="Planear a semana" variante="contorno" onPress={() => router.navigate('/semana')} />
+            <Text style={estilos.corpo}>{t('Ainda não há nada para rever nesta semana. Planeie as tarefas e ponha-as no calendário; no fim da semana, a revisão mostra como correu.')}</Text>
+            <Botao titulo={t('Planear a semana')} variante="contorno" onPress={() => router.navigate('/semana')} />
           </Cartao>
         ) : (
           <>
             <View style={{ gap: 12, marginTop: -8 }}>
               {disponivel ? null : (
                 <View style={{ gap: 8 }}>
-                  <Text style={estilos.pequeno}>{`A revisão desta semana abre ${descreverDia(revisao.abreEm)}. Até lá, é assim que a semana vai.`}</Text>
+                  <Text style={estilos.pequeno}>{t('A revisão desta semana abre {dia}. Até lá, é assim que a semana vai.', { dia: descreverDia(revisao.abreEm) })}</Text>
                   <Botao
-                    titulo="Fazer a revisão agora"
+                    titulo={t('Fazer a revisão agora')}
                     variante="contorno"
-                    accessibilityHint="Abre a revisão desta semana antes do dia marcado"
-                    onPress={() => tentar('Não foi possível abrir a revisão', () => comecarRevisao(semana))}
+                    accessibilityHint={t('Abre a revisão desta semana antes do dia marcado')}
+                    onPress={() => tentar(t('Não foi possível abrir a revisão'), () => comecarRevisao(semana))}
                   />
                 </View>
               )}
@@ -128,12 +129,12 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 6 }}>
                   <Text style={{ fontFamily: fontes.titulo, fontSize: 34, lineHeight: 40, letterSpacing: -0.7, color: cores.tinta }}>{formatarHoras(revisao.minutosFeitos / 60)}</Text>
                   <Text style={{ fontFamily: fontes.texto, fontSize: 14, lineHeight: 20, color: cores.texto3 }}>
-                    {planeado ? `de ${formatarHoras(revisao.minutosPlaneados / 60)} planeadas` : 'feitas'}
+                    {planeado ? t('de {horas} planeadas', { horas: formatarHoras(revisao.minutosPlaneados / 60) }) : t('feitas')}
                   </Text>
                 </View>
                 {planeado ? (
                   <Text style={{ marginTop: 4, fontFamily: fontes.texto, fontSize: 13, lineHeight: 18, color: cores.texto2 }}>
-                    {`${disponivel ? 'Cumpriu' : 'Vai em'} ${percentagemCumprida(revisao.minutosFeitos, revisao.minutosPlaneados)}% do plano.`}
+                    {disponivel ? t('Cumpriu {p}% do plano.', { p: percentagemCumprida(revisao.minutosFeitos, revisao.minutosPlaneados) }) : t('Vai em {p}% do plano.', { p: percentagemCumprida(revisao.minutosFeitos, revisao.minutosPlaneados) })}
                   </Text>
                 ) : null}
               </Cartao>
@@ -146,16 +147,16 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
                     <Icone nome="aviso" tamanho={18} cor={cores.tinta} />
                   </View>
                   <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: cores.tinta }}>Faça uma cópia de segurança</Text>
-                    <Text style={estilos.pequeno}>{`Os dados ficam só neste telemóvel e já passou mais de um mês sem cópia. ${ONDE_GUARDAR_A_COPIA}`}</Text>
+                    <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: cores.tinta }}>{t('Faça uma cópia de segurança')}</Text>
+                    <Text style={estilos.pequeno}>{`${t('Os dados ficam só neste telemóvel e já passou mais de um mês sem cópia.')} ${ondeGuardarACopia()}`}</Text>
                   </View>
                 </View>
-                <Botao titulo="Fazer cópia agora" variante="contorno" onPress={exportarCopia} />
+                <Botao titulo={t('Fazer cópia agora')} variante="contorno" onPress={exportarCopia} />
               </Cartao>
             ) : null}
 
             {areas.length > 0 ? (
-              <Seccao titulo="Por área">
+              <Seccao titulo={t('Por área')}>
                 <Cartao style={{ padding: 16, gap: 16 }}>
                   {areas.map((a) => (
                     <View key={a.id} accessible accessibilityLabel={`${a.nome}: ${formatarProgressoHoras(a.minutosFeitos / 60, a.minutosPlaneados / 60)}`}>
@@ -180,8 +181,8 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
             ) : null}
 
             {disponivel && !fechada && porConfirmar.length > 0 ? (
-              <Seccao titulo="Feito?">
-                <Text style={[estilos.pequeno, { marginTop: -4 }]}>Estes blocos estão no calendário mas ainda não foram marcados.</Text>
+              <Seccao titulo={t('Feito?')}>
+                <Text style={[estilos.pequeno, { marginTop: -4 }]}>{t('Estes blocos estão no calendário mas ainda não foram marcados.')}</Text>
                 <Cartao style={{ overflow: 'hidden' }}>
                   {porConfirmar.map((b, i) => (
                     <View key={b.blocoId} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 56, paddingLeft: 16, paddingRight: 8, paddingVertical: 6, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: cores.linhaSuave }}>
@@ -190,11 +191,11 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
                           {b.nome}
                         </Text>
                         <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 16, color: cores.texto3 }}>
-                          {`${b.area} · ${DIAS_CURTOS[b.dia]?.toLowerCase() ?? ''} ${formatarIntervalo(b.inicioMin, b.fimMin)}`}
+                          {`${b.area} · ${DIAS_CURTOS[b.dia] ? t(DIAS_CURTOS[b.dia]).toLowerCase() : ''} ${formatarIntervalo(b.inicioMin, b.fimMin)}`}
                         </Text>
                       </View>
-                      <Resposta titulo="Não" rotulo={`${b.nome}: não foi feito`} onPress={() => tentar('Não foi possível marcar o bloco', () => responderBloco(b.blocoId, false))} />
-                      <Resposta titulo="Feito" rotulo={`${b.nome}: feito`} cheia onPress={() => tentar('Não foi possível marcar o bloco', () => responderBloco(b.blocoId, true))} />
+                      <Resposta titulo={t('Não')} rotulo={t('{nome}: não foi feito', { nome: b.nome })} onPress={() => tentar(t('Não foi possível marcar o bloco'), () => responderBloco(b.blocoId, false))} />
+                      <Resposta titulo={t('Feito')} rotulo={t('{nome}: feito', { nome: b.nome })} cheia onPress={() => tentar(t('Não foi possível marcar o bloco'), () => responderBloco(b.blocoId, true))} />
                     </View>
                   ))}
                 </Cartao>
@@ -202,31 +203,31 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
             ) : null}
 
             {disponivel && porFazer.length > 0 ? (
-              <Seccao titulo="Ficou por fazer">
+              <Seccao titulo={t('Ficou por fazer')}>
                 <Text style={[estilos.pequeno, { marginTop: -4, fontSize: 12, lineHeight: 16 }]}>
-                  {fechada ? 'O que não foi feito nesta semana.' : `As tarefas marcadas passam para a semana de ${descreverSemanaPorExtenso(seguinte)}.`}
+                  {fechada ? t('O que não foi feito nesta semana.') : t('As tarefas marcadas passam para a semana de {semana}.', { semana: descreverSemanaPorExtenso(seguinte) })}
                 </Text>
                 <Cartao style={{ overflow: 'hidden' }}>
-                  {porFazer.map((t, i) => {
-                    const passa = !ficam.has(t.tarefaId);
-                    const detalhe = [t.area, formatarDuracao(t.duracaoMin)].filter(Boolean).join(' · ');
+                  {porFazer.map((tf, i) => {
+                    const passa = !ficam.has(tf.tarefaId);
+                    const detalhe = [tf.area, formatarDuracao(tf.duracaoMin)].filter(Boolean).join(' · ');
                     return (
                       <Pressable
-                        key={t.tarefaId}
+                        key={tf.tarefaId}
                         disabled={fechada}
                         accessibilityRole={fechada ? 'text' : 'checkbox'}
-                        accessibilityLabel={`${t.nome}, ${detalhe}${fechada ? (t.transitou ? ', passou para a semana seguinte' : '') : ''}`}
+                        accessibilityLabel={`${tf.nome}, ${detalhe}${fechada ? (tf.transitou ? `, ${t('passou para a semana seguinte')}` : '') : ''}`}
                         accessibilityState={fechada ? undefined : { checked: passa }}
-                        onPress={() => alternar(t.tarefaId)}
+                        onPress={() => alternar(tf.tarefaId)}
                         style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: cores.linhaSuave }}
                       >
                         {fechada ? null : <Caixa marcada={passa} />}
                         <View style={{ flex: 1, minWidth: 0 }}>
                           <Text style={{ fontFamily: fontes.textoMedio, fontSize: 15, lineHeight: 20, color: cores.tinta }} numberOfLines={2}>
-                            {t.nome}
+                            {tf.nome}
                           </Text>
                           <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 16, color: cores.texto3 }}>
-                            {fechada && t.transitou ? `${detalhe} · passou para a semana seguinte` : detalhe}
+                            {fechada && tf.transitou ? `${detalhe} · ${t('passou para a semana seguinte')}` : detalhe}
                           </Text>
                         </View>
                       </Pressable>
@@ -237,8 +238,8 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
             ) : null}
 
             {disponivel && (metas.length > 0 || alcancadas.length > 0) ? (
-              <Seccao titulo="Como estão as suas metas?">
-                <Text style={[estilos.pequeno, { marginTop: -4, fontSize: 12, lineHeight: 16 }]}>Atualize o valor das metas de número e marque os marcos que alcançou.</Text>
+              <Seccao titulo={t('Como estão as suas metas?')}>
+                <Text style={[estilos.pequeno, { marginTop: -4, fontSize: 12, lineHeight: 16 }]}>{t('Atualize o valor das metas de número e marque os marcos que alcançou.')}</Text>
                 <Cartao style={{ overflow: 'hidden' }}>
                   {metas.map((m, i) => (
                     <View key={m.id} style={{ padding: 16, gap: 10, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: cores.linhaSuave }}>
@@ -257,17 +258,17 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
                           </View>
                           <AtualizarValor key={`${m.id}|${m.valorAtual}`} meta={m} hoje={hoje} />
                           {m.alcancada ? (
-                            <Botao titulo="Chegou ao alvo: concluir meta" icone="certo" variante="contorno" accessibilityLabel={`Concluir a meta ${m.descricao}`} onPress={() => concluir(m)} />
+                            <Botao titulo={t('Chegou ao alvo: concluir meta')} icone="certo" variante="contorno" accessibilityLabel={t('Concluir a meta {meta}', { meta: m.descricao })} onPress={() => concluir(m)} />
                           ) : null}
                         </>
                       ) : (
-                        <Botao titulo="Alcançada" icone="certo" variante="contorno" accessibilityLabel={`${m.descricao}: alcançada`} onPress={() => concluir(m)} />
+                        <Botao titulo={t('Alcançada')} icone="certo" variante="contorno" accessibilityLabel={t('{meta}: alcançada', { meta: m.descricao })} onPress={() => concluir(m)} />
                       )}
                       {m.estagnada && !m.alcancada ? (
                         <View style={{ gap: 4, padding: 12, borderRadius: 12, backgroundColor: cores.fundo }}>
-                          <Text style={[estilos.pequeno, { color: cores.texto2 }]}>{TEXTO_ESTAGNADA}</Text>
-                          <Pressable accessibilityRole="button" accessibilityLabel={`Rever a meta ${m.descricao}`} onPress={() => router.push({ pathname: '/meta/[id]', params: { id: String(m.id) } })} style={{ minHeight: 32, justifyContent: 'center', alignSelf: 'flex-start' }}>
-                            <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, color: cores.tinta, textDecorationLine: 'underline' }}>Rever a meta</Text>
+                          <Text style={[estilos.pequeno, { color: cores.texto2 }]}>{textoEstagnada()}</Text>
+                          <Pressable accessibilityRole="button" accessibilityLabel={t('Rever a meta {meta}', { meta: m.descricao })} onPress={() => router.push({ pathname: '/meta/[id]', params: { id: String(m.id) } })} style={{ minHeight: 32, justifyContent: 'center', alignSelf: 'flex-start' }}>
+                            <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, color: cores.tinta, textDecorationLine: 'underline' }}>{t('Rever a meta')}</Text>
                           </Pressable>
                         </View>
                       ) : null}
@@ -276,7 +277,7 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
                   {alcancadas.map((m, i) => (
                     <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52, paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: i === 0 && metas.length === 0 ? 0 : 1, borderTopColor: cores.linhaSuave }}>
                       <Icone nome="certo" tamanho={16} cor={cores.texto2} espessura={2.2} />
-                      <Text style={{ flex: 1, fontFamily: fontes.textoMedio, fontSize: 14, lineHeight: 20, color: cores.texto2 }}>{`${m.descricao} — concluída`}</Text>
+                      <Text style={{ flex: 1, fontFamily: fontes.textoMedio, fontSize: 14, lineHeight: 20, color: cores.texto2 }}>{t('{meta} — concluída', { meta: m.descricao })}</Text>
                     </View>
                   ))}
                 </Cartao>
@@ -284,33 +285,33 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
             ) : null}
 
             {disponivel ? (
-              <Seccao titulo="Reflexão">
+              <Seccao titulo={t('Reflexão')}>
                 <View style={{ gap: 12 }}>
-                  <Nota titulo="O que correu bem?" inicial={revisao.correuBem} guardar={(texto) => guardarReflexao(semana, { correuBem: texto })} />
-                  <Nota titulo="O que quero mudar?" inicial={revisao.queroMudar} guardar={(texto) => guardarReflexao(semana, { queroMudar: texto })} />
+                  <Nota titulo={t('O que correu bem?')} inicial={revisao.correuBem} guardar={(texto) => guardarReflexao(semana, { correuBem: texto })} />
+                  <Nota titulo={t('O que quero mudar?')} inicial={revisao.queroMudar} guardar={(texto) => guardarReflexao(semana, { queroMudar: texto })} />
                 </View>
               </Seccao>
             ) : null}
 
             {disponivel && !fechada ? (
               <View style={{ gap: 4 }}>
-                <Botao titulo="Fechar revisão" icone="certo" accessibilityHint="Dá a semana por revista; o que ficou marcado passa para a semana seguinte" onPress={fechar} style={{ minHeight: 52 }} />
-                <Text style={[estilos.pequeno, { textAlign: 'center' }]}>Depois de fechar, planeia a semana seguinte.</Text>
+                <Botao titulo={t('Fechar revisão')} icone="certo" accessibilityHint={t('Dá a semana por revista; o que ficou marcado passa para a semana seguinte')} onPress={fechar} style={{ minHeight: 52 }} />
+                <Text style={[estilos.pequeno, { textAlign: 'center' }]}>{t('Depois de fechar, planeia a semana seguinte.')}</Text>
               </View>
             ) : null}
             {disponivel && fechada ? (
               <View style={{ gap: 4 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingBottom: 4 }}>
                   <Icone nome="certo" tamanho={16} cor={cores.texto2} espessura={2.2} />
-                  <Text style={[estilos.pequeno, { color: cores.texto2 }]}>Revisão fechada.</Text>
+                  <Text style={[estilos.pequeno, { color: cores.texto2 }]}>{t('Revisão fechada.')}</Text>
                 </View>
                 <Botao
-                  titulo={`Planear a semana de ${descreverSemanaPorExtenso(seguinte)} →`}
-                  accessibilityHint="Abre a semana seguinte, que começa igual a esta"
+                  titulo={t('Planear a semana de {semana} →', { semana: descreverSemanaPorExtenso(seguinte) })}
+                  accessibilityHint={t('Abre a semana seguinte, que começa igual a esta')}
                   onPress={planear}
                   style={{ minHeight: 52, paddingHorizontal: 12 }}
                 />
-                <Botao titulo="Reabrir a revisão" variante="texto" onPress={() => tentar('Não foi possível reabrir a revisão', () => reabrirRevisao(semana))} style={{ justifyContent: 'center' }} />
+                <Botao titulo={t('Reabrir a revisão')} variante="texto" onPress={() => tentar(t('Não foi possível reabrir a revisão'), () => reabrirRevisao(semana))} style={{ justifyContent: 'center' }} />
               </View>
             ) : null}
           </>
@@ -377,8 +378,8 @@ function Nota({ titulo, inicial, guardar }: { titulo: string; inicial: string; g
       <CampoAutoGuardado
         inicial={inicial}
         guardar={async (texto) => guardar(texto)}
-        erro="Não foi possível guardar a nota"
-        placeholder="Escreva aqui…"
+        erro={t('Não foi possível guardar a nota')}
+        placeholder={t('Escreva aqui…')}
         multiline
         maxLength={500}
         accessibilityLabel={titulo}

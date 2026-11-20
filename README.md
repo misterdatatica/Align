@@ -17,7 +17,7 @@ npx expo start --web    # ver no navegador (útil para desenvolver; a v1 é para
 | --- | --- |
 | `npm run typecheck` | TypeScript sem emitir ficheiros |
 | `npm test` | Testes das regras e da camada de dados, contra SQLite real em memória (`node --test`, sem dependências) |
-| `npm run e2e` | Cenários de ponta a ponta na versão web, num Chrome sem janela (ver abaixo) |
+| `npm run e2e` | Cenários de ponta a ponta na versão web, num Chrome sem janela em pt-PT (o cenário `ingles` corre em en-GB) |
 | `npm run lint` | ESLint (configuração da Expo) |
 | `npm run db:generate` | Gera uma nova migração Drizzle depois de mudar `src/db/schema.ts` |
 
@@ -49,6 +49,8 @@ src/
   estado/semana.ts       o dia de hoje e a semana escolhida nos separadores
   lembrete.ts            lembrete local da revisão (expo-notifications); lembrete.web.ts não faz nada
   copiaFicheiro.ts       guardar e abrir o ficheiro da cópia; copiaFicheiro.web.ts para o navegador
+  i18n/                  traduções: t('texto em português'), en.ts (inglês), listas.ts e o teste que garante
+                         que nada fica por traduzir
   theme.ts               paletas clara e escura, cores das áreas, fontes e estilos partilhados; os ecrãs
                          leem o tema com useTema() (o layout principal escolhe-o pela preferência e pelo sistema)
 drizzle/                 migrações geradas (incluídas no pacote como .sql)
@@ -84,6 +86,11 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
   fixas: os componentes pedem `useTema()`. No telemóvel, "Claro" e "Escuro" também se aplicam aos
   componentes do sistema (`Appearance.setColorScheme`); no Android o modo automático precisa do
   `expo-system-ui`.
+- **Idiomas:** português de Portugal e inglês, pelo idioma do telemóvel (`expo-localization`; qualquer
+  `pt-*` dá português, o resto inglês). O texto português fica no código e é a chave da tradução:
+  `t('Revisão de {dia}', { dia })`. Os textos novos vão para `src/i18n/en.ts`; `npm test` falha se
+  algum ficar sem tradução, se as `{chavetas}` não baterem certo ou se sobrar uma tradução que já não se usa.
+  Datas, meses, dias da semana e o separador decimal também mudam com o idioma.
 - `definicoes.ultima_copia` guarda a data da última cópia de segurança; a revisão lembra de fazer
   uma quando passaram mais de 30 dias.
 - Mover ou retirar um bloco de uma tarefa recorrente pede um âmbito. "Só esta semana" guarda o
@@ -109,7 +116,7 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
       passo "Como estão as suas metas?" na revisão.
 - [x] **Uso diário:** ecrã Hoje, semana nova sempre igual à anterior, "Desfazer" em vez de
       confirmações, erros compreensíveis, "Guardado ✓", revisão em dois passos (e mais cedo),
-      calendário de 1, 3 ou 7 dias com zoom de dois dedos, lembrete de cópia de segurança, modo escuro.
+      calendário de 1, 3 ou 7 dias com zoom de dois dedos, lembrete de cópia de segurança, modo escuro, português e inglês.
 - [ ] **Fase 5 — Testes e lojas:** testar num iPhone e num Android reais, corrigir, EAS Build / Submit.
 
 O que falta verificar em telemóveis reais (não se consegue no navegador): o arrasto com o dedo

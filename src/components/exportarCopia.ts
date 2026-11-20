@@ -5,14 +5,14 @@ import { partilharFicheiro } from '@/copiaFicheiro';
 import { exportarDados } from '@/data/copia';
 import { registarCopia } from '@/data/definicoes';
 import { paraDataISO } from '@/domain/semana';
+import { t } from '@/i18n';
 
 /** Onde guardar a cópia para ela ficar fora do telemóvel, dito para o sistema em que a app corre. */
-export const ONDE_GUARDAR_A_COPIA =
-  Platform.OS === 'ios'
-    ? 'Na folha que abre, escolha “Guardar em Ficheiros” e depois iCloud Drive: assim a cópia fica fora do telemóvel e recupera-a noutro iPhone.'
-    : Platform.OS === 'android'
-      ? 'Na folha que abre, escolha “Drive” (Google Drive): assim a cópia fica fora do telemóvel e recupera-a noutro Android.'
-      : 'O ficheiro é descarregado para este computador. Guarde-o numa pasta do iCloud Drive ou do Google Drive para o ter noutro lado.';
+export function ondeGuardarACopia(): string {
+  if (Platform.OS === 'ios') return t('Na folha que abre, escolha “Guardar em Ficheiros” e depois iCloud Drive: assim a cópia fica fora do telemóvel e recupera-a noutro iPhone.');
+  if (Platform.OS === 'android') return t('Na folha que abre, escolha “Drive” (Google Drive): assim a cópia fica fora do telemóvel e recupera-a noutro Android.');
+  return t('O ficheiro é descarregado para este computador. Guarde-o numa pasta do iCloud Drive ou do Google Drive para o ter noutro lado.');
+}
 
 /** Escreve a cópia de segurança num ficheiro, abre a folha de partilha e regista a data da cópia. */
 export async function exportarCopia(): Promise<boolean> {
@@ -21,7 +21,7 @@ export async function exportarCopia(): Promise<boolean> {
     registarCopia();
     return true;
   } catch (erro) {
-    avisarErro('Não foi possível exportar os dados', erro);
+    avisarErro(t('Não foi possível exportar os dados'), erro);
     return false;
   }
 }

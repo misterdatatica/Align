@@ -7,6 +7,7 @@ import type { NomeIcone } from '@/components/Icone';
 import { Botao, Seccao, SeletorCor, SeletorIcone } from '@/components/ui';
 import { criarArea } from '@/data/areas';
 import { useTema } from '@/theme';
+import { t } from '@/i18n';
 
 export default function NovaAreaEcra() {
   const { cores, estilos } = useTema();
@@ -23,45 +24,45 @@ export default function NovaAreaEcra() {
       const area = await criarArea({ nome, missao, cor, icone });
       router.replace({ pathname: '/area/[id]', params: { id: String(area.id) } });
     } catch (e) {
-      avisarErro('Não foi possível criar a área', e);
+      avisarErro(t('Não foi possível criar a área'), e);
       setAGuardar(false);
     }
   }
 
   return (
     <ScrollView style={estilos.ecra} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
-      <Seccao titulo="Nome">
+      <Seccao titulo={t('Nome')}>
         <TextInput
           value={nome}
           onChangeText={setNome}
-          placeholder="Ex.: Espiritual"
+          placeholder={t('Ex.: Espiritual')}
           placeholderTextColor={cores.texto3}
           style={estilos.campo}
-          accessibilityLabel="Nome da área"
+          accessibilityLabel={t('Nome da área')}
           autoFocus
           maxLength={40}
         />
       </Seccao>
-      <Seccao titulo="Missão">
+      <Seccao titulo={t('Missão')}>
         <TextInput
           value={missao}
           onChangeText={setMissao}
-          placeholder="Porque é que esta área importa?"
+          placeholder={t('Porque é que esta área importa?')}
           placeholderTextColor={cores.texto3}
           style={[estilos.campo, { minHeight: 80, textAlignVertical: 'top' }]}
-          accessibilityLabel="Missão da área"
+          accessibilityLabel={t('Missão da área')}
           multiline
           maxLength={140}
         />
       </Seccao>
-      <Seccao titulo="Cor">
+      <Seccao titulo={t('Cor')}>
         <SeletorCor valor={cor} onChange={setCor} />
       </Seccao>
-      <Seccao titulo="Ícone">
+      <Seccao titulo={t('Ícone')}>
         <SeletorIcone valor={icone} cor={cor} onChange={setIcone} />
       </Seccao>
-      <Botao titulo="Criar área" onPress={guardar} disabled={aGuardar || !nome.trim()} />
-      <Text style={[estilos.pequeno, { textAlign: 'center' }]}>Pode ter até 7 áreas. Menos áreas, mais foco.</Text>
+      <Botao titulo={t('Criar área')} onPress={guardar} disabled={aGuardar || !nome.trim()} />
+      <Text style={[estilos.pequeno, { textAlign: 'center' }]}>{t('Pode ter até 7 áreas. Menos áreas, mais foco.')}</Text>
     </ScrollView>
   );
 }

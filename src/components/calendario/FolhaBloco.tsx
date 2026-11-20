@@ -14,6 +14,7 @@ import { formatarDuracao } from '@/domain/tarefas';
 import { fontes, useTema } from '@/theme';
 
 import { EscolhaDeAmbito } from './EscolhaDeAmbito';
+import { t } from '@/i18n';
 
 /** O que a folha mostra: um bloco que já existe, ou uma tarefa a alocar escolhendo dia e hora. */
 export type AlvoDaFolha = { tipo: 'bloco'; blocoId: number } | { tipo: 'nova'; tarefaId: number };
@@ -32,7 +33,7 @@ export function FolhaBloco({ alvo, calendario, aoFechar }: Props) {
   const { cores } = useTema();
   const margens = useSafeAreaInsets();
   const bloco = alvo?.tipo === 'bloco' ? calendario.blocos.find((b) => b.id === alvo.blocoId) : undefined;
-  const tarefa = alvo?.tipo === 'nova' ? calendario.porAlocar.find((t) => t.tarefaId === alvo.tarefaId) : undefined;
+  const tarefa = alvo?.tipo === 'nova' ? calendario.porAlocar.find((tf) => tf.tarefaId === alvo.tarefaId) : undefined;
   const aberta = bloco !== undefined || tarefa !== undefined;
 
   // O bloco pode desaparecer com a folha aberta (ex.: devolvido a "Por alocar"): fecha-se sozinha.
@@ -43,7 +44,7 @@ export function FolhaBloco({ alvo, calendario, aoFechar }: Props) {
   return (
     <Modal visible={aberta} transparent animationType="slide" onRequestClose={aoFechar} statusBarTranslucent>
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Fechar" onPress={aoFechar} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: cores.veu }} />
+        <Pressable accessibilityRole="button" accessibilityLabel={t('Fechar')} onPress={aoFechar} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: cores.veu }} />
         <View
           accessibilityViewIsModal
           style={{ backgroundColor: cores.fundo, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 8, paddingBottom: Math.max(margens.bottom, 16), gap: 16 }}
@@ -68,7 +69,7 @@ function Cabecalho({ titulo, subtitulo, cor, aoFechar }: { titulo: string; subti
         </Text>
         <Text style={estilos.pequeno}>{subtitulo}</Text>
       </View>
-      <BotaoIcone icone="fechar" rotulo="Fechar" onPress={aoFechar} style={{ marginTop: -6, marginRight: -8 }} />
+      <BotaoIcone icone="fechar" rotulo={t('Fechar')} onPress={aoFechar} style={{ marginTop: -6, marginRight: -8 }} />
     </View>
   );
 }
@@ -81,11 +82,11 @@ function EscolhaDeHorario({ horario, dias, duracaoFixa, aoMudar }: { horario: Ho
   const duracao = horario.fimMin - horario.inicioMin;
   return (
     <View style={{ gap: 12 }}>
-      <View style={{ flexDirection: 'row', gap: 4 }} accessibilityRole="radiogroup" accessibilityLabel="Dia">
+      <View style={{ flexDirection: 'row', gap: 4 }} accessibilityRole="radiogroup" accessibilityLabel={t('Dia')}>
         {DIAS_CURTOS.map((nome, i) => (
           <Opcao
             key={nome}
-            titulo={nome}
+            titulo={t(nome)}
             rotulo={descreverDia(dias[i])}
             ativa={horario.dia === i}
             onPress={() => aoMudar({ ...horario, dia: i })}
@@ -95,9 +96,9 @@ function EscolhaDeHorario({ horario, dias, duracaoFixa, aoMudar }: { horario: Ho
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         <View style={{ gap: 6 }}>
-          <Text style={estilos.rotulo}>INÍCIO</Text>
+          <Text style={estilos.rotulo}>{t('INÍCIO')}</Text>
           <Passo
-            rotulo="Hora de início"
+            rotulo={t('Hora de início')}
             valor={horario.inicioMin}
             texto={formatarHora(horario.inicioMin)}
             minimo={0}
@@ -108,9 +109,9 @@ function EscolhaDeHorario({ horario, dias, duracaoFixa, aoMudar }: { horario: Ho
         </View>
         {duracaoFixa ? null : (
           <View style={{ gap: 6 }}>
-            <Text style={estilos.rotulo}>DURAÇÃO</Text>
+            <Text style={estilos.rotulo}>{t('DURAÇÃO')}</Text>
             <Passo
-              rotulo="Duração"
+              rotulo={t('Duração')}
               valor={duracao}
               texto={formatarDuracao(duracao) ?? ''}
               minimo={PASSO_MIN}
@@ -148,10 +149,10 @@ function DetalheDoBloco({ bloco, calendario, aoFechar }: { bloco: BlocoCalendari
     }
   }
 
-  const mover = (h: Horario, ambito?: Ambito) => tentar('Não foi possível mudar o bloco', () => moverBloco(bloco.id, calendario.dias[h.dia], h.inicioMin, h.fimMin, ambito));
+  const mover = (h: Horario, ambito?: Ambito) => tentar(t('Não foi possível mudar o bloco'), () => moverBloco(bloco.id, calendario.dias[h.dia], h.inicioMin, h.fimMin, ambito));
   const retirar = (ambito?: Ambito) => {
-    const texto = ocupado ? `“${bloco.nome}” apagado` : `“${bloco.nome}” voltou a “Por alocar”`;
-    if (comDesfazer(texto, () => retirarBloco(bloco.id, ambito), 'Não foi possível retirar o bloco')) aoFechar();
+    const texto = ocupado ? t('“{nome}” apagado', { nome: bloco.nome }) : t('“{nome}” voltou a “Por alocar”', { nome: bloco.nome });
+    if (comDesfazer(texto, () => retirarBloco(bloco.id, ambito), t('Não foi possível retirar o bloco'))) aoFechar();
   };
 
   function responder(ambito: Ambito) {
@@ -166,8 +167,8 @@ function DetalheDoBloco({ bloco, calendario, aoFechar }: { bloco: BlocoCalendari
   if (aPerguntar) {
     const titulo =
       aPerguntar === 'retirar'
-        ? `Devolver “${bloco.nome}” a “Por alocar”?`
-        : `Mudar “${bloco.nome}” para ${DIAS_LONGOS[horario.dia]}, ${formatarIntervalo(horario.inicioMin, horario.fimMin)}?`;
+        ? t('Devolver “{nome}” a “Por alocar”?', { nome: bloco.nome })
+        : t('Mudar “{nome}” para {quando}?', { nome: bloco.nome, quando: `${t(DIAS_LONGOS[horario.dia])}, ${formatarIntervalo(horario.inicioMin, horario.fimMin)}` });
     return <EscolhaDeAmbito titulo={titulo} aoEscolher={responder} aoCancelar={() => setAPerguntar(null)} />;
   }
 
@@ -175,44 +176,44 @@ function DetalheDoBloco({ bloco, calendario, aoFechar }: { bloco: BlocoCalendari
     <>
       <Cabecalho
         titulo={bloco.nome}
-        subtitulo={`${ocupado ? 'Ocupado' : bloco.area} · ${descreverDia(calendario.dias[bloco.dia])} · ${formatarIntervalo(bloco.inicioMin, bloco.fimMin)}`}
+        subtitulo={`${ocupado ? t('Ocupado') : bloco.area} · ${descreverDia(calendario.dias[bloco.dia])} · ${formatarIntervalo(bloco.inicioMin, bloco.fimMin)}`}
         cor={bloco.cor ? corDaArea(bloco.cor).forte : null}
         aoFechar={aoFechar}
       />
-      {bloco.soEstaSemana ? <Text style={estilos.pequeno}>Mudado só nesta semana: a semana seguinte volta ao horário habitual.</Text> : null}
+      {bloco.soEstaSemana ? <Text style={estilos.pequeno}>{t('Mudado só nesta semana: a semana seguinte volta ao horário habitual.')}</Text> : null}
       {outros.length > 0 ? (
         <Text style={[estilos.pequeno, { color: cores.perigo }]} accessibilityLiveRegion="polite">
-          {`Sobrepõe-se a “${outros[0].nome}”${outros.length > 1 ? ` e a mais ${outros.length - 1}` : ''}.`}
+          {outros.length > 1 ? t('Sobrepõe-se a “{outro}” e a mais {n}.', { outro: outros[0].nome, n: outros.length - 1 }) : t('Sobrepõe-se a “{outro}”.', { outro: outros[0].nome })}
         </Text>
       ) : null}
       {ocupado ? (
         <View style={{ gap: 6 }}>
-          <Text style={estilos.rotulo}>TÍTULO</Text>
+          <Text style={estilos.rotulo}>{t('TÍTULO')}</Text>
           <CampoAutoGuardado
-            inicial={bloco.nome === 'Ocupado' ? '' : bloco.nome}
+            inicial={bloco.nome === t('Ocupado') ? '' : bloco.nome}
             guardar={async (titulo) => renomearOcupado(bloco.id, titulo)}
-            erro="Não foi possível guardar o título"
-            placeholder="Ex.: Reunião, Médico"
+            erro={t('Não foi possível guardar o título')}
+            placeholder={t('Ex.: Reunião, Médico')}
             maxLength={40}
-            accessibilityLabel="Título do bloco"
+            accessibilityLabel={t('Título do bloco')}
             style={estilos.campo}
           />
         </View>
       ) : null}
       <EscolhaDeHorario horario={horario} dias={calendario.dias} aoMudar={(h) => (bloco.recorrente ? setPendente(h) : mover(h))} />
       <View style={{ gap: 8 }}>
-        {mudou ? <Botao titulo="Guardar o novo horário" onPress={() => setAPerguntar('mudar')} /> : null}
+        {mudou ? <Botao titulo={t('Guardar o novo horário')} onPress={() => setAPerguntar('mudar')} /> : null}
         {ocupado ? (
-          <Botao titulo="Apagar bloco" icone="lixo" variante="perigo" onPress={() => retirar()} />
+          <Botao titulo={t('Apagar bloco')} icone="lixo" variante="perigo" onPress={() => retirar()} />
         ) : (
           <>
             <Botao
-              titulo={bloco.feito ? 'Desmarcar como feito' : 'Marcar como feito'}
+              titulo={bloco.feito ? t('Desmarcar como feito') : t('Marcar como feito')}
               icone="certo"
               variante={bloco.feito || mudou ? 'contorno' : 'primario'}
-              onPress={() => tentar('Não foi possível marcar o bloco', () => marcarBlocoFeito(bloco.id, !bloco.feito))}
+              onPress={() => tentar(t('Não foi possível marcar o bloco'), () => marcarBlocoFeito(bloco.id, !bloco.feito))}
             />
-            <Botao titulo="Devolver a “Por alocar”" variante="contorno" onPress={() => (bloco.recorrente ? setAPerguntar('retirar') : retirar())} />
+            <Botao titulo={t('Devolver a “Por alocar”')} variante="contorno" onPress={() => (bloco.recorrente ? setAPerguntar('retirar') : retirar())} />
           </>
         )}
       </View>
@@ -231,7 +232,7 @@ function NovaAlocacao({ tarefa, calendario, aoFechar }: { tarefa: TarefaPorAloca
       alocarTarefa(tarefa.tarefaId, calendario.semana, calendario.dias[horario.dia], horario.inicioMin);
       aoFechar();
     } catch (erro) {
-      avisarErro('Não foi possível alocar a tarefa', erro);
+      avisarErro(t('Não foi possível alocar a tarefa'), erro);
     }
   }
 
@@ -239,7 +240,7 @@ function NovaAlocacao({ tarefa, calendario, aoFechar }: { tarefa: TarefaPorAloca
     <>
       <Cabecalho titulo={tarefa.nome} subtitulo={`${tarefa.area} · ${formatarDuracao(tarefa.duracaoMin)}`} cor={corDaArea(tarefa.cor).forte} aoFechar={aoFechar} />
       <EscolhaDeHorario horario={horario} dias={calendario.dias} duracaoFixa aoMudar={setHorario} />
-      <Botao titulo={`Alocar ${DIAS_LONGOS[horario.dia]} às ${formatarHora(horario.inicioMin)}`} onPress={alocar} />
+      <Botao titulo={t('Alocar {dia} às {hora}', { dia: t(DIAS_LONGOS[horario.dia]), hora: formatarHora(horario.inicioMin) })} onPress={alocar} />
     </>
   );
 }

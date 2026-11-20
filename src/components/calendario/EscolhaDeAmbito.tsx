@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Botao } from '@/components/ui';
 import type { Ambito } from '@/domain/proposta';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 type Props = {
   /** O que se está a mudar, ex.: "Mover “Meditar” para ter 07:00?". */
@@ -24,12 +25,12 @@ export function EscolhaDeAmbito({ titulo, aoEscolher, aoCancelar }: Props) {
         <Text style={{ fontFamily: fontes.titulo, fontSize: 20, lineHeight: 26, color: cores.tinta }} accessibilityRole="header">
           {titulo}
         </Text>
-        <Text style={estilos.pequeno}>Esta tarefa repete-se. A mudança vale só para esta semana ou passa a ser o horário habitual?</Text>
+        <Text style={estilos.pequeno}>{t('Esta tarefa repete-se. A mudança vale só para esta semana ou passa a ser o horário habitual?')}</Text>
       </View>
       <View style={{ gap: 8 }}>
-        <Botao titulo="Só esta semana" variante="contorno" onPress={() => aoEscolher('semana')} />
-        <Botao titulo="Esta e as seguintes" onPress={() => aoEscolher('seguintes')} />
-        <Botao titulo="Cancelar" variante="texto" onPress={aoCancelar} style={{ justifyContent: 'center' }} />
+        <Botao titulo={t('Só esta semana')} variante="contorno" onPress={() => aoEscolher('semana')} />
+        <Botao titulo={t('Esta e as seguintes')} onPress={() => aoEscolher('seguintes')} />
+        <Botao titulo={t('Cancelar')} variante="texto" onPress={aoCancelar} style={{ justifyContent: 'center' }} />
       </View>
     </View>
   );
@@ -42,7 +43,7 @@ export function FolhaDeAmbito({ pergunta, aoEscolher, aoCancelar }: { pergunta: 
   return (
     <Modal visible={pergunta !== null} transparent animationType="slide" onRequestClose={aoCancelar} statusBarTranslucent>
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" onPress={aoCancelar} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: cores.veu }} />
+        <Pressable accessibilityRole="button" accessibilityLabel={t('Cancelar')} onPress={aoCancelar} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: cores.veu }} />
         <View accessibilityViewIsModal style={{ backgroundColor: cores.fundo, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 20, paddingBottom: Math.max(margens.bottom, 16) }}>
           {pergunta !== null ? <EscolhaDeAmbito titulo={pergunta} aoEscolher={aoEscolher} aoCancelar={aoCancelar} /> : null}
         </View>

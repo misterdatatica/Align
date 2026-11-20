@@ -4,6 +4,7 @@ import { Icone } from '@/components/Icone';
 import { descreverSemanaPorExtenso } from '@/domain/semana';
 import { escolherSemana, useSemanaAtual } from '@/estado/semana';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 /**
  * Faixa que diz que o ecrã está a mostrar outra semana que não a atual (a que se está a planear no
@@ -20,14 +21,14 @@ export function AvisoDeSemana({ semana }: { semana: string }) {
     >
       <Icone nome="calendario" tamanho={18} cor={cores.tinta} />
       <Text style={{ flex: 1, fontFamily: fontes.textoMedio, fontSize: 13, lineHeight: 18, color: cores.tinta }}>
-        {`A ver a semana de ${descreverSemanaPorExtenso(semana)}${semana < atual ? ', que já passou' : ''}.`}
+        {semana < atual ? t('A ver a semana de {semana}, que já passou.', { semana: descreverSemanaPorExtenso(semana) }) : t('A ver a semana de {semana}.', { semana: descreverSemanaPorExtenso(semana) })}
       </Text>
       <Pressable
         accessibilityRole="button"
         onPress={() => escolherSemana(atual)}
         style={({ pressed }) => ({ minHeight: 40, justifyContent: 'center', paddingHorizontal: 10, opacity: pressed ? 0.6 : 1 })}
       >
-        <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, color: cores.tinta, textDecorationLine: 'underline' }}>Voltar a esta semana</Text>
+        <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, color: cores.tinta, textDecorationLine: 'underline' }}>{t('Voltar a esta semana')}</Text>
       </Pressable>
     </View>
   );

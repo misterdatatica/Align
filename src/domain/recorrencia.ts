@@ -1,4 +1,8 @@
+import { t } from '../i18n/index.ts';
 import { ErroDaApp } from './erros';
+
+/** Dias na descrição dos "dias certos" ("seg, qua, sex"), traduzidos com `t()`. */
+export const DIAS_ABREVIADOS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'] as const;
 
 /** Como uma tarefa se repete ao longo da semana. */
 export type Recorrencia =
@@ -25,13 +29,12 @@ export function descreverRecorrencia(recorrencia: Recorrencia | null | undefined
   if (!recorrencia) return null;
   switch (recorrencia.tipo) {
     case 'diaria':
-      return 'todos os dias';
+      return t('todos os dias');
     case 'vezes_por_semana':
-      return `${instanciasPorSemana(recorrencia)}× por semana`;
+      return t('{n}× por semana', { n: instanciasPorSemana(recorrencia) });
     case 'dias': {
-      const nomes = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
       const dias = [...new Set(recorrencia.dias)].filter((d) => d >= 1 && d <= 7).sort((a, b) => a - b);
-      return dias.map((d) => nomes[d - 1]).join(', ');
+      return dias.map((d) => t(DIAS_ABREVIADOS[d - 1])).join(', ');
     }
   }
 }
@@ -47,13 +50,13 @@ export function normalizarRecorrencia(recorrencia: Recorrencia | null | undefine
       return { tipo: 'diaria' };
     case 'vezes_por_semana': {
       if (!Number.isInteger(recorrencia.vezes) || recorrencia.vezes < 1 || recorrencia.vezes > 7) {
-        throw new ErroDaApp('As vezes por semana têm de ser um número entre 1 e 7.');
+        throw new ErroDaApp(t('As vezes por semana têm de ser um número entre 1 e 7.'));
       }
       return recorrencia.vezes === 7 ? { tipo: 'diaria' } : { tipo: 'vezes_por_semana', vezes: recorrencia.vezes };
     }
     case 'dias': {
       const dias = [...new Set(recorrencia.dias)].filter((d) => Number.isInteger(d) && d >= 1 && d <= 7).sort((a, b) => a - b);
-      if (dias.length === 0) throw new ErroDaApp('Escolha pelo menos um dia da semana.');
+      if (dias.length === 0) throw new ErroDaApp(t('Escolha pelo menos um dia da semana.'));
       return dias.length === 7 ? { tipo: 'diaria' } : { tipo: 'dias', dias };
     }
   }

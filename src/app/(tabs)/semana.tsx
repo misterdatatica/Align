@@ -13,6 +13,7 @@ import { formatarHoras } from '@/domain/regras';
 import { descreverSemanaPorExtenso, somarSemanas } from '@/domain/semana';
 import { escolherSemana, useHoje, usePrepararSemana, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos'] as const;
 const TABELAS_DO_PLANO = ['semanas'] as const;
@@ -31,11 +32,11 @@ export default function SemanaEcra() {
     <SafeAreaView style={estilos.ecra} edges={['top']}>
       <ScrollView contentContainerStyle={[estilos.conteudo, { gap: 16 }]}>
         <View style={{ gap: 12 }}>
-          <Titulo tamanho={28}>Planear a semana</Titulo>
+          <Titulo tamanho={28}>{t('Planear a semana')}</Titulo>
           <SeletorSemana semana={semana} aoMudar={escolherSemana} />
           {semana === semanaAtual ? null : (
             <Pressable accessibilityRole="button" onPress={() => escolherSemana(semanaAtual)} style={{ minHeight: 44, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: 12 }}>
-              <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, color: cores.tinta, textDecorationLine: 'underline' }}>Voltar a esta semana</Text>
+              <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, color: cores.tinta, textDecorationLine: 'underline' }}>{t('Voltar a esta semana')}</Text>
             </Pressable>
           )}
         </View>
@@ -44,12 +45,12 @@ export default function SemanaEcra() {
 
         <Cartao style={{ padding: 16, gap: 14 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Numero valor={formatarHoras(plano.minutosPlaneados / 60)} legenda="planeadas" />
-            <Numero valor={formatarHoras(plano.minutosCalendario / 60)} legenda="no calendário" />
-            <Numero valor={String(plano.porAlocar)} legenda="por alocar" />
+            <Numero valor={formatarHoras(plano.minutosPlaneados / 60)} legenda={t('planeadas')} />
+            <Numero valor={formatarHoras(plano.minutosCalendario / 60)} legenda={t('no calendário')} />
+            <Numero valor={String(plano.porAlocar)} legenda={t('por alocar')} />
           </View>
           <Botao
-            titulo="Alocar no calendário"
+            titulo={t('Alocar no calendário')}
             icone="calendario"
             onPress={() => router.navigate('/calendario')}
             style={{ borderRadius: 12 }}
@@ -58,8 +59,8 @@ export default function SemanaEcra() {
 
         {plano.areas.length === 0 ? (
           <Cartao style={{ padding: 16, gap: 12 }}>
-            <Text style={estilos.corpo}>As tarefas organizam-se por área. Crie primeiro as áreas da sua vida.</Text>
-            <Botao titulo="Ir para as áreas" variante="contorno" onPress={() => router.navigate('/areas')} />
+            <Text style={estilos.corpo}>{t('As tarefas organizam-se por área. Crie primeiro as áreas da sua vida.')}</Text>
+            <Botao titulo={t('Ir para as áreas')} variante="contorno" onPress={() => router.navigate('/areas')} />
           </Cartao>
         ) : (
           <View style={{ gap: 12 }}>
@@ -77,9 +78,9 @@ export default function SemanaEcra() {
 function OrigemDaSemana({ estado, semana, origemSemana }: { estado: 'por_planear' | 'aceite'; semana: string; origemSemana: string | null }) {
   const { cores, estilos } = useTema();
   let texto: string | null = null;
-  if (estado === 'por_planear') texto = 'Esta semana já passou e não chegou a ser planeada.';
+  if (estado === 'por_planear') texto = t('Esta semana já passou e não chegou a ser planeada.');
   else if (origemSemana) {
-    texto = origemSemana === somarSemanas(semana, -1) ? 'Começou igual à semana passada. Mude o que quiser: a semana seguinte começa igual a esta.' : `Começou igual à semana de ${descreverSemanaPorExtenso(origemSemana)}, a última planeada.`;
+    texto = origemSemana === somarSemanas(semana, -1) ? t('Começou igual à semana passada. Mude o que quiser: a semana seguinte começa igual a esta.') : t('Começou igual à semana de {semana}, a última planeada.', { semana: descreverSemanaPorExtenso(origemSemana) });
   }
   if (!texto) return null;
   return (
@@ -114,15 +115,15 @@ function AreaDaSemana({ grupo, semana }: { grupo: PlanoDaSemana['areas'][number]
         {minutosPlaneados > 0 ? <Text style={estilos.pequeno}>{formatarHoras(minutosPlaneados / 60)}</Text> : null}
         <BotaoIcone
           icone="mais"
-          rotulo={`Adicionar tarefa em ${area.nome}`}
+          rotulo={t('Adicionar tarefa em {area}', { area: area.nome })}
           onPress={() => router.push({ pathname: '/tarefa/nova', params: { areaId: String(area.id), semana } })}
           style={{ marginLeft: 'auto' }}
         />
       </View>
       {tarefas.length === 0 ? (
-        <Text style={[estilos.pequeno, { paddingHorizontal: 16, paddingBottom: 14 }]}>Sem tarefas nesta semana.</Text>
+        <Text style={[estilos.pequeno, { paddingHorizontal: 16, paddingBottom: 14 }]}>{t('Sem tarefas nesta semana.')}</Text>
       ) : (
-        tarefas.map((t) => <LinhaTarefa key={t.id} tarefa={t} semana={semana} />)
+        tarefas.map((tf) => <LinhaTarefa key={tf.id} tarefa={tf} semana={semana} />)
       )}
     </View>
   );

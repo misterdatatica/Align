@@ -3,6 +3,7 @@ import { count, eq, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { areas, definicoes } from '@/db/schema';
 import { ErroDaApp } from '@/domain/erros';
+import { t } from '@/i18n';
 
 /** As definições são um registo único (id 1); enquanto não existir valem estas. */
 export type Definicoes = {
@@ -54,12 +55,12 @@ export function primeiroArranque(): boolean {
 
 export function guardarDefinicoes(alteracoes: Partial<Definicoes>): Definicoes {
   const novas = { ...carregarDefinicoes(), ...alteracoes };
-  if (!Number.isInteger(novas.diaRevisao) || novas.diaRevisao < 0 || novas.diaRevisao > 6) throw new ErroDaApp('O dia da revisão não é válido.');
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(novas.horaRevisao)) throw new ErroDaApp('A hora da revisão não é válida.');
+  if (!Number.isInteger(novas.diaRevisao) || novas.diaRevisao < 0 || novas.diaRevisao > 6) throw new ErroDaApp(t('O dia da revisão não é válido.'));
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(novas.horaRevisao)) throw new ErroDaApp(t('A hora da revisão não é válida.'));
   if (!Number.isInteger(novas.inicioGrelha) || !Number.isInteger(novas.fimGrelha) || novas.inicioGrelha < 0 || novas.fimGrelha > 24 || novas.fimGrelha - novas.inicioGrelha < 4) {
-    throw new ErroDaApp('O calendário tem de mostrar pelo menos 4 horas.');
+    throw new ErroDaApp(t('O calendário tem de mostrar pelo menos 4 horas.'));
   }
-  if (!PREFERENCIAS_DE_TEMA.includes(novas.tema)) throw new ErroDaApp('A aparência escolhida não é válida.');
+  if (!PREFERENCIAS_DE_TEMA.includes(novas.tema)) throw new ErroDaApp(t('A aparência escolhida não é válida.'));
   db.insert(definicoes)
     .values({ id: ID, ...novas })
     .onConflictDoUpdate({ target: definicoes.id, set: { ...novas, atualizadoEm: sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))` } })

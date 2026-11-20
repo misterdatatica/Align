@@ -7,6 +7,7 @@ import { Botao } from '@/components/ui';
 import { carregarTarefa } from '@/data/tarefas';
 import { useSemanaEscolhida } from '@/estado/semana';
 import { useTema } from '@/theme';
+import { t } from '@/i18n';
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -22,8 +23,8 @@ export default function EditarTarefaEcra() {
   if (!tarefa) {
     return (
       <View style={[estilos.ecra, estilos.conteudo]}>
-        <Text style={estilos.corpo}>Esta tarefa já não existe.</Text>
-        <Botao titulo="Voltar" variante="contorno" onPress={() => router.back()} />
+        <Text style={estilos.corpo}>{t('Esta tarefa já não existe.')}</Text>
+        <Botao titulo={t('Voltar')} variante="contorno" onPress={() => router.back()} />
       </View>
     );
   }

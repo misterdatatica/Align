@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { BotaoIcone } from '@/components/ui';
 import { descreverSemana, descreverSemanaComAno, somarSemanas } from '@/domain/semana';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 type Props = {
   semana: string;
@@ -14,8 +15,8 @@ type Props = {
 /** Semana anterior / "16 – 22 nov 2026" / semana seguinte. */
 export function SeletorSemana({ semana, aoMudar, compacto }: Props) {
   const { cores, estilos } = useTema();
-  const anterior = <BotaoIcone icone="seta-esquerda" rotulo="Semana anterior" onPress={() => aoMudar(somarSemanas(semana, -1))} />;
-  const seguinte = <BotaoIcone icone="seta-direita" rotulo="Semana seguinte" onPress={() => aoMudar(somarSemanas(semana, 1))} />;
+  const anterior = <BotaoIcone icone="seta-esquerda" rotulo={t('Semana anterior')} onPress={() => aoMudar(somarSemanas(semana, -1))} />;
+  const seguinte = <BotaoIcone icone="seta-direita" rotulo={t('Semana seguinte')} onPress={() => aoMudar(somarSemanas(semana, 1))} />;
 
   if (compacto) {
     return (

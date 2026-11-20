@@ -1,6 +1,7 @@
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, useFonts } from '@expo-google-fonts/inter';
 import { SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold } from '@expo-google-fonts/space-grotesk';
 import { DarkTheme, DefaultTheme, SplashScreen, Stack, ThemeProvider } from 'expo-router';
+import { useLocales } from 'expo-localization';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import { Appearance, Platform, Text, useColorScheme, View } from 'react-native';
@@ -10,6 +11,7 @@ import { AvisoTemporario } from '@/components/AvisoTemporario';
 import { useConsulta } from '@/data/consulta';
 import { carregarDefinicoes, type PreferenciaDeTema } from '@/data/definicoes';
 import { prepararBaseDeDados } from '@/db/preparar';
+import { definirIdioma, escolherIdioma, t } from '@/i18n';
 import { configurarLembretes, useAbrirRevisaoPeloLembrete } from '@/lembrete';
 import { ContextoDoTema, TEMAS, type Esquema } from '@/theme';
 
@@ -58,6 +60,9 @@ function aplicarAoSistema(preferencia: PreferenciaDeTema) {
 
 export default function RootLayout() {
   const esquemaDoSistema = useEsquemaDoSistema();
+  // Português para quem tem o telemóvel em português; inglês para todos os outros.
+  const idioma = escolherIdioma(useLocales().map((l) => l.languageTag));
+  definirIdioma(idioma);
   const [fontesProntas] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -80,14 +85,15 @@ export default function RootLayout() {
     const { cores } = TEMAS[esquemaDoSistema];
     return (
       <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 8, backgroundColor: cores.fundo }}>
-        <Text style={{ fontSize: 17, fontWeight: '600', color: cores.tinta }}>Não foi possível preparar a base de dados.</Text>
-        <Text style={{ fontSize: 14, color: cores.texto2 }}>Feche a app e volte a abrir. Se continuar, os seus dados não foram apagados.</Text>
+        <Text style={{ fontSize: 17, fontWeight: '600', color: cores.tinta }}>{t('Não foi possível preparar a base de dados.')}</Text>
+        <Text style={{ fontSize: 14, color: cores.texto2 }}>{t('Feche a app e volte a abrir. Se continuar, os seus dados não foram apagados.')}</Text>
         <Text style={{ fontSize: 12, color: cores.texto3 }}>{causa ? `${erroBd.message} (${causa})` : erroBd.message}</Text>
       </View>
     );
   }
 
-  return <AppComTema />;
+  // Mudar de idioma volta a desenhar tudo, para os textos já mostrados também mudarem.
+  return <AppComTema key={idioma} />;
 }
 
 /** A app depois de a base de dados estar pronta: o tema vem das definições e do sistema. */
@@ -112,14 +118,14 @@ function AppComTema() {
           <AbrirRevisaoPeloLembrete />
           <Stack screenOptions={{ contentStyle: { backgroundColor: cores.fundo }, headerShadowVisible: false, headerStyle: { backgroundColor: cores.fundo }, headerTintColor: cores.tinta }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="area/[id]" options={{ title: '', headerBackTitle: 'Áreas', headerStyle: { backgroundColor: cores.fundo } }} />
-            <Stack.Screen name="area/nova" options={{ title: 'Nova área', presentation: 'modal' }} />
-            <Stack.Screen name="meta/nova" options={{ title: 'Nova meta', presentation: 'modal' }} />
-            <Stack.Screen name="meta/[id]" options={{ title: '', headerBackTitle: 'Área', headerStyle: { backgroundColor: cores.fundo } }} />
-            <Stack.Screen name="tarefa/nova" options={{ title: 'Nova tarefa', presentation: 'modal' }} />
-            <Stack.Screen name="tarefa/[id]" options={{ title: 'Alterar tarefa', presentation: 'modal' }} />
+            <Stack.Screen name="area/[id]" options={{ title: '', headerBackTitle: t('Áreas'), headerStyle: { backgroundColor: cores.fundo } }} />
+            <Stack.Screen name="area/nova" options={{ title: t('Nova área'), presentation: 'modal' }} />
+            <Stack.Screen name="meta/nova" options={{ title: t('Nova meta'), presentation: 'modal' }} />
+            <Stack.Screen name="meta/[id]" options={{ title: '', headerBackTitle: t('Área'), headerStyle: { backgroundColor: cores.fundo } }} />
+            <Stack.Screen name="tarefa/nova" options={{ title: t('Nova tarefa'), presentation: 'modal' }} />
+            <Stack.Screen name="tarefa/[id]" options={{ title: t('Alterar tarefa'), presentation: 'modal' }} />
             <Stack.Screen name="boas-vindas" options={{ headerShown: false, gestureEnabled: false }} />
-            <Stack.Screen name="definicoes" options={{ title: 'Definições', headerBackTitle: 'Áreas', headerStyle: { backgroundColor: cores.fundo } }} />
+            <Stack.Screen name="definicoes" options={{ title: t('Definições'), headerBackTitle: t('Áreas'), headerStyle: { backgroundColor: cores.fundo } }} />
           </Stack>
           <AvisoTemporario />
         </GestureHandlerRootView>

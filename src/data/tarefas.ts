@@ -6,6 +6,7 @@ import { instanciasPorSemana, normalizarRecorrencia, type Recorrencia } from '@/
 import { inicioDaSemana, MINUTOS_DIA, minutosEntre, paraDataHora, partirDataHora } from '@/domain/semana';
 import { acertarInstancias, DURACAO_MAXIMA_MIN, montarPlano, type PlanoSemana } from '@/domain/tarefas';
 import { ErroDaApp } from '@/domain/erros';
+import { t } from '@/i18n';
 
 /*
  * Tarefas e as suas instâncias semanais.
@@ -35,10 +36,10 @@ export type DadosTarefa = {
 
 function normalizar(dados: DadosTarefa) {
   const nome = dados.nome.trim();
-  if (!nome) throw new ErroDaApp('A tarefa precisa de um nome.');
+  if (!nome) throw new ErroDaApp(t('A tarefa precisa de um nome.'));
   const { duracaoMin } = dados;
   if (duracaoMin !== null && (!Number.isInteger(duracaoMin) || duracaoMin <= 0 || duracaoMin > DURACAO_MAXIMA_MIN)) {
-    throw new ErroDaApp('A duração tem de estar entre 30 minutos e 12 horas.');
+    throw new ErroDaApp(t('A duração tem de estar entre 30 minutos e 12 horas.'));
   }
   return {
     areaId: dados.areaId,
@@ -52,10 +53,10 @@ function normalizar(dados: DadosTarefa) {
 
 function validarAreaEMeta(bd: Bd, areaId: number, metaId: number | null) {
   const area = bd.select({ arquivada: areas.arquivada }).from(areas).where(eq(areas.id, areaId)).get();
-  if (!area || area.arquivada) throw new ErroDaApp('A área desta tarefa já não existe.');
+  if (!area || area.arquivada) throw new ErroDaApp(t('A área desta tarefa já não existe.'));
   if (metaId !== null) {
     const meta = bd.select({ areaId: metas.areaId }).from(metas).where(eq(metas.id, metaId)).get();
-    if (!meta || meta.areaId !== areaId) throw new ErroDaApp('A meta escolhida não pertence a esta área.');
+    if (!meta || meta.areaId !== areaId) throw new ErroDaApp(t('A meta escolhida não pertence a esta área.'));
   }
 }
 
@@ -144,7 +145,7 @@ export function editarTarefa(id: number, semana: string, dados: DadosTarefa): nu
   const d = normalizar(dados);
   return db.transaction((tx) => {
     const atual = tx.select().from(tarefas).where(eq(tarefas.id, id)).get();
-    if (!atual) throw new ErroDaApp('A tarefa já não existe.');
+    if (!atual) throw new ErroDaApp(t('A tarefa já não existe.'));
     validarAreaEMeta(tx, d.areaId, d.metaId);
 
     const anteriores = tx
@@ -268,8 +269,8 @@ export function apagarTarefa(id: number, semana: string): void {
 export function marcarVez(tarefaId: number, semana: string, feita: boolean): void {
   db.transaction((tx) => {
     const tarefa = tx.select({ duracaoMin: tarefas.duracaoMin }).from(tarefas).where(eq(tarefas.id, tarefaId)).get();
-    if (!tarefa) throw new ErroDaApp('A tarefa já não existe.');
-    if (tarefa.duracaoMin !== null) throw new ErroDaApp('As tarefas com duração marcam-se como feitas no calendário.');
+    if (!tarefa) throw new ErroDaApp(t('A tarefa já não existe.'));
+    if (tarefa.duracaoMin !== null) throw new ErroDaApp(t('As tarefas com duração marcam-se como feitas no calendário.'));
     const lista = tx
       .select({ id: tarefasSemana.id, estado: tarefasSemana.estado })
       .from(tarefasSemana)

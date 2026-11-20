@@ -16,6 +16,7 @@ import {
 } from '@/domain/metas';
 import type { Recorrencia } from '@/domain/recorrencia';
 import { ErroDaApp } from '@/domain/erros';
+import { t } from '@/i18n';
 
 /*
  * Metas: resultados com prazo. Cada meta pertence a uma área (no máximo 3 ativas por área) e mede-se
@@ -29,7 +30,7 @@ const AGORA = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;
 
 export class LimiteDeMetasError extends ErroDaApp {
   constructor() {
-    super(`Cada área pode ter no máximo ${MAX_METAS_ATIVAS} metas ativas. Conclua, pause ou abandone uma para ativar outra.`);
+    super(t('Cada área pode ter no máximo {max} metas ativas. Conclua, pause ou abandone uma para ativar outra.', { max: MAX_METAS_ATIVAS }));
   }
 }
 
@@ -43,7 +44,7 @@ export function criarMeta(dados: DadosMeta & { areaId: number }): number {
   const d = normalizarMeta(dados);
   return db.transaction((tx) => {
     const area = tx.select({ arquivada: areas.arquivada }).from(areas).where(eq(areas.id, dados.areaId)).get();
-    if (!area || area.arquivada) throw new ErroDaApp('A área desta meta já não existe.');
+    if (!area || area.arquivada) throw new ErroDaApp(t('A área desta meta já não existe.'));
     if (!podeAtivarMeta(contarAtivas(tx, dados.areaId))) throw new LimiteDeMetasError();
     return tx
       .insert(metas)
@@ -57,7 +58,7 @@ export function criarMeta(dados: DadosMeta & { areaId: number }): number {
 export function atualizarMeta(id: number, dados: DadosMeta): void {
   db.transaction((tx) => {
     const atual = tx.select().from(metas).where(eq(metas.id, id)).get();
-    if (!atual) throw new ErroDaApp('A meta já não existe.');
+    if (!atual) throw new ErroDaApp(t('A meta já não existe.'));
     const d = normalizarMeta({ ...dados, medida: atual.medida });
     // Sem atualizações ainda, o valor atual é o ponto de partida.
     const registos = tx.select({ n: count() }).from(metasRegistos).where(eq(metasRegistos.metaId, id)).get()?.n ?? 0;
@@ -82,11 +83,11 @@ function acertarValorAtual(bd: Bd, id: number) {
  * registar outra vez no mesmo dia corrige o valor desse dia.
  */
 export function registarValor(id: number, valor: number, data: string): void {
-  if (!Number.isFinite(valor)) throw new ErroDaApp('Indique um número.');
+  if (!Number.isFinite(valor)) throw new ErroDaApp(t('Indique um número.'));
   db.transaction((tx) => {
     const meta = tx.select({ medida: metas.medida }).from(metas).where(eq(metas.id, id)).get();
-    if (!meta) throw new ErroDaApp('A meta já não existe.');
-    if (meta.medida !== 'numero') throw new ErroDaApp('Esta meta não se mede com um número.');
+    if (!meta) throw new ErroDaApp(t('A meta já não existe.'));
+    if (meta.medida !== 'numero') throw new ErroDaApp(t('Esta meta não se mede com um número.'));
     tx.insert(metasRegistos)
       .values({ metaId: id, data, valor })
       .onConflictDoUpdate({ target: [metasRegistos.metaId, metasRegistos.data], set: { valor, atualizadoEm: AGORA } })
@@ -109,7 +110,7 @@ export function apagarRegisto(metaId: number, data: string): void {
 export function mudarEstadoDaMeta(id: number, estado: EstadoMeta): void {
   db.transaction((tx) => {
     const atual = tx.select({ areaId: metas.areaId, estado: metas.estado }).from(metas).where(eq(metas.id, id)).get();
-    if (!atual) throw new ErroDaApp('A meta já não existe.');
+    if (!atual) throw new ErroDaApp(t('A meta já não existe.'));
     if (atual.estado === estado) return;
     if (estado === 'ativa' && !podeAtivarMeta(contarAtivas(tx, atual.areaId, id))) throw new LimiteDeMetasError();
     tx.update(metas).set({ estado, atualizadoEm: AGORA }).where(eq(metas.id, id)).run();
@@ -201,7 +202,7 @@ function detalhar(lista: MetaComArea[], semana: string, hoje: string): MetaDetal
           eq(tarefasSemana.semana, semana),
           inArray(
             tarefasSemana.tarefaId,
-            ligadas.map((t) => t.id),
+            ligadas.map((tf) => tf.id),
           ),
         ),
       )
@@ -233,8 +234,8 @@ function detalhar(lista: MetaComArea[], semana: string, hoje: string): MetaDetal
           )
         : false,
       tarefas: ligadas
-        .filter((t) => t.metaId === meta.id)
-        .map((t) => ({ id: t.id, nome: t.nome, duracaoMin: t.duracaoMin, recorrencia: t.recorrencia, ...(contagem.get(t.id) ?? { total: 0, feitas: 0 }) })),
+        .filter((tf) => tf.metaId === meta.id)
+        .map((tf) => ({ id: tf.id, nome: tf.nome, duracaoMin: tf.duracaoMin, recorrencia: tf.recorrencia, ...(contagem.get(tf.id) ?? { total: 0, feitas: 0 }) })),
     };
   });
 }

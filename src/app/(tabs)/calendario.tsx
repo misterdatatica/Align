@@ -29,15 +29,16 @@ import { sobreposicoesDaSemana, type Ambito } from '@/domain/proposta';
 import { DIAS_CURTOS, deDataISO, indiceDoDia, somarSemanas } from '@/domain/semana';
 import { escolherSemana, useHoje, usePrepararSemana, useSemanaEscolhida } from '@/estado/semana';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos', 'definicoes'] as const;
 
 /** Quantos dias a grelha mostra de cada vez. */
 type Vista = 1 | 3 | 7;
-const VISTAS: { dias: Vista; titulo: string }[] = [
-  { dias: 1, titulo: 'Dia' },
-  { dias: 3, titulo: '3 dias' },
-  { dias: 7, titulo: 'Semana' },
+const VISTAS = (): { dias: Vista; titulo: string }[] => [
+  { dias: 1, titulo: t('Dia') },
+  { dias: 3, titulo: t('3 dias') },
+  { dias: 7, titulo: t('Semana') },
 ];
 /** A vista escolhida fica entre visitas ao separador. */
 let vistaGuardada: Vista = 7;
@@ -132,14 +133,14 @@ export default function CalendarioEcra() {
       setEscolha(null);
       setAviso(null);
     },
-    aoMudarAlvo: (dia, inicioMin, fimMin, naGrelha) => setDestino(naGrelha ? `${DIAS_CURTOS[dia]} ${formatarIntervalo(inicioMin, fimMin)}` : ''),
+    aoMudarAlvo: (dia, inicioMin, fimMin, naGrelha) => setDestino(naGrelha ? `${t(DIAS_CURTOS[dia])} ${formatarIntervalo(inicioMin, fimMin)}` : ''),
     aoLargar,
   });
 
   const blocoPegado = pegado && pegado.modo !== MODO_BANDEJA ? blocos.find((b) => b.id === pegado.id) : undefined;
-  const tarefaPegada = pegado?.modo === MODO_BANDEJA ? porAlocar.find((t) => t.tarefaId === pegado.id) : undefined;
+  const tarefaPegada = pegado?.modo === MODO_BANDEJA ? porAlocar.find((tf) => tf.tarefaId === pegado.id) : undefined;
   const corPegada = blocoPegado?.cor ?? tarefaPegada?.cor ?? null;
-  const tarefaEscolhida = escolha?.tipo === 'tarefa' ? porAlocar.find((t) => t.tarefaId === escolha.tarefaId) : undefined;
+  const tarefaEscolhida = escolha?.tipo === 'tarefa' ? porAlocar.find((tf) => tf.tarefaId === escolha.tarefaId) : undefined;
 
   /** "X sobrepõe-se a Y", se o bloco ficar por cima de outro: a app deixa, mas avisa (regra 7). */
   function textoDeSobreposicao(nome: string, bloco: Intervalo & { dia: number }): string | null {
@@ -148,7 +149,7 @@ export default function CalendarioEcra() {
       bloco,
     );
     if (outros.length === 0) return null;
-    return `“${nome}” sobrepõe-se a “${outros[0].nome}”${outros.length > 1 ? ` e a mais ${outros.length - 1}` : ''}.`;
+    return outros.length > 1 ? t('“{nome}” sobrepõe-se a “{outro}” e a mais {n}.', { nome, outro: outros[0].nome, n: outros.length - 1 }) : t('“{nome}” sobrepõe-se a “{outro}”.', { nome, outro: outros[0].nome });
   }
 
   function alocar(tarefa: TarefaPorAlocar, dia: number, inicioMin: number) {
@@ -158,18 +159,18 @@ export default function CalendarioEcra() {
     const restantes = tarefa.quantas - 1;
     const emDiasCertos = tarefa.recorrencia?.tipo === 'diaria' || tarefa.recorrencia?.tipo === 'dias';
     if (restantes > 0 && emDiasCertos) {
-      partes.push(restantes === 1 ? 'Pôr a outra à mesma hora?' : `Pôr as outras ${restantes} à mesma hora?`);
+      partes.push(restantes === 1 ? t('Pôr a outra à mesma hora?') : t('Pôr as outras {n} à mesma hora?', { n: restantes }));
       setAviso({
         texto: partes.filter(Boolean).join(' '),
         acao: {
-          titulo: 'Alocar',
+          titulo: t('Alocar'),
           executar: () => {
             try {
               alocarRestantes(tarefa.tarefaId, semana, inicioMin);
               setEscolha(null);
               recarregarConsultas();
             } catch (erro) {
-              avisarErro('Não foi possível alocar as restantes', erro);
+              avisarErro(t('Não foi possível alocar as restantes'), erro);
             }
           },
         },
@@ -184,7 +185,7 @@ export default function CalendarioEcra() {
     setDestino('');
     try {
       if (largada.modo === MODO_BANDEJA) {
-        const tarefa = porAlocar.find((t) => t.tarefaId === largada.id);
+        const tarefa = porAlocar.find((tf) => tf.tarefaId === largada.id);
         if (tarefa && largada.naGrelha) alocar(tarefa, largada.dia, largada.inicioMin);
       } else {
         const bloco = blocos.find((b) => b.id === largada.id);
@@ -196,17 +197,17 @@ export default function CalendarioEcra() {
               setAviso(texto ? { texto } : null);
             };
             // Um bloco de uma tarefa recorrente fica onde estava até se responder à pergunta.
-            if (bloco.recorrente) setPergunta({ titulo: `Mudar “${bloco.nome}” para ${DIAS_CURTOS[largada.dia].toLowerCase()}, ${formatarIntervalo(largada.inicioMin, largada.fimMin)}?`, executar: mover });
+            if (bloco.recorrente) setPergunta({ titulo: t('Mudar “{nome}” para {quando}?', { nome: bloco.nome, quando: `${t(DIAS_CURTOS[largada.dia]).toLowerCase()}, ${formatarIntervalo(largada.inicioMin, largada.fimMin)}` }), executar: mover });
             else mover();
           }
         } else if (bloco && largada.naBandeja && largada.modo === MODO_MOVER && bloco.tipo === 'tarefa') {
           // Largar um bloco em cima da bandeja devolve-o a "Por alocar".
-          if (bloco.recorrente) setPergunta({ titulo: `Devolver “${bloco.nome}” a “Por alocar”?`, executar: (ambito) => retirarBloco(bloco.id, ambito) });
+          if (bloco.recorrente) setPergunta({ titulo: t('Devolver “{nome}” a “Por alocar”?', { nome: bloco.nome }), executar: (ambito) => retirarBloco(bloco.id, ambito) });
           else retirarBloco(bloco.id);
         }
       }
     } catch (erro) {
-      avisarErro('Não foi possível mudar o calendário', erro);
+      avisarErro(t('Não foi possível mudar o calendário'), erro);
     }
     recarregarConsultas();
     // Só depois de o ecrã mostrar o bloco no sítio novo é que o destino tracejado desaparece.
@@ -230,7 +231,7 @@ export default function CalendarioEcra() {
       }
       recarregarConsultas();
     } catch (erro) {
-      avisarErro('Não foi possível pôr no calendário', erro);
+      avisarErro(t('Não foi possível pôr no calendário'), erro);
     }
   }
 
@@ -240,7 +241,7 @@ export default function CalendarioEcra() {
     try {
       executar?.(ambito);
     } catch (erro) {
-      avisarErro('Não foi possível mudar o calendário', erro);
+      avisarErro(t('Não foi possível mudar o calendário'), erro);
     }
     recarregarConsultas();
   }
@@ -254,20 +255,20 @@ export default function CalendarioEcra() {
     <SafeAreaView style={estilos.ecra} edges={['top']}>
       <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <Titulo tamanho={24}>Calendário</Titulo>
+          <Titulo tamanho={24}>{t('Calendário')}</Titulo>
           <View style={{ marginRight: -12 }}>
             <SeletorSemana semana={semana} aoMudar={escolherSemana} compacto />
           </View>
         </View>
 
         <View style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 4 }} accessibilityLabel="Legenda">
+          <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 4 }} accessibilityLabel={t('Legenda')}>
             {legenda.map((a) => (
               <ItemDaLegenda key={a.id} nome={a.nome}>
                 <View style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: corDaArea(a.cor).forte }} />
               </ItemDaLegenda>
             ))}
-            <ItemDaLegenda nome="Ocupado">
+            <ItemDaLegenda nome={t('Ocupado')}>
               <View style={{ width: 10, height: 10, borderRadius: 2, overflow: 'hidden' }}>
                 <Riscas legenda />
               </View>
@@ -275,8 +276,8 @@ export default function CalendarioEcra() {
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Novo bloco Ocupado"
-            accessibilityHint="Depois toque na hora do compromisso"
+            accessibilityLabel={t('Novo bloco Ocupado')}
+            accessibilityHint={t('Depois toque na hora do compromisso')}
             accessibilityState={{ selected: escolha?.tipo === 'ocupado' }}
             hitSlop={6}
             onPress={() => {
@@ -296,19 +297,19 @@ export default function CalendarioEcra() {
             }}
           >
             <Icone nome="mais" tamanho={14} cor={escolha?.tipo === 'ocupado' ? cores.sobreTinta : cores.tinta} espessura={2.2} />
-            <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: escolha?.tipo === 'ocupado' ? cores.sobreTinta : cores.tinta }}>Ocupado</Text>
+            <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: escolha?.tipo === 'ocupado' ? cores.sobreTinta : cores.tinta }}>{t('Ocupado')}</Text>
           </Pressable>
         </View>
 
         <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ flexDirection: 'row', padding: 2, borderRadius: 10, backgroundColor: cores.pista }} accessibilityRole="radiogroup" accessibilityLabel="Dias visíveis">
-            {VISTAS.map((v) => {
+          <View style={{ flexDirection: 'row', padding: 2, borderRadius: 10, backgroundColor: cores.pista }} accessibilityRole="radiogroup" accessibilityLabel={t('Dias visíveis')}>
+            {VISTAS().map((v) => {
               const ativa = vista === v.dias;
               return (
                 <Pressable
                   key={v.dias}
                   accessibilityRole="radio"
-                  accessibilityLabel={`Mostrar ${v.titulo.toLowerCase()}`}
+                  accessibilityLabel={t('Mostrar {vista}', { vista: v.titulo.toLowerCase() })}
                   accessibilityState={{ selected: ativa }}
                   onPress={() => mudarVista(v.dias)}
                   hitSlop={{ top: 6, bottom: 6 }}
@@ -321,8 +322,8 @@ export default function CalendarioEcra() {
           </View>
           {vista === 7 ? null : (
             <View style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', marginRight: -10 }}>
-              <BotaoIcone icone="seta-esquerda" rotulo={vista === 1 ? 'Dia anterior' : 'Dias anteriores'} tamanho={18} onPress={() => andarDias(-1)} />
-              <BotaoIcone icone="seta-direita" rotulo={vista === 1 ? 'Dia seguinte' : 'Dias seguintes'} tamanho={18} onPress={() => andarDias(1)} />
+              <BotaoIcone icone="seta-esquerda" rotulo={vista === 1 ? t('Dia anterior') : t('Dias anteriores')} tamanho={18} onPress={() => andarDias(-1)} />
+              <BotaoIcone icone="seta-direita" rotulo={vista === 1 ? t('Dia seguinte') : t('Dias seguintes')} tamanho={18} onPress={() => andarDias(1)} />
             </View>
           )}
         </View>
@@ -337,10 +338,10 @@ export default function CalendarioEcra() {
                 onPress={() => abrirDia(i)}
                 style={{ flex: 1, alignItems: 'center' }}
                 accessibilityRole={vista === 7 ? 'button' : 'header'}
-                accessibilityLabel={`${DIAS_CURTOS[i]} ${deDataISO(dia).getDate()}${eHoje ? ', hoje' : ''}`}
-                accessibilityHint={vista === 7 ? 'Mostra só este dia' : undefined}
+                accessibilityLabel={`${t(DIAS_CURTOS[i])} ${deDataISO(dia).getDate()}${eHoje ? `, ${t('hoje')}` : ''}`}
+                accessibilityHint={vista === 7 ? t('Mostra só este dia') : undefined}
               >
-                <Text style={{ fontFamily: fontes.texto, fontSize: 11, lineHeight: 14, color: cores.texto3 }}>{DIAS_CURTOS[i]}</Text>
+                <Text style={{ fontFamily: fontes.texto, fontSize: 11, lineHeight: 14, color: cores.texto3 }}>{t(DIAS_CURTOS[i])}</Text>
                 <View style={{ minWidth: 24, height: 22, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: eHoje ? cores.tinta : 'transparent' }}>
                   <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: eHoje ? cores.sobreTinta : cores.tinta }}>{deDataISO(dia).getDate()}</Text>
                 </View>
@@ -385,14 +386,14 @@ export default function CalendarioEcra() {
                   : undefined
               }
               aoFechar={() => setAviso(null)}
-              rotuloFechar="Fechar aviso"
+              rotuloFechar={t('Fechar aviso')}
             />
           ) : escolha ? (
             <Faixa
-              texto={tarefaEscolhida ? `Toque na hora de início de “${tarefaEscolhida.nome}”.` : 'Toque na hora em que está ocupado.'}
-              acao={tarefaEscolhida ? { titulo: 'Escolher dia e hora', executar: () => setFolha({ tipo: 'nova', tarefaId: tarefaEscolhida.tarefaId }) } : undefined}
+              texto={tarefaEscolhida ? t('Toque na hora de início de “{nome}”.', { nome: tarefaEscolhida.nome }) : t('Toque na hora em que está ocupado.')}
+              acao={tarefaEscolhida ? { titulo: t('Escolher dia e hora'), executar: () => setFolha({ tipo: 'nova', tarefaId: tarefaEscolhida.tarefaId }) } : undefined}
               aoFechar={() => setEscolha(null)}
-              rotuloFechar="Cancelar"
+              rotuloFechar={t('Cancelar')}
             />
           ) : null}
         </View>

@@ -11,19 +11,19 @@ import { apagarTarefa, criarTarefa, editarTarefa, type DadosTarefa } from '@/dat
 import type { Tarefa } from '@/db/schema';
 import { instanciasPorSemana, type Recorrencia } from '@/domain/recorrencia';
 import { formatarHoras } from '@/domain/regras';
-import { DIAS_LONGOS, descreverSemana } from '@/domain/semana';
+import { DIAS_CURTOS, DIAS_LONGOS, descreverSemana } from '@/domain/semana';
 import { DURACAO_MAXIMA_MIN, PASSO_DURACAO_MIN, formatarDuracao, nomeCurtoDe } from '@/domain/tarefas';
 import { useTema } from '@/theme';
+import { t } from '@/i18n';
 
 type TipoRepeticao = 'nenhuma' | 'diaria' | 'vezes' | 'dias';
 
-const REPETICOES: { tipo: TipoRepeticao; titulo: string }[] = [
-  { tipo: 'nenhuma', titulo: 'Não repete' },
-  { tipo: 'diaria', titulo: 'Todos os dias' },
-  { tipo: 'vezes', titulo: 'Vezes por semana' },
-  { tipo: 'dias', titulo: 'Dias certos' },
+const REPETICOES = (): { tipo: TipoRepeticao; titulo: string }[] => [
+  { tipo: 'nenhuma', titulo: t('Não repete') },
+  { tipo: 'diaria', titulo: t('Todos os dias') },
+  { tipo: 'vezes', titulo: t('Vezes por semana') },
+  { tipo: 'dias', titulo: t('Dias certos') },
 ];
-const INICIAIS_DIAS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 
 function tipoDe(recorrencia: Recorrencia | null | undefined): TipoRepeticao {
   if (!recorrencia) return 'nenhuma';
@@ -70,8 +70,10 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoF
   let resumo: string | null = null;
   if (repeticao !== 'nenhuma' && porSemana > 0) {
     resumo = semDuracao
-      ? `Nesta semana: ${porSemana} ${porSemana === 1 ? 'vez' : 'vezes'}.`
-      : `Nesta semana: ${porSemana} × ${formatarDuracao(duracaoMin)} = ${formatarHoras((porSemana * duracaoMin) / 60)}.`;
+      ? porSemana === 1
+        ? t('Nesta semana: 1 vez.')
+        : t('Nesta semana: {n} vezes.', { n: porSemana })
+      : t('Nesta semana: {n} × {duracao} = {total}.', { n: porSemana, duracao: formatarDuracao(duracaoMin) ?? '', total: formatarHoras((porSemana * duracaoMin) / 60) });
   }
 
   function alternarDia(dia: number) {
@@ -94,26 +96,26 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoF
       else criarTarefa(dados, semana);
       aoFechar();
     } catch (erro) {
-      avisarErro(tarefa ? 'Não foi possível guardar a tarefa' : 'Não foi possível criar a tarefa', erro);
+      avisarErro(tarefa ? t('Não foi possível guardar a tarefa') : t('Não foi possível criar a tarefa'), erro);
       setAGuardar(false);
     }
   }
 
   function apagar() {
     if (!tarefa) return;
-    if (comDesfazer(`“${tarefa.nome}” apagada`, () => apagarTarefa(tarefa.id, semana), 'Não foi possível apagar a tarefa')) aoFechar();
+    if (comDesfazer(`“${tarefa.nome}” apagada`, () => apagarTarefa(tarefa.id, semana), t('Não foi possível apagar a tarefa'))) aoFechar();
   }
 
   return (
     <ScrollView style={estilos.ecra} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
-      <Seccao titulo="Nome">
+      <Seccao titulo={t('Nome')}>
         <TextInput
           value={nome}
           onChangeText={setNome}
-          placeholder="Ex.: Meditar"
+          placeholder={t('Ex.: Meditar')}
           placeholderTextColor={cores.texto3}
           style={estilos.campo}
-          accessibilityLabel="Nome da tarefa"
+          accessibilityLabel={t('Nome da tarefa')}
           autoFocus={!tarefa}
           maxLength={60}
           returnKeyType="done"
@@ -121,8 +123,8 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoF
       </Seccao>
 
       {listaAreas.length > 1 ? (
-        <Seccao titulo="Área">
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel="Área">
+        <Seccao titulo={t('Área')}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel={t('Área')}>
             {listaAreas.map((a) => (
               <Opcao key={a.id} titulo={a.nome} ponto={areaEscolhida === a.id ? undefined : corDaArea(a.cor).forte} ativa={areaEscolhida === a.id} onPress={() => setAreaId(a.id)} />
             ))}
@@ -130,11 +132,11 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoF
         </Seccao>
       ) : null}
 
-      <Seccao titulo="Duração">
+      <Seccao titulo={t('Duração')}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
           <View style={{ opacity: semDuracao ? 0.4 : 1 }} pointerEvents={semDuracao ? 'none' : 'auto'}>
             <Passo
-              rotulo="Duração"
+              rotulo={t('Duração')}
               valor={duracaoMin}
               texto={formatarDuracao(duracaoMin) ?? ''}
               minimo={PASSO_DURACAO_MIN}
@@ -143,29 +145,29 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoF
               onChange={setDuracaoMin}
             />
           </View>
-          <Opcao titulo="Sem duração" multipla ativa={semDuracao} onPress={() => setSemDuracao((v) => !v)} />
+          <Opcao titulo={t('Sem duração')} multipla ativa={semDuracao} onPress={() => setSemDuracao((v) => !v)} />
         </View>
-        {semDuracao ? <Text style={estilos.pequeno}>Não ocupa tempo no calendário. Conta cada vez que a marca como feita.</Text> : null}
+        {semDuracao ? <Text style={estilos.pequeno}>{t('Não ocupa tempo no calendário. Conta cada vez que a marca como feita.')}</Text> : null}
       </Seccao>
 
-      <Seccao titulo="Repetição">
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel="Repetição">
-          {REPETICOES.map((r) => (
+      <Seccao titulo={t('Repetição')}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel={t('Repetição')}>
+          {REPETICOES().map((r) => (
             <Opcao key={r.tipo} titulo={r.titulo} ativa={repeticao === r.tipo} onPress={() => setRepeticao(r.tipo)} />
           ))}
         </View>
         {repeticao === 'vezes' ? (
           <View style={{ flexDirection: 'row' }}>
-            <Passo rotulo="Vezes por semana" valor={vezes} texto={`${vezes}× por semana`} minimo={1} maximo={6} onChange={setVezes} />
+            <Passo rotulo={t('Vezes por semana')} valor={vezes} texto={t('{n}× por semana', { n: vezes })} minimo={1} maximo={6} onChange={setVezes} />
           </View>
         ) : null}
         {repeticao === 'dias' ? (
-          <View style={{ flexDirection: 'row', gap: 6 }} accessibilityLabel="Dias da semana">
-            {INICIAIS_DIAS.map((inicial, i) => (
+          <View style={{ flexDirection: 'row', gap: 6 }} accessibilityLabel={t('Dias da semana')}>
+            {DIAS_CURTOS.map((curto, i) => (
               <Opcao
                 key={DIAS_LONGOS[i]}
-                titulo={inicial}
-                rotulo={DIAS_LONGOS[i]}
+                titulo={t(curto)[0]}
+                rotulo={t(DIAS_LONGOS[i])}
                 multipla
                 ativa={dias.includes(i + 1)}
                 onPress={() => alternarDia(i + 1)}
@@ -178,37 +180,37 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoF
       </Seccao>
 
       {listaMetas.length > 0 ? (
-        <Seccao titulo="Meta (opcional)">
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel="Meta associada">
-            <Opcao titulo="Nenhuma" ativa={metaEscolhida === null} onPress={() => setMetaId(null)} />
+        <Seccao titulo={t('Meta (opcional)')}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel={t('Meta associada')}>
+            <Opcao titulo={t('Nenhuma')} ativa={metaEscolhida === null} onPress={() => setMetaId(null)} />
             {listaMetas.map((m) => (
               <Opcao key={m.id} titulo={m.estado === 'pausada' ? `${m.descricao} (pausada)` : m.descricao} ativa={metaEscolhida === m.id} onPress={() => setMetaId(m.id)} style={{ maxWidth: '100%', paddingVertical: 8 }} />
             ))}
           </View>
-          <Text style={estilos.pequeno}>Ligue a tarefa à meta que ela ajuda a alcançar. O tempo conta-se na tarefa, não na meta.</Text>
+          <Text style={estilos.pequeno}>{t('Ligue a tarefa à meta que ela ajuda a alcançar. O tempo conta-se na tarefa, não na meta.')}</Text>
         </Seccao>
       ) : null}
 
       {semDuracao ? null : (
-        <Seccao titulo="Nome no calendário (opcional)">
+        <Seccao titulo={t('Nome no calendário (opcional)')}>
           <TextInput
             value={nomeCurto}
             onChangeText={setNomeCurto}
-            placeholder={nome.trim() ? nomeCurtoDe(nome) : 'Ex.: Apres. Q4'}
+            placeholder={nome.trim() ? nomeCurtoDe(nome) : t('Ex.: Apres. Q4')}
             placeholderTextColor={cores.texto3}
             style={estilos.campo}
-            accessibilityLabel="Nome curto para o calendário"
+            accessibilityLabel={t('Nome curto para o calendário')}
             maxLength={12}
             returnKeyType="done"
           />
-          <Text style={estilos.pequeno}>Os blocos do calendário são estreitos: um nome curto lê-se melhor.</Text>
+          <Text style={estilos.pequeno}>{t('Os blocos do calendário são estreitos: um nome curto lê-se melhor.')}</Text>
         </Seccao>
       )}
 
       <View style={{ gap: 4 }}>
-        {tarefa ? <Text style={[estilos.pequeno, { textAlign: 'center' }]}>{`As alterações valem a partir da semana de ${descreverSemana(semana)}.`}</Text> : null}
-        <Botao titulo={tarefa ? 'Guardar alterações' : 'Criar tarefa'} onPress={guardar} disabled={!valido || aGuardar} />
-        {tarefa ? <Botao titulo="Apagar tarefa" icone="lixo" variante="perigo" onPress={apagar} /> : null}
+        {tarefa ? <Text style={[estilos.pequeno, { textAlign: 'center' }]}>{t('As alterações valem a partir da semana de {semana}.', { semana: descreverSemana(semana) })}</Text> : null}
+        <Botao titulo={tarefa ? t('Guardar alterações') : t('Criar tarefa')} onPress={guardar} disabled={!valido || aGuardar} />
+        {tarefa ? <Botao titulo={t('Apagar tarefa')} icone="lixo" variante="perigo" onPress={apagar} /> : null}
       </View>
     </ScrollView>
   );

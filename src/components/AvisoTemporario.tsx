@@ -10,6 +10,7 @@ import { BotaoIcone } from '@/components/ui';
 import { recarregarConsultas } from '@/data/consulta';
 import { exportarDados, importarDados } from '@/data/copia';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 /*
  * Aviso temporário por cima do fundo do ecrã ("Tarefa apagada · Desfazer"). Em vez de pedir
@@ -62,7 +63,7 @@ export function fecharAviso(id?: number) {
  * Faz `acao` e mostra `texto` com "Desfazer". Se a ação falhar, nada muda e o erro é mostrado.
  * Devolve true se a ação correu bem.
  */
-export function comDesfazer(texto: string, acao: () => void, erro = 'Não foi possível fazer a alteração', aoDesfazer?: () => void): boolean {
+export function comDesfazer(texto: string, acao: () => void, erro = t('Não foi possível fazer a alteração'), aoDesfazer?: () => void): boolean {
   let antes: ReturnType<typeof exportarDados>;
   try {
     antes = exportarDados();
@@ -78,7 +79,7 @@ export function comDesfazer(texto: string, acao: () => void, erro = 'Não foi po
       recarregarConsultas();
       aoDesfazer?.();
     } catch (e) {
-      avisarErro('Não foi possível desfazer', e);
+      avisarErro(t('Não foi possível desfazer'), e);
     }
   });
   return true;
@@ -132,10 +133,10 @@ export function AvisoTemporario() {
             }}
             style={({ pressed }) => ({ minHeight: 40, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, backgroundColor: cores.sobreTinta, opacity: pressed ? 0.8 : 1 })}
           >
-            <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, color: cores.tinta }}>Desfazer</Text>
+            <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, color: cores.tinta }}>{t('Desfazer')}</Text>
           </Pressable>
         ) : null}
-        <BotaoIcone icone="fechar" rotulo="Fechar aviso" cor={cores.sobreTinta} tamanho={18} onPress={() => fecharAviso(aviso.id)} />
+        <BotaoIcone icone="fechar" rotulo={t('Fechar aviso')} cor={cores.sobreTinta} tamanho={18} onPress={() => fecharAviso(aviso.id)} />
       </View>
     </Animated.View>
   );

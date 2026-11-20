@@ -10,6 +10,7 @@ import { formatarDuracao } from '@/domain/tarefas';
 import { fontes, useTema } from '@/theme';
 
 import { MODO_NENHUM, useGestoDaBandeja, type Arrasto, type RefDeVista } from './arrasto';
+import { t } from '@/i18n';
 
 type Props = {
   calendario: CalendarioDaSemana;
@@ -32,21 +33,21 @@ export function Bandeja({ calendario, arrasto, bandejaRef, escolhida, arrastada,
     <Animated.View ref={bandejaRef} collapsable={false} style={[estilos.cartao, { padding: 12, gap: 8 }]}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
         <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, lineHeight: 20, color: cores.tinta }} accessibilityRole="header">
-          Por alocar
+          {t('Por alocar')}
           {porAlocar.length > 0 ? <Text style={{ fontFamily: fontes.textoMedio, color: cores.texto3 }}>{` · ${formatarHoras(minutosPorAlocar / 60)}`}</Text> : null}
         </Text>
-        {porAlocar.length > 0 ? <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 16, color: cores.texto3 }}>Arraste para o calendário</Text> : null}
+        {porAlocar.length > 0 ? <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 16, color: cores.texto3 }}>{t('Arraste para o calendário')}</Text> : null}
       </View>
 
       {porAlocar.length === 0 ? (
         <View style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <Text style={[estilos.pequeno, { flex: 1 }]}>{blocos.some((b) => b.tipo === 'tarefa') ? 'Está tudo no calendário.' : 'Ainda não há tarefas com duração nesta semana.'}</Text>
-          <Botao titulo="Planear" variante="contorno" onPress={aoPlanear} style={{ minHeight: 44, paddingHorizontal: 14 }} />
+          <Text style={[estilos.pequeno, { flex: 1 }]}>{blocos.some((b) => b.tipo === 'tarefa') ? t('Está tudo no calendário.') : t('Ainda não há tarefas com duração nesta semana.')}</Text>
+          <Botao titulo={t('Planear')} variante="contorno" onPress={aoPlanear} style={{ minHeight: 44, paddingHorizontal: 14 }} />
         </View>
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} keyboardShouldPersistTaps="handled">
-          {porAlocar.map((t) => (
-            <Ficha key={t.tarefaId} tarefa={t} arrasto={arrasto} escolhida={escolhida === t.tarefaId} arrastada={arrastada === t.tarefaId} aoEscolher={aoEscolher} />
+          {porAlocar.map((tf) => (
+            <Ficha key={tf.tarefaId} tarefa={tf} arrasto={arrasto} escolhida={escolhida === tf.tarefaId} arrastada={arrastada === tf.tarefaId} aoEscolher={aoEscolher} />
           ))}
         </ScrollView>
       )}
@@ -73,8 +74,8 @@ function Ficha({ tarefa, arrasto, escolhida, arrastada, aoEscolher }: FichaProps
     <GestureDetector gesture={gesto} touchAction="pan-x">
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${tarefa.nome}, ${duracao}${tarefa.quantas > 1 ? `, ${tarefa.quantas} por alocar` : ''}${tarefa.veioDaSemanaPassada ? ', vem da semana passada' : ''}`}
-        accessibilityHint="Escolhe a tarefa para depois tocar na hora do calendário. Também se pode arrastar."
+        accessibilityLabel={`${tarefa.nome}, ${duracao}${tarefa.quantas > 1 ? `, ${t('{n} por alocar', { n: tarefa.quantas })}` : ''}${tarefa.veioDaSemanaPassada ? `, ${t('vem da semana passada')}` : ''}`}
+        accessibilityHint={t('Escolhe a tarefa para depois tocar na hora do calendário. Também se pode arrastar.')}
         accessibilityState={{ selected: escolhida }}
         onPress={() => aoEscolher(tarefa)}
         style={{
@@ -96,7 +97,7 @@ function Ficha({ tarefa, arrasto, escolhida, arrastada, aoEscolher }: FichaProps
           <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, lineHeight: 18, color: cor.texto }} numberOfLines={1}>
             {`${tarefa.nome} · ${duracao}`}
           </Text>
-          {tarefa.veioDaSemanaPassada ? <Text style={{ fontFamily: fontes.textoMedio, fontSize: 10, lineHeight: 12, color: cor.texto }}>vem da semana passada</Text> : null}
+          {tarefa.veioDaSemanaPassada ? <Text style={{ fontFamily: fontes.textoMedio, fontSize: 10, lineHeight: 12, color: cor.texto }}>{t('vem da semana passada')}</Text> : null}
         </View>
         {tarefa.quantas > 1 ? (
           <View style={{ minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: cor.texto }}>

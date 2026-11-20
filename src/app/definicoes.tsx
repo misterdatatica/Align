@@ -2,7 +2,7 @@ import { ScrollView, Switch, Text, View } from 'react-native';
 
 import { avisar, avisarErro, confirmar } from '@/components/dialogos';
 import { Botao, Cartao, Opcao, Passo, Seccao } from '@/components/ui';
-import { exportarCopia, ONDE_GUARDAR_A_COPIA } from '@/components/exportarCopia';
+import { exportarCopia, ondeGuardarACopia } from '@/components/exportarCopia';
 import { escolherFicheiro } from '@/copiaFicheiro';
 import { consultaAreasArquivadas, reporArea } from '@/data/areas';
 import { recarregarConsultas, useConsulta } from '@/data/consulta';
@@ -12,14 +12,15 @@ import { DIAS_DE_REVISAO } from '@/domain/revisao';
 import { descreverDia, formatarHora, paraDataISO } from '@/domain/semana';
 import { agendarLembrete, cancelarLembrete, lembretesDisponiveis, pedirPermissaoDeLembrete } from '@/lembrete';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 /** Dias pela ordem da semana portuguesa (segunda primeiro), com o número que as definições guardam (0 = domingo). */
-const DIAS = [1, 2, 3, 4, 5, 6, 0].map((numero) => ({ numero, nome: DIAS_DE_REVISAO[numero] }));
+const DIAS = [1, 2, 3, 4, 5, 6, 0];
 
-const APARENCIAS: { valor: PreferenciaDeTema; titulo: string; ajuda: string }[] = [
-  { valor: 'automatico', titulo: 'Automático', ajuda: 'Segue o modo claro ou escuro do telemóvel.' },
-  { valor: 'claro', titulo: 'Claro', ajuda: 'Sempre clara, mesmo com o telemóvel em modo escuro.' },
-  { valor: 'escuro', titulo: 'Escuro', ajuda: 'Sempre escura, mesmo com o telemóvel em modo claro.' },
+const APARENCIAS = (): { valor: PreferenciaDeTema; titulo: string; ajuda: string }[] => [
+  { valor: 'automatico', titulo: t('Automático'), ajuda: t('Segue o modo claro ou escuro do telemóvel.') },
+  { valor: 'claro', titulo: t('Claro'), ajuda: t('Sempre clara, mesmo com o telemóvel em modo escuro.') },
+  { valor: 'escuro', titulo: t('Escuro'), ajuda: t('Sempre escura, mesmo com o telemóvel em modo claro.') },
 ];
 
 function minutosDe(hora: string): number {
@@ -37,10 +38,10 @@ export default function DefinicoesEcra() {
       const novas = guardarDefinicoes(alteracoes);
       // O lembrete acompanha o dia e a hora da revisão.
       if (novas.lembreteAtivo && ('diaRevisao' in alteracoes || 'horaRevisao' in alteracoes)) {
-        agendarLembrete(novas.diaRevisao, novas.horaRevisao).catch((erro: unknown) => avisarErro('Não foi possível reagendar o lembrete', erro));
+        agendarLembrete(novas.diaRevisao, novas.horaRevisao).catch((erro: unknown) => avisarErro(t('Não foi possível reagendar o lembrete'), erro));
       }
     } catch (erro) {
-      avisarErro('Não foi possível guardar', erro);
+      avisarErro(t('Não foi possível guardar'), erro);
     }
   }
 
@@ -49,7 +50,7 @@ export default function DefinicoesEcra() {
     try {
       if (ativo) {
         if (!(await pedirPermissaoDeLembrete())) {
-          avisar('Notificações desligadas', 'Para receber o lembrete, autorize as notificações desta app nas definições do telemóvel.');
+          avisar(t('Notificações desligadas'), t('Para receber o lembrete, autorize as notificações desta app nas definições do telemóvel.'));
           return;
         }
         await agendarLembrete(definicoes.diaRevisao, definicoes.horaRevisao);
@@ -58,7 +59,7 @@ export default function DefinicoesEcra() {
       }
       guardarDefinicoes({ lembreteAtivo: ativo });
     } catch (erro) {
-      avisarErro('Não foi possível mudar o lembrete', erro);
+      avisarErro(t('Não foi possível mudar o lembrete'), erro);
     }
   }
 
@@ -68,9 +69,9 @@ export default function DefinicoesEcra() {
       if (texto === null) return;
       const copia = lerCopia(texto);
       const sim = await confirmar({
-        titulo: 'Importar esta cópia?',
-        mensagem: `Tem ${resumirCopia(copia)}, guardadas em ${descreverDia(paraDataISO(new Date(copia.exportadoEm)))}. Substitui todos os dados que estão agora na app.`,
-        acao: 'Importar',
+        titulo: t('Importar esta cópia?'),
+        mensagem: t('Tem {resumo}, guardadas em {dia}. Substitui todos os dados que estão agora na app.', { resumo: resumirCopia(copia), dia: descreverDia(paraDataISO(new Date(copia.exportadoEm))) }),
+        acao: t('Importar'),
         destrutiva: true,
       });
       if (!sim) return;
@@ -83,31 +84,31 @@ export default function DefinicoesEcra() {
         await cancelarLembrete();
         if (importadas.lembreteAtivo) guardarDefinicoes({ lembreteAtivo: false });
       }
-      avisar('Dados importados', `A app tem agora ${resumirCopia(copia)}.`);
+      avisar(t('Dados importados'), t('A app tem agora {resumo}.', { resumo: resumirCopia(copia) }));
     } catch (erro) {
-      avisarErro('Não foi possível importar os dados', erro);
+      avisarErro(t('Não foi possível importar os dados'), erro);
     }
   }
 
   return (
     <ScrollView style={estilos.ecra} contentContainerStyle={estilos.conteudo}>
-      <Seccao titulo="Aparência">
+      <Seccao titulo={t('Aparência')}>
         <Cartao style={{ padding: 16, gap: 10 }}>
-          <View style={{ flexDirection: 'row', gap: 6 }} accessibilityRole="radiogroup" accessibilityLabel="Aparência">
-            {APARENCIAS.map((a) => (
+          <View style={{ flexDirection: 'row', gap: 6 }} accessibilityRole="radiogroup" accessibilityLabel={t('Aparência')}>
+            {APARENCIAS().map((a) => (
               <Opcao key={a.valor} titulo={a.titulo} ativa={definicoes.tema === a.valor} onPress={() => mudar({ tema: a.valor })} style={{ flex: 1, paddingHorizontal: 0 }} />
             ))}
           </View>
-          <Text style={estilos.pequeno}>{APARENCIAS.find((a) => a.valor === definicoes.tema)?.ajuda}</Text>
+          <Text style={estilos.pequeno}>{APARENCIAS().find((a) => a.valor === definicoes.tema)?.ajuda}</Text>
         </Cartao>
       </Seccao>
 
-      <Seccao titulo="Revisão semanal">
+      <Seccao titulo={t('Revisão semanal')}>
         <Cartao style={{ padding: 16, gap: 16 }}>
           <View style={{ gap: 8 }}>
-            <Text style={estilos.corpo}>Dia da revisão</Text>
-            <View style={{ flexDirection: 'row', gap: 4 }} accessibilityRole="radiogroup" accessibilityLabel="Dia da revisão">
-              {DIAS.map((d) => (
+            <Text style={estilos.corpo}>{t('Dia da revisão')}</Text>
+            <View style={{ flexDirection: 'row', gap: 4 }} accessibilityRole="radiogroup" accessibilityLabel={t('Dia da revisão')}>
+              {DIAS.map((numero) => ({ numero, nome: t(DIAS_DE_REVISAO[numero]) })).map((d) => (
                 <Opcao
                   key={d.numero}
                   titulo={d.nome[0].toUpperCase() + d.nome.slice(1, 3)}
@@ -118,11 +119,11 @@ export default function DefinicoesEcra() {
                 />
               ))}
             </View>
-            <Text style={estilos.pequeno}>{`A revisão da semana fica disponível a partir de ${DIAS_DE_REVISAO[definicoes.diaRevisao]}.`}</Text>
+            <Text style={estilos.pequeno}>{t('A revisão da semana fica disponível a partir de {dia}.', { dia: t(DIAS_DE_REVISAO[definicoes.diaRevisao]) })}</Text>
           </View>
-          <Linha titulo="Hora da revisão">
+          <Linha titulo={t('Hora da revisão')}>
             <Passo
-              rotulo="Hora da revisão"
+              rotulo={t('Hora da revisão')}
               valor={minutosDe(definicoes.horaRevisao)}
               texto={definicoes.horaRevisao}
               minimo={0}
@@ -132,9 +133,9 @@ export default function DefinicoesEcra() {
             />
           </Linha>
           <View style={{ gap: 4 }}>
-            <Linha titulo="Lembrar-me da revisão">
+            <Linha titulo={t('Lembrar-me da revisão')}>
               <Switch
-                accessibilityLabel="Lembrar-me da revisão"
+                accessibilityLabel={t('Lembrar-me da revisão')}
                 value={definicoes.lembreteAtivo}
                 onValueChange={alternarLembrete}
                 disabled={!lembretesDisponiveis}
@@ -143,18 +144,18 @@ export default function DefinicoesEcra() {
             </Linha>
             <Text style={estilos.pequeno}>
               {lembretesDisponiveis
-                ? `Uma notificação ${DIAS_DE_REVISAO[definicoes.diaRevisao]} às ${definicoes.horaRevisao}, neste telemóvel.`
-                : 'O lembrete só funciona na app do telemóvel.'}
+                ? t('Uma notificação {dia} às {hora}, neste telemóvel.', { dia: t(DIAS_DE_REVISAO[definicoes.diaRevisao]), hora: definicoes.horaRevisao })
+                : t('O lembrete só funciona na app do telemóvel.')}
             </Text>
           </View>
         </Cartao>
       </Seccao>
 
-      <Seccao titulo="Calendário">
+      <Seccao titulo={t('Calendário')}>
         <Cartao style={{ padding: 16, gap: 12 }}>
-          <Linha titulo="Começa às">
+          <Linha titulo={t('Começa às')}>
             <Passo
-              rotulo="Primeira hora do calendário"
+              rotulo={t('Primeira hora do calendário')}
               valor={definicoes.inicioGrelha}
               texto={`${definicoes.inicioGrelha}:00`}
               minimo={0}
@@ -162,9 +163,9 @@ export default function DefinicoesEcra() {
               onChange={(inicioGrelha) => mudar({ inicioGrelha })}
             />
           </Linha>
-          <Linha titulo="Acaba às">
+          <Linha titulo={t('Acaba às')}>
             <Passo
-              rotulo="Última hora do calendário"
+              rotulo={t('Última hora do calendário')}
               valor={definicoes.fimGrelha}
               texto={`${definicoes.fimGrelha}:00`}
               minimo={definicoes.inicioGrelha + 4}
@@ -172,24 +173,24 @@ export default function DefinicoesEcra() {
               onChange={(fimGrelha) => mudar({ fimGrelha })}
             />
           </Linha>
-          <Text style={estilos.pequeno}>Se houver blocos fora destas horas, o calendário alarga-se para os mostrar.</Text>
+          <Text style={estilos.pequeno}>{t('Se houver blocos fora destas horas, o calendário alarga-se para os mostrar.')}</Text>
         </Cartao>
       </Seccao>
 
-      <Seccao titulo="Cópia de segurança">
+      <Seccao titulo={t('Cópia de segurança')}>
         <Cartao style={{ padding: 16, gap: 10 }}>
-          <Text style={estilos.pequeno}>Guarde os dados num ficheiro para os recuperar noutro telemóvel ou depois de reinstalar a app.</Text>
-          <Text style={estilos.pequeno}>{ONDE_GUARDAR_A_COPIA}</Text>
+          <Text style={estilos.pequeno}>{t('Guarde os dados num ficheiro para os recuperar noutro telemóvel ou depois de reinstalar a app.')}</Text>
+          <Text style={estilos.pequeno}>{ondeGuardarACopia()}</Text>
           <Text style={[estilos.pequeno, { color: cores.texto2 }]}>
-            {definicoes.ultimaCopia ? `Última cópia: ${descreverDia(paraDataISO(new Date(definicoes.ultimaCopia)))}.` : 'Ainda não fez nenhuma cópia.'}
+            {definicoes.ultimaCopia ? t('Última cópia: {dia}.', { dia: descreverDia(paraDataISO(new Date(definicoes.ultimaCopia))) }) : t('Ainda não fez nenhuma cópia.')}
           </Text>
-          <Botao titulo="Exportar dados" variante="contorno" onPress={exportarCopia} />
-          <Botao titulo="Importar dados" variante="contorno" onPress={importar} />
+          <Botao titulo={t('Exportar dados')} variante="contorno" onPress={exportarCopia} />
+          <Botao titulo={t('Importar dados')} variante="contorno" onPress={importar} />
         </Cartao>
       </Seccao>
 
       {arquivadas.length > 0 ? (
-        <Seccao titulo="Áreas arquivadas">
+        <Seccao titulo={t('Áreas arquivadas')}>
           <Cartao>
             {arquivadas.map((a, i) => (
               <View key={a.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingLeft: 16, paddingRight: 8, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: cores.linhaSuave }}>
@@ -198,10 +199,10 @@ export default function DefinicoesEcra() {
                   {a.nome}
                 </Text>
                 <Botao
-                  titulo="Repor"
+                  titulo={t('Repor')}
                   variante="texto"
-                  accessibilityLabel={`Repor a área ${a.nome}`}
-                  onPress={() => reporArea(a.id).catch((erro: unknown) => avisarErro('Não foi possível repor a área', erro))}
+                  accessibilityLabel={t('Repor a área {nome}', { nome: a.nome })}
+                  onPress={() => reporArea(a.id).catch((erro: unknown) => avisarErro(t('Não foi possível repor a área'), erro))}
                   style={{ minHeight: 44 }}
                 />
               </View>
@@ -210,7 +211,7 @@ export default function DefinicoesEcra() {
         </Seccao>
       ) : null}
 
-      <Text style={[estilos.pequeno, { textAlign: 'center' }]}>Os seus dados ficam só neste dispositivo. A app não recolhe nem envia nada.</Text>
+      <Text style={[estilos.pequeno, { textAlign: 'center' }]}>{t('Os seus dados ficam só neste dispositivo. A app não recolhe nem envia nada.')}</Text>
     </ScrollView>
   );
 }

@@ -3,6 +3,7 @@ import { areas, blocos, definicoes, metas, metasRegistos, revisoes, semanas, tar
 import { formatarValor } from '@/domain/metas';
 import { deDataISO, inicioDaSemana, paraDataISO, somarMeses } from '@/domain/semana';
 import { ErroDaApp } from '@/domain/erros';
+import { t } from '@/i18n';
 
 /*
  * Cópia de segurança: todos os dados num objeto que se guarda como ficheiro JSON, para não perder
@@ -101,15 +102,15 @@ export function lerCopia(texto: string, hoje: Date = new Date()): CopiaDeSeguran
   try {
     copia = JSON.parse(texto);
   } catch {
-    throw new ErroDaApp('O ficheiro não é uma cópia de segurança válida.');
+    throw new ErroDaApp(t('O ficheiro não é uma cópia de segurança válida.'));
   }
-  if (!eObjeto(copia) || copia.app !== APP || !eObjeto(copia.dados)) throw new ErroDaApp('O ficheiro não é uma cópia de segurança desta app.');
+  if (!eObjeto(copia) || copia.app !== APP || !eObjeto(copia.dados)) throw new ErroDaApp(t('O ficheiro não é uma cópia de segurança desta app.'));
   if (typeof copia.versao !== 'number' || copia.versao > VERSAO) {
-    throw new ErroDaApp('Esta cópia foi feita por uma versão mais recente da app. Atualize a app e tente outra vez.');
+    throw new ErroDaApp(t('Esta cópia foi feita por uma versão mais recente da app. Atualize a app e tente outra vez.'));
   }
   if (copia.versao < 2) atualizarDaVersao1(copia.dados, hoje);
   for (const nome of ORDEM) {
-    if (!Array.isArray(copia.dados[nome]) || !copia.dados[nome].every(eObjeto)) throw new ErroDaApp('A cópia de segurança está incompleta.');
+    if (!Array.isArray(copia.dados[nome]) || !copia.dados[nome].every(eObjeto)) throw new ErroDaApp(t('A cópia de segurança está incompleta.'));
   }
   return copia as CopiaDeSeguranca;
 }
@@ -137,5 +138,7 @@ export function importarDados(copia: CopiaDeSeguranca): void {
 export function resumirCopia(copia: CopiaDeSeguranca): string {
   const nAreas = copia.dados.areas.length;
   const nTarefas = copia.dados.tarefas.length;
-  return `${nAreas} ${nAreas === 1 ? 'área' : 'áreas'} e ${nTarefas} ${nTarefas === 1 ? 'tarefa' : 'tarefas'}`;
+  const areas = nAreas === 1 ? t('1 área') : t('{n} áreas', { n: nAreas });
+  const tarefas = nTarefas === 1 ? t('1 tarefa') : t('{n} tarefas', { n: nTarefas });
+  return t('{areas} e {tarefas}', { areas, tarefas });
 }

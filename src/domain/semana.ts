@@ -1,9 +1,13 @@
+import { t } from '../i18n/index.ts';
+
 /**
  * Uma semana vai de segunda a domingo e identifica-se pela data da segunda-feira (AAAA-MM-DD).
  * Tudo em datas locais, sem fuso horário, para não mudar de dia perto da meia-noite.
  */
 
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+/** Meses abreviados, em português; `mes()` dá-os no idioma da app. */
+export const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'] as const;
+const mes = (indice: number) => t(MESES[indice]);
 
 function pad(n: number): string {
   return String(n).padStart(2, '0');
@@ -48,12 +52,12 @@ export function descreverSemana(semana: string): string {
   const fim = deDataISO(somarSemanas(semana, 1));
   fim.setDate(fim.getDate() - 1);
   if (ini.getFullYear() !== fim.getFullYear()) {
-    return `${ini.getDate()} ${MESES[ini.getMonth()]} ${ini.getFullYear()} – ${fim.getDate()} ${MESES[fim.getMonth()]} ${fim.getFullYear()}`;
+    return `${ini.getDate()} ${mes(ini.getMonth())} ${ini.getFullYear()} – ${fim.getDate()} ${mes(fim.getMonth())} ${fim.getFullYear()}`;
   }
   if (ini.getMonth() !== fim.getMonth()) {
-    return `${ini.getDate()} ${MESES[ini.getMonth()]} – ${fim.getDate()} ${MESES[fim.getMonth()]}`;
+    return `${ini.getDate()} ${mes(ini.getMonth())} – ${fim.getDate()} ${mes(fim.getMonth())}`;
   }
-  return `${ini.getDate()}–${fim.getDate()} ${MESES[ini.getMonth()]}`;
+  return `${ini.getDate()}–${fim.getDate()} ${mes(ini.getMonth())}`;
 }
 
 /** "16 a 22 nov", "30 nov a 6 dez" — para frases como "Semana de 16 a 22 nov". */
@@ -62,12 +66,12 @@ export function descreverSemanaPorExtenso(semana: string): string {
   const fim = deDataISO(somarSemanas(semana, 1));
   fim.setDate(fim.getDate() - 1);
   if (ini.getFullYear() !== fim.getFullYear()) {
-    return `${ini.getDate()} ${MESES[ini.getMonth()]} ${ini.getFullYear()} a ${fim.getDate()} ${MESES[fim.getMonth()]} ${fim.getFullYear()}`;
+    return t('{ini} a {fim}', { ini: `${ini.getDate()} ${mes(ini.getMonth())} ${ini.getFullYear()}`, fim: `${fim.getDate()} ${mes(fim.getMonth())} ${fim.getFullYear()}` });
   }
   if (ini.getMonth() !== fim.getMonth()) {
-    return `${ini.getDate()} ${MESES[ini.getMonth()]} a ${fim.getDate()} ${MESES[fim.getMonth()]}`;
+    return t('{ini} a {fim}', { ini: `${ini.getDate()} ${mes(ini.getMonth())}`, fim: `${fim.getDate()} ${mes(fim.getMonth())}` });
   }
-  return `${ini.getDate()} a ${fim.getDate()} ${MESES[ini.getMonth()]}`;
+  return t('{ini} a {fim}', { ini: String(ini.getDate()), fim: `${fim.getDate()} ${mes(ini.getMonth())}` });
 }
 
 /**
@@ -76,11 +80,12 @@ export function descreverSemanaPorExtenso(semana: string): string {
  * `com: 'em'` → "esta semana", "na semana seguinte", "na semana de 30 nov a 6 dez".
  */
 export function semanaNaFrase(semana: string, atual: string, com: 'de' | 'em'): string {
-  const [esta, outra] = com === 'de' ? ['desta', 'da'] : ['esta', 'na'];
-  if (semana === atual) return `${esta} semana`;
-  if (semana === somarSemanas(atual, 1)) return `${outra} semana seguinte`;
-  if (semana === somarSemanas(atual, -1)) return `${outra} semana passada`;
-  return `${outra} semana de ${descreverSemanaPorExtenso(semana)}`;
+  const de = com === 'de';
+  if (semana === atual) return de ? t('desta semana') : t('esta semana');
+  if (semana === somarSemanas(atual, 1)) return de ? t('da semana seguinte') : t('na semana seguinte');
+  if (semana === somarSemanas(atual, -1)) return de ? t('da semana passada') : t('na semana passada');
+  const extenso = descreverSemanaPorExtenso(semana);
+  return de ? t('da semana de {semana}', { semana: extenso }) : t('na semana de {semana}', { semana: extenso });
 }
 
 /** "16 – 22 nov 2026": o seletor de semana mostra sempre o ano. */
@@ -90,21 +95,21 @@ export function descreverSemanaComAno(semana: string): string {
   fim.setDate(fim.getDate() - 1);
   if (ini.getFullYear() !== fim.getFullYear()) return descreverSemana(semana);
   if (ini.getMonth() !== fim.getMonth()) {
-    return `${ini.getDate()} ${MESES[ini.getMonth()]} – ${fim.getDate()} ${MESES[fim.getMonth()]} ${fim.getFullYear()}`;
+    return `${ini.getDate()} ${mes(ini.getMonth())} – ${fim.getDate()} ${mes(fim.getMonth())} ${fim.getFullYear()}`;
   }
-  return `${ini.getDate()} – ${fim.getDate()} ${MESES[ini.getMonth()]} ${fim.getFullYear()}`;
+  return `${ini.getDate()} – ${fim.getDate()} ${mes(ini.getMonth())} ${fim.getFullYear()}`;
 }
 
 /** "31 mar 2027": o prazo de uma meta mostra sempre o ano. */
 export function descreverData(dataISO: string): string {
   const d = deDataISO(dataISO);
-  return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}`;
+  return `${d.getDate()} ${mes(d.getMonth())} ${d.getFullYear()}`;
 }
 
 /** "31 mar": para os eixos e os registos, onde o ano já se percebe. */
 export function descreverDataCurta(dataISO: string): string {
   const d = deDataISO(dataISO);
-  return `${d.getDate()} ${MESES[d.getMonth()]}`;
+  return `${d.getDate()} ${mes(d.getMonth())}`;
 }
 
 /** O mesmo dia, uns meses depois; se o mês não tiver esse dia, fica no último (31 jan + 1 mês = 28 fev). */
@@ -127,7 +132,7 @@ export function indiceDoDia(dataISO: string): number {
 /** "quarta, 18 nov". */
 export function descreverDia(dataISO: string): string {
   const d = deDataISO(dataISO);
-  return `${DIAS_LONGOS[indiceDoDia(dataISO)]}, ${d.getDate()} ${MESES[d.getMonth()]}`;
+  return `${t(DIAS_LONGOS[indiceDoDia(dataISO)])}, ${d.getDate()} ${mes(d.getMonth())}`;
 }
 
 /*

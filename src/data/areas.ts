@@ -7,6 +7,7 @@ import { areas, type Area } from '@/db/schema';
 import { MAX_AREAS, podeCriarArea } from '@/domain/regras';
 import type { ResumoTarefa } from '@/domain/tarefas';
 import { ErroDaApp } from '@/domain/erros';
+import { t } from '@/i18n';
 
 export const consultaAreasAtivas = () =>
   db.select().from(areas).where(eq(areas.arquivada, false)).orderBy(asc(areas.ordem), asc(areas.id));
@@ -15,13 +16,13 @@ export const consultaAreasArquivadas = () => db.select().from(areas).where(eq(ar
 
 export class LimiteDeAreasError extends ErroDaApp {
   constructor() {
-    super(`Pode ter no máximo ${MAX_AREAS} áreas ativas. Arquive uma para criar outra.`);
+    super(t('Pode ter no máximo {max} áreas ativas. Arquive uma para criar outra.', { max: MAX_AREAS }));
   }
 }
 
 export async function criarArea(dados: { nome: string; cor: string; icone: string; missao: string }) {
   const nome = dados.nome.trim();
-  if (!nome) throw new ErroDaApp('A área precisa de um nome.');
+  if (!nome) throw new ErroDaApp(t('A área precisa de um nome.'));
   const [{ total }] = await db.select({ total: count() }).from(areas).where(eq(areas.arquivada, false));
   if (!podeCriarArea(total)) throw new LimiteDeAreasError();
   const [criada] = await db
@@ -37,7 +38,7 @@ export async function atualizarArea(
 ) {
   if (dados.nome !== undefined) {
     dados = { ...dados, nome: dados.nome.trim() };
-    if (!dados.nome) throw new ErroDaApp('A área precisa de um nome.');
+    if (!dados.nome) throw new ErroDaApp(t('A área precisa de um nome.'));
   }
   await db
     .update(areas)

@@ -9,6 +9,7 @@ import { Icone, type NomeIcone } from '@/components/Icone';
 import type { Area } from '@/db/schema';
 import { formatarHoras } from '@/domain/regras';
 import { fontes, useTema } from '@/theme';
+import { t } from '@/i18n';
 
 /** Espaço entre cartões, como no design. */
 const INTERVALO = 10;
@@ -96,6 +97,12 @@ function CartaoDeArea({ item, indice, total, alturasNaOrdem, ativo, destino, des
   const { area, tarefas, minutosPlaneados } = item;
   const cor = corDaArea(area.cor);
   const n = tarefas.length;
+  const resumoDasTarefas =
+    n === 0
+      ? t('Sem tarefas {quando}', { quando })
+      : n === 1
+        ? t('1 tarefa{horas} {quando}', { horas: minutosPlaneados > 0 ? ` · ${formatarHoras(minutosPlaneados / 60)}` : '', quando })
+        : t('{n} tarefas{horas} {quando}', { n, horas: minutosPlaneados > 0 ? ` · ${formatarHoras(minutosPlaneados / 60)}` : '', quando });
 
   const arrastar = usePanGesture({
     activateAfterLongPress: 350,
@@ -152,11 +159,11 @@ function CartaoDeArea({ item, indice, total, alturasNaOrdem, ativo, destino, des
       <Animated.View style={estilo} onLayout={(e) => aoMedir(e.nativeEvent.layout.height)}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${area.nome}. ${area.missao || 'Sem missão'}. ${n === 0 ? `Sem tarefas ${quando}` : `${n} ${n === 1 ? 'tarefa' : 'tarefas'} ${quando}`}`}
-          accessibilityHint="Abre a área. Mantenha premido e arraste para mudar a ordem."
+          accessibilityLabel={`${area.nome}. ${area.missao || t('Sem missão')}. ${resumoDasTarefas}`}
+          accessibilityHint={t('Abre a área. Mantenha premido e arraste para mudar a ordem.')}
           accessibilityActions={[
-            ...(indice > 0 ? [{ name: 'subir', label: 'Mover para cima' }] : []),
-            ...(indice < total - 1 ? [{ name: 'descer', label: 'Mover para baixo' }] : []),
+            ...(indice > 0 ? [{ name: 'subir', label: t('Mover para cima') }] : []),
+            ...(indice < total - 1 ? [{ name: 'descer', label: t('Mover para baixo') }] : []),
           ]}
           onAccessibilityAction={(e) => {
             if (e.nativeEvent.actionName === 'subir') aoMover(indice, indice - 1);
@@ -171,10 +178,10 @@ function CartaoDeArea({ item, indice, total, alturasNaOrdem, ativo, destino, des
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={{ fontFamily: fontes.textoForte, fontSize: 17, lineHeight: 22, color: cores.tinta }}>{area.nome}</Text>
             <Text style={{ fontFamily: fontes.texto, fontSize: 14, lineHeight: 20, color: area.missao ? cores.texto2 : cores.texto3, marginTop: 2 }} numberOfLines={2}>
-              {area.missao || 'Sem missão — toque para definir'}
+              {area.missao || t('Sem missão — toque para definir')}
             </Text>
             <Text style={[estilos.pequeno, { marginTop: 6 }]}>
-              {n === 0 ? `Sem tarefas ${quando}` : `${n} ${n === 1 ? 'tarefa' : 'tarefas'}${minutosPlaneados > 0 ? ` · ${formatarHoras(minutosPlaneados / 60)}` : ''} ${quando}`}
+              {resumoDasTarefas}
             </Text>
           </View>
           <Icone nome="seta-direita" tamanho={16} cor={cores.texto3} espessura={2} />

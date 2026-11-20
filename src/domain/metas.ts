@@ -1,6 +1,7 @@
 /** Regras das metas (resultados com prazo) que não dependem da base de dados. */
 
 import { deDataISO } from './semana';
+import { separadorDecimal, t } from '../i18n/index.ts';
 import { ErroDaApp } from './erros';
 
 export const MAX_METAS_ATIVAS = 3;
@@ -60,15 +61,15 @@ export function diasQueFaltam(hoje: string, prazo: string): number {
 
 /** "faltam 135 dias", "falta 1 dia", "termina hoje", "o prazo passou há 3 dias". */
 export function descreverDiasQueFaltam(dias: number): string {
-  if (dias === 0) return 'termina hoje';
-  if (dias === 1) return 'falta 1 dia';
-  if (dias > 1) return `faltam ${dias} dias`;
-  return dias === -1 ? 'o prazo passou há 1 dia' : `o prazo passou há ${-dias} dias`;
+  if (dias === 0) return t('termina hoje');
+  if (dias === 1) return t('falta 1 dia');
+  if (dias > 1) return t('faltam {n} dias', { n: dias });
+  return dias === -1 ? t('o prazo passou há 1 dia') : t('o prazo passou há {n} dias', { n: -dias });
 }
 
 /** Números à portuguesa, com duas casas decimais no máximo: 60 → "60", 52.5 → "52,5". */
 export function formatarValor(valor: number): string {
-  return String(Math.round(valor * 100) / 100).replace('.', ',');
+  return String(Math.round(valor * 100) / 100).replace('.', separadorDecimal());
 }
 
 /** "52,5 min", "60" — o valor com a unidade da meta, se a tiver. */
@@ -109,14 +110,14 @@ export type DadosMeta = {
 /** Valida e arruma uma meta antes de a guardar. As metas de marco não guardam valores. */
 export function normalizarMeta(dados: DadosMeta) {
   const descricao = dados.descricao.trim();
-  if (!descricao) throw new ErroDaApp('A meta precisa de uma descrição.');
-  if (!dataValida(dados.prazo)) throw new ErroDaApp('A meta precisa de um prazo: escolha uma data válida.');
+  if (!descricao) throw new ErroDaApp(t('A meta precisa de uma descrição.'));
+  if (!dataValida(dados.prazo)) throw new ErroDaApp(t('A meta precisa de um prazo: escolha uma data válida.'));
   if (dados.medida === 'marco') return { descricao, prazo: dados.prazo, medida: 'marco' as const, valorInicial: null, valorAlvo: null, unidade: null };
 
   const { valorInicial, valorAlvo } = dados;
-  if (typeof valorInicial !== 'number' || !Number.isFinite(valorInicial)) throw new ErroDaApp('Indique o valor de partida.');
-  if (typeof valorAlvo !== 'number' || !Number.isFinite(valorAlvo)) throw new ErroDaApp('Indique o valor a que quer chegar.');
-  if (valorAlvo === valorInicial) throw new ErroDaApp('O alvo tem de ser diferente do valor de partida.');
+  if (typeof valorInicial !== 'number' || !Number.isFinite(valorInicial)) throw new ErroDaApp(t('Indique o valor de partida.'));
+  if (typeof valorAlvo !== 'number' || !Number.isFinite(valorAlvo)) throw new ErroDaApp(t('Indique o valor a que quer chegar.'));
+  if (valorAlvo === valorInicial) throw new ErroDaApp(t('O alvo tem de ser diferente do valor de partida.'));
   return { descricao, prazo: dados.prazo, medida: 'numero' as const, valorInicial, valorAlvo, unidade: dados.unidade?.trim() || null };
 }
 

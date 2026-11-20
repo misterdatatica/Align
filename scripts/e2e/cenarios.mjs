@@ -3,7 +3,7 @@
 //
 // Uso:  npx expo start --web        (noutro terminal; a app tem de estar a ser servida)
 //       npm run e2e                  (todos os cenários)
-//       npm run e2e -- calendario    (só um: semana, calendario, revisao, arranque, ordem)
+//       npm run e2e -- calendario    (só um: semana, calendario, revisao, arranque, ingles, ordem)
 //       No Linux, em contentores: CHROME_PATH=/caminho/do/chrome CHROME_ARGS=--no-sandbox npm run e2e
 //
 // Cada cenário começa com a app "acabada de instalar" (perfil de navegador vazio), por isso não toca
@@ -560,9 +560,57 @@ const cenarios = {
     });
 
     await passo('uma app já usada não volta ao primeiro arranque', async () => {
+      // Sair primeiro da app e esperar: no navegador, a página anterior tem de largar a base de dados.
+      await b.enviar('Page.navigate', { url: 'about:blank' });
+      await b.esperar(1500);
       await b.ir('/', 'NO CALENDÁRIO');
       await b.clicar('Áreas');
       await b.verTexto('2 de 7 no máximo');
+    });
+  },
+
+  /** Com o navegador em inglês, a app aparece toda em inglês (o resto dos cenários corre em pt-PT). */
+  async ingles(b, passo) {
+    await passo('primeiro arranque em inglês', async () => {
+      await b.ir('/', 'A week aligned with what matters');
+      await b.clicar('Continue');
+      await b.verTexto('What are your areas?');
+      await b.clicar('Spiritual');
+      await b.clicar('Continue');
+      await b.verTexto('When do you review your week?');
+      await b.verTexto('Sun');
+      await b.clicar('Start');
+      await b.verTexto('Today');
+      await b.verTexto('IN THE CALENDAR');
+      await b.verTexto('Nothing in the calendar for today.');
+    });
+
+    await passo('áreas, semana, calendário e revisão em inglês, com datas e horas em inglês', async () => {
+      await b.clicar('Areas');
+      await b.verTexto('My areas');
+      await b.verTexto('1 of 7 max');
+      await b.verTexto('Spiritual');
+      await b.clicar('Week');
+      await b.verTexto('Plan the week');
+      await b.clicar('Add task in Spiritual');
+      await b.clicar('Task name');
+      await b.escrever('Meditate');
+      await b.clicar('More duration');
+      await b.clicar('Every day');
+      await b.verTexto('This week: 7 ×');
+      await b.clicar('Create task');
+      await b.verTexto('every day');
+      await b.verTexto('0/7');
+      await b.clicar('Calendar');
+      await b.verTexto('Mon');
+      await b.verTexto('Unscheduled');
+      await b.clicar('Review');
+      await b.verTexto('Weekly review');
+      await b.verTexto('Week of ');
+      const texto = await b.texto();
+      for (const palavra of ['Semana', 'Áreas', 'Revisão', 'Calendário', 'Hoje', 'Por alocar']) {
+        if (texto.includes(palavra)) throw new Error(`ficou em português: "${palavra}"`);
+      }
     });
   },
 
@@ -607,7 +655,7 @@ if (!(await fetch(APP).then((r) => r.ok, () => false))) {
 let falhas = 0;
 for (const [indice, nome] of nomes.entries()) {
   console.log(`\n${nome}`);
-  const b = await abrirNavegador(nome, { porta: 9400 + indice });
+  const b = await abrirNavegador(nome, { porta: 9400 + indice, idioma: nome === 'ingles' ? 'en-GB' : 'pt-PT' });
   const passo = async (descricao, acao) => {
     try {
       await acao();

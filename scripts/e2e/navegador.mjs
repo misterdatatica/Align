@@ -68,7 +68,7 @@ const PROCURAR = `
  * Abre um Chrome sem janela com um perfil vazio (uma "app acabada de instalar") e devolve as ações.
  * @param nome distingue o perfil e as capturas de cada cenário.
  */
-export async function abrirNavegador(nome, { porta = 9400, largura = 390, altura = 844 } = {}) {
+export async function abrirNavegador(nome, { porta = 9400, largura = 390, altura = 844, idioma = 'pt-PT' } = {}) {
   const chrome = CANDIDATOS.find((caminho) => caminho && existsSync(caminho));
   if (!chrome) throw new Error('Não encontrei o Chrome. Indique o caminho na variável CHROME_PATH.');
   const perfil = path.join(PASTA, `perfil-${nome}`);
@@ -80,7 +80,7 @@ export async function abrirNavegador(nome, { porta = 9400, largura = 390, altura
   const processo = spawn(
     chrome,
     // CHROME_ARGS acrescenta opções ao Chrome (ex.: "--no-sandbox" em contentores, onde corre como root).
-    ['--headless=new', `--remote-debugging-port=${porta}`, `--user-data-dir=${perfil}`, `--window-size=${largura},${altura}`, '--no-first-run', '--no-default-browser-check', '--disable-extensions', ...(process.env.CHROME_ARGS?.split(' ').filter(Boolean) ?? []), 'about:blank'],
+    ['--headless=new', `--remote-debugging-port=${porta}`, `--user-data-dir=${perfil}`, `--window-size=${largura},${altura}`, '--no-first-run', '--no-default-browser-check', '--disable-extensions', `--lang=${idioma}`, `--accept-lang=${idioma}`, ...(process.env.CHROME_ARGS?.split(' ').filter(Boolean) ?? []), 'about:blank'],
     { stdio: 'ignore' },
   );
   let pagina;

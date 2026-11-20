@@ -8,7 +8,8 @@ import { descreverRecorrencia } from '@/domain/recorrencia';
 import { formatarDuracao } from '@/domain/tarefas';
 import { fontes, useTema } from '@/theme';
 
-import { TEXTO_ESTAGNADA, textoDoPrazo, textoDoProgresso } from './textos';
+import { textoEstagnada, textoDoPrazo, textoDoProgresso } from './textos';
+import { t } from '@/i18n';
 
 type Props = {
   meta: MetaDetalhada;
@@ -26,13 +27,13 @@ export function CartaoMeta({ meta, cor, aoAbrir, quando }: Props) {
   const progresso = textoDoProgresso(meta);
   const prazo = textoDoPrazo(meta);
   const atrasada = ativa && meta.diasQueFaltam < 0;
-  const nomesDasTarefas = meta.tarefas.map((t) => t.nome).join(', ');
+  const nomesDasTarefas = meta.tarefas.map((tf) => tf.nome).join(', ');
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${meta.descricao}. ${ativa ? '' : `${NOME_DO_ESTADO[meta.estado]}. `}${progresso}. ${prazo}. ${nomesDasTarefas ? `Tarefas ligadas: ${nomesDasTarefas}` : 'Sem tarefas ligadas'}.`}
-      accessibilityHint="Abre a meta"
+      accessibilityLabel={`${meta.descricao}. ${ativa ? '' : `${t(NOME_DO_ESTADO[meta.estado])}. `}${progresso}. ${prazo}. ${nomesDasTarefas ? t('Tarefas ligadas: {nomes}', { nomes: nomesDasTarefas }) : t('Sem tarefas ligadas')}.`}
+      accessibilityHint={t('Abre a meta')}
       onPress={aoAbrir}
       style={({ pressed }) => ({ padding: 16, gap: 10, opacity: pressed ? 0.6 : 1 })}
     >
@@ -40,7 +41,7 @@ export function CartaoMeta({ meta, cor, aoAbrir, quando }: Props) {
         <Text style={{ flex: 1, fontFamily: fontes.textoForte, fontSize: 16, lineHeight: 22, color: ativa ? cores.tinta : cores.texto2 }}>{meta.descricao}</Text>
         {ativa ? null : (
           <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: cores.pista }}>
-            <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: cores.texto2 }}>{NOME_DO_ESTADO[meta.estado]}</Text>
+            <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: cores.texto2 }}>{t(NOME_DO_ESTADO[meta.estado])}</Text>
           </View>
         )}
         <View style={{ marginTop: 3 }}>
@@ -56,21 +57,21 @@ export function CartaoMeta({ meta, cor, aoAbrir, quando }: Props) {
         {meta.medida === 'numero' ? <BarraProgresso valor={meta.progresso} cor={ativa ? cor : cores.tracejado} pista={cores.linhaSuave} /> : null}
       </View>
 
-      {ativa && meta.estagnada ? <Text style={estilos.pequeno}>{TEXTO_ESTAGNADA}</Text> : null}
+      {ativa && meta.estagnada ? <Text style={estilos.pequeno}>{textoEstagnada()}</Text> : null}
 
       {meta.tarefas.length === 0 ? (
         ativa ? (
-          <Text style={estilos.pequeno}>Ainda não há tarefas ligadas a esta meta.</Text>
+          <Text style={estilos.pequeno}>{t('Ainda não há tarefas ligadas a esta meta.')}</Text>
         ) : null
       ) : (
         <View style={{ gap: 2 }}>
-          {meta.tarefas.map((t) => {
-            const detalhe = [formatarDuracao(t.duracaoMin), descreverRecorrencia(t.recorrencia), t.total > 0 ? `${t.feitas}/${t.total} ${quando}` : null].filter(Boolean).join(' · ');
+          {meta.tarefas.map((tf) => {
+            const detalhe = [formatarDuracao(tf.duracaoMin), descreverRecorrencia(tf.recorrencia), tf.total > 0 ? `${tf.feitas}/${tf.total} ${quando}` : null].filter(Boolean).join(' · ');
             return (
-              <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Icone nome={t.recorrencia ? 'repetir' : 'certo'} tamanho={12} cor={cores.texto3} espessura={2} />
+              <View key={tf.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Icone nome={tf.recorrencia ? 'repetir' : 'certo'} tamanho={12} cor={cores.texto3} espessura={2} />
                 <Text style={{ flexShrink: 1, fontFamily: fontes.textoMedio, fontSize: 13, lineHeight: 18, color: cores.texto2 }} numberOfLines={1}>
-                  {t.nome}
+                  {tf.nome}
                 </Text>
                 <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 18, color: cores.texto3 }} numberOfLines={1}>
                   {detalhe}
