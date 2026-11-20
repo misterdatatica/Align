@@ -255,6 +255,11 @@ export function carregarMeta(id: number, semana: string, hoje: string): MetaDeta
   return detalhar(comArea().where(eq(metas.id, id)).all(), semana, hoje)[0] ?? null;
 }
 
+/** Todas as metas das áreas por arquivar, pela ordem das áreas: a lista "As minhas metas". */
+export function carregarTodasAsMetas(semana: string, hoje: string): MetaDetalhada[] {
+  return detalhar(comArea().where(eq(areas.arquivada, false)).orderBy(asc(areas.ordem), asc(areas.id), asc(metas.id)).all(), semana, hoje);
+}
+
 /** As metas ativas de todas as áreas por arquivar, pela ordem das áreas: o passo das metas na revisão. */
 export function carregarMetasAtivas(semana: string, hoje: string): MetaDetalhada[] {
   return detalhar(

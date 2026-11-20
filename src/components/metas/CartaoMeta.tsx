@@ -18,10 +18,12 @@ type Props = {
   aoAbrir: () => void;
   /** A semana das contagens, no meio de uma frase: "esta semana", "na semana seguinte"… */
   quando: string;
+  /** Na lista de todas as metas: mostra a área por cima da descrição. */
+  area?: string;
 };
 
 /** Uma meta no detalhe da área: progresso, prazo, dias que faltam e as tarefas ligadas. Tocar abre-a. */
-export function CartaoMeta({ meta, cor, aoAbrir, quando }: Props) {
+export function CartaoMeta({ meta, cor, aoAbrir, quando, area }: Props) {
   const { cores, estilos } = useTema();
   const ativa = meta.estado === 'ativa';
   const progresso = textoDoProgresso(meta);
@@ -32,11 +34,17 @@ export function CartaoMeta({ meta, cor, aoAbrir, quando }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${meta.descricao}. ${ativa ? '' : `${t(NOME_DO_ESTADO[meta.estado])}. `}${progresso}. ${prazo}. ${nomesDasTarefas ? t('Tarefas ligadas: {nomes}', { nomes: nomesDasTarefas }) : t('Sem tarefas ligadas')}.`}
+      accessibilityLabel={`${area ? `${area}: ` : ''}${meta.descricao}. ${ativa ? '' : `${t(NOME_DO_ESTADO[meta.estado])}. `}${progresso}. ${prazo}. ${nomesDasTarefas ? t('Tarefas ligadas: {nomes}', { nomes: nomesDasTarefas }) : t('Sem tarefas ligadas')}.`}
       accessibilityHint={t('Abre a meta')}
       onPress={aoAbrir}
       style={({ pressed }) => ({ padding: 16, gap: 10, opacity: pressed ? 0.6 : 1 })}
     >
+      {area ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: -6 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: cor }} />
+          <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 16, color: cores.texto3 }}>{area}</Text>
+        </View>
+      ) : null}
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
         <Text style={{ flex: 1, fontFamily: fontes.textoForte, fontSize: 16, lineHeight: 22, color: ativa ? cores.tinta : cores.texto2 }}>{meta.descricao}</Text>
         {ativa ? null : (

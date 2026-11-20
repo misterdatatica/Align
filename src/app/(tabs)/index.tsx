@@ -7,7 +7,7 @@ import { Riscas } from '@/components/calendario/Bloco';
 import { avisarErro } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
 import { LinhaTarefa } from '@/components/LinhaTarefa';
-import { Botao, Cartao, Seccao, Titulo } from '@/components/ui';
+import { Botao, BotaoIcone, Cartao, Seccao, Titulo } from '@/components/ui';
 import { marcarBlocoFeito, type BlocoCalendario } from '@/data/calendario';
 import { useConsulta } from '@/data/consulta';
 import { primeiroArranque } from '@/data/definicoes';
@@ -68,7 +68,12 @@ export default function HojeEcra() {
   return (
     <SafeAreaView style={estilos.ecra} edges={['top']}>
       <ScrollView contentContainerStyle={estilos.conteudo}>
-        <Titulo subtitulo={titulo[0].toUpperCase() + titulo.slice(1)}>{t('Hoje')}</Titulo>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+          <View style={{ flex: 1 }}>
+            <Titulo subtitulo={titulo[0].toUpperCase() + titulo.slice(1)}>{t('Hoje')}</Titulo>
+          </View>
+          <BotaoIcone icone="lupa" rotulo={t('Pesquisar')} tamanho={22} cor={cores.texto2} onPress={() => router.push('/pesquisa')} style={{ marginRight: -10, marginTop: -4 }} />
+        </View>
 
         {porRever ? (
           <Pressable

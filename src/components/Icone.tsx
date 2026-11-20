@@ -30,7 +30,8 @@ export type NomeIcone =
   | 'aviso'
   | 'alvo'
   | 'pausa'
-  | 'sol';
+  | 'sol'
+  | 'lupa';
 
 /** Ícones de areas que o utilizador pode escolher. */
 export const iconesArea: NomeIcone[] = ['folha', 'casa', 'pasta', 'bola', 'coracao', 'livro'];
@@ -58,6 +59,13 @@ export function Icone({ nome, tamanho = 20, cor: corPedida, espessura = 1.8 }: P
 
 function desenho(nome: NomeIcone, t: object, cor: string) {
   switch (nome) {
+    case 'lupa':
+      return (
+        <>
+          <Circle cx="11" cy="11" r="6.5" {...t} />
+          <Path d="M16 16l4.5 4.5" {...t} />
+        </>
+      );
     case 'sol':
       return (
         <>

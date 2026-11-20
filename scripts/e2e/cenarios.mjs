@@ -215,6 +215,27 @@ const cenarios = {
       await b.verTexto('2/7'); // 1 vez já marcada na semana + a de hoje
     });
 
+    await passo('pesquisar sem acentos encontra a tarefa, e a lista de metas mostra-as por estado', async () => {
+      await b.clicar('Hoje');
+      await b.clicar('Pesquisar');
+      await b.escrever('licao');
+      await b.verTexto('Lição ACIM');
+      await b.clicar('Lição ACIM');
+      await b.verTexto('Guardar alterações');
+      await b.avaliar('history.back()');
+      await b.verTexto('Lição ACIM');
+      await b.avaliar('history.back()');
+      await b.clicar('Áreas');
+      await b.clicar('Todas as metas');
+      await b.verTexto('ATIVAS');
+      await b.verTexto('Conseguir meditar 1 h seguida');
+      await b.clicar('Abandonadas · 0');
+      await b.verTexto('Nenhuma meta neste estado.');
+      await b.avaliar('history.back()');
+      await b.clicar('Semana', { indice: -1 });
+      await b.verTexto('Planear a semana');
+    });
+
     await passo('alterar a repetição acerta as instâncias', async () => {
       await b.clicar('Meditar');
       await b.verTexto('Guardar alterações');

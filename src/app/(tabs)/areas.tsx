@@ -52,7 +52,10 @@ export default function AreasEcra() {
           <View style={{ flex: 1 }}>
             <Titulo subtitulo={t('Semana de {semana}', { semana: descreverSemanaPorExtenso(semana) })}>{t('As minhas áreas')}</Titulo>
           </View>
-          <BotaoIcone icone="engrenagem" rotulo={t('Definições')} tamanho={22} cor={cores.texto2} onPress={() => router.push('/definicoes')} style={{ marginRight: -10, marginTop: -4 }} />
+          <View style={{ flexDirection: 'row', marginRight: -10, marginTop: -4 }}>
+            <BotaoIcone icone="lupa" rotulo={t('Pesquisar')} tamanho={22} cor={cores.texto2} onPress={() => router.push('/pesquisa')} />
+            <BotaoIcone icone="engrenagem" rotulo={t('Definições')} tamanho={22} cor={cores.texto2} onPress={() => router.push('/definicoes')} />
+          </View>
         </View>
 
         <Seccao titulo={t('Áreas')} direita={<Text style={[estilos.pequeno, demasiadas ? { color: cores.tinta, fontFamily: fontes.textoForte } : null]}>{t('{n} de {max} recomendadas', { n: lista.length, max: AREAS_RECOMENDADAS })}</Text>}>
@@ -111,6 +114,10 @@ export default function AreasEcra() {
             </Text>
           ) : null}
         </Seccao>
+
+        {lista.length > 0 ? (
+          <Botao titulo={t('Todas as metas')} icone="alvo" variante="contorno" accessibilityHint={t('Ativas, pausadas, concluídas e abandonadas, de todas as áreas')} onPress={() => router.push('/metas')} />
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

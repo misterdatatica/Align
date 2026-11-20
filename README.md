@@ -33,6 +33,8 @@ src/
     meta/nova.tsx        criar meta
     tarefa/nova.tsx      criar tarefa          tarefa/[id].tsx   alterar ou apagar tarefa
     definicoes.tsx       revisão (dia, hora, lembrete), horas do calendário, cópia de segurança
+    pesquisa.tsx         pesquisar áreas, metas e tarefas pelo nome (sem acentos nem maiúsculas)
+    metas.tsx            "As minhas metas": todas as metas, por estado (ativas, pausadas, concluídas, abandonadas)
     boas-vindas.tsx      primeiro arranque, em três passos
   db/schema.ts           as entidades (Drizzle + SQLite), incluindo o histórico das metas e o plano das semanas
   db/client.ts           ligação à base de dados      db/preparar.ts   abre-a e aplica as migrações
