@@ -173,7 +173,8 @@ const cenarios = {
       await b.clicar('Alterar meta');
       await b.verTexto('ONDE QUER CHEGAR?');
       await b.clicar('Descrição da meta');
-      await b.escrever(' de 3 dias');
+      await b.avaliar('document.activeElement.select()');
+      await b.escrever('Fazer um retiro de silêncio de 3 dias');
       await b.clicar('Cancelar');
       for (let i = 0; i < 30 && !b.dialogos.some((d) => d.includes('Sair sem guardar?')); i++) await b.esperar(100);
       if (!b.dialogos.some((d) => d.includes('Sair sem guardar?'))) throw new Error('não perguntou antes de sair');
@@ -181,7 +182,8 @@ const cenarios = {
       await b.naoVerTexto('Fazer um retiro de silêncio de 3 dias');
       await b.clicar('Alterar meta');
       await b.clicar('Descrição da meta');
-      await b.escrever(' de 3 dias');
+      await b.avaliar('document.activeElement.select()');
+      await b.escrever('Fazer um retiro de silêncio de 3 dias');
       await b.clicar('Guardar alterações');
       await b.verTexto('Fazer um retiro de silêncio de 3 dias');
       if (b.dialogos.filter((d) => d.includes('Sair sem guardar?')).length !== 1) throw new Error('perguntou ao guardar');
@@ -627,7 +629,7 @@ const cenarios = {
     await passo('áreas, semana, calendário e revisão em inglês, com datas e horas em inglês', async () => {
       await b.clicar('Areas');
       await b.verTexto('My areas');
-      await b.verTexto('1 of 7 max');
+      await b.verTexto('1 of 7 recommended');
       await b.verTexto('Spiritual');
       await b.clicar('Week');
       await b.verTexto('Plan the week');
