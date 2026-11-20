@@ -139,7 +139,8 @@ export default function BoasVindasEcra() {
           <>
             <Cabecalho titulo={t('Quando faz a revisão da semana?')} texto={t('Uma vez por semana vê o que fez, passa o que ficou por fazer e planeia a semana seguinte.')} />
             <Cartao style={{ padding: 16, gap: 16 }}>
-              <View style={{ flexDirection: 'row', gap: 4 }} accessibilityRole="radiogroup" accessibilityLabel={t('Dia da revisão')}>
+              {/* Sete dias num cartão: em telemóveis estreitos encolhem um pouco, em vez de saírem do cartão. */}
+              <View style={{ flexDirection: 'row', gap: 3 }} accessibilityRole="radiogroup" accessibilityLabel={t('Dia da revisão')}>
                 {DIAS.map((dia) => (
                   <Opcao
                     key={dia}
@@ -147,7 +148,7 @@ export default function BoasVindasEcra() {
                     rotulo={t(DIAS_DE_REVISAO[dia])}
                     ativa={diaRevisao === dia}
                     onPress={() => setDiaRevisao(dia)}
-                    style={{ flex: 1, paddingHorizontal: 0 }}
+                    style={{ flex: 1, minWidth: 0, paddingHorizontal: 0 }}
                   />
                 ))}
               </View>

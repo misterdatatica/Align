@@ -1,13 +1,16 @@
-import { ScrollView, Switch, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { AppState, ScrollView, Switch, Text, View } from 'react-native';
 
+import { alarmesExatosPermitidos, avisosDosBlocosDisponiveis, pedirAlarmesExatos, pedirPermissaoDosAvisos, reagendarAvisosDosBlocos } from '@/avisos';
 import { avisar, avisarErro, confirmar } from '@/components/dialogos';
+import { EtiquetaPlus, SoPlus } from '@/components/Plus';
 import { Botao, Cartao, Opcao, Passo, Seccao } from '@/components/ui';
 import { exportarCopia, ondeGuardarACopia } from '@/components/exportarCopia';
 import { escolherFicheiro } from '@/copiaFicheiro';
 import { consultaAreasArquivadas, reporArea } from '@/data/areas';
 import { recarregarConsultas, useConsulta } from '@/data/consulta';
 import { importarDados, lerCopia, resumirCopia } from '@/data/copia';
-import { carregarDefinicoes, guardarDefinicoes, type Definicoes, type PreferenciaDeIdioma, type PreferenciaDeTema } from '@/data/definicoes';
+import { carregarDefinicoes, guardarDefinicoes, MINUTOS_ANTES, type Definicoes, type PreferenciaDeIdioma, type PreferenciaDeTema } from '@/data/definicoes';
 import { pedirParaReabrirDefinicoes } from '@/estado/reabrir';
 import { DIAS_DE_REVISAO } from '@/domain/revisao';
 import { descreverDia, formatarHora, paraDataISO } from '@/domain/semana';
@@ -40,6 +43,22 @@ export default function DefinicoesEcra() {
   const { cores, estilos, corDaArea } = useTema();
   const definicoes = useConsulta(carregarDefinicoes, ['definicoes']);
   const arquivadas = useConsulta(() => consultaAreasArquivadas().all(), ['areas']);
+  // No Android, os avisos dos blocos só chegam à hora certa com "Alarmes e lembretes" permitidos.
+  const [exatos, setExatos] = useState(true);
+  useEffect(() => {
+    if (!definicoes.avisosBlocos) return;
+    const ver = () => {
+      alarmesExatosPermitidos()
+        .then(setExatos)
+        .catch(() => {});
+    };
+    ver();
+    // Ao voltar das definições do telemóvel.
+    const estado = AppState.addEventListener('change', (e) => {
+      if (e === 'active') ver();
+    });
+    return () => estado.remove();
+  }, [definicoes.avisosBlocos]);
 
   function mudar(alteracoes: Partial<Definicoes>) {
     try {
@@ -71,6 +90,29 @@ export default function DefinicoesEcra() {
     }
   }
 
+  /** Como no lembrete, a permissão para notificações só é pedida quando se ligam os avisos. */
+  async function alternarAvisos(ativo: boolean) {
+    try {
+      if (ativo && !(await pedirPermissaoDosAvisos())) {
+        avisar(t('Notificações desligadas'), t('Para receber os avisos, autorize as notificações desta app nas definições do telemóvel.'));
+        return;
+      }
+      guardarDefinicoes({ avisosBlocos: ativo });
+      await reagendarAvisosDosBlocos();
+    } catch (erro) {
+      avisarErro(t('Não foi possível mudar os avisos'), erro);
+    }
+  }
+
+  async function permitirAlarmesExatos() {
+    try {
+      setExatos(await pedirAlarmesExatos());
+      await reagendarAvisosDosBlocos();
+    } catch (erro) {
+      avisarErro(t('Não foi possível abrir as definições do telemóvel'), erro);
+    }
+  }
+
   async function importar() {
     try {
       const texto = await escolherFicheiro();
@@ -92,6 +134,8 @@ export default function DefinicoesEcra() {
         await cancelarLembrete();
         if (importadas.lembreteAtivo) guardarDefinicoes({ lembreteAtivo: false });
       }
+      // Os avisos dos blocos também (agendam-se sozinhos, quando as definições mudam).
+      if (importadas.avisosBlocos && !(await pedirPermissaoDosAvisos())) guardarDefinicoes({ avisosBlocos: false });
       avisar(t('Dados importados'), t('A app tem agora {resumo}.', { resumo: resumirCopia(copia) }));
     } catch (erro) {
       avisarErro(t('Não foi possível importar os dados'), erro);
@@ -136,7 +180,8 @@ export default function DefinicoesEcra() {
         <Cartao style={{ padding: 16, gap: 16 }}>
           <View style={{ gap: 8 }}>
             <Text style={estilos.corpo}>{t('Dia da revisão')}</Text>
-            <View style={{ flexDirection: 'row', gap: 4 }} accessibilityRole="radiogroup" accessibilityLabel={t('Dia da revisão')}>
+            {/* Sete dias num cartão: em telemóveis estreitos encolhem um pouco, em vez de saírem do cartão. */}
+            <View style={{ flexDirection: 'row', gap: 3 }} accessibilityRole="radiogroup" accessibilityLabel={t('Dia da revisão')}>
               {DIAS.map((numero) => ({ numero, nome: t(DIAS_DE_REVISAO[numero]) })).map((d) => (
                 <Opcao
                   key={d.numero}
@@ -144,7 +189,7 @@ export default function DefinicoesEcra() {
                   rotulo={d.nome}
                   ativa={definicoes.diaRevisao === d.numero}
                   onPress={() => mudar({ diaRevisao: d.numero })}
-                  style={{ flex: 1, paddingHorizontal: 0 }}
+                  style={{ flex: 1, minWidth: 0, paddingHorizontal: 0 }}
                 />
               ))}
             </View>
@@ -204,6 +249,52 @@ export default function DefinicoesEcra() {
           </Linha>
           <Text style={estilos.pequeno}>{t('Se houver blocos fora destas horas, o calendário alarga-se para os mostrar.')}</Text>
         </Cartao>
+      </Seccao>
+
+      <Seccao titulo={t('Avisos dos blocos')} direita={<EtiquetaPlus />}>
+        <SoPlus mensagem={t('Os avisos antes de cada bloco fazem parte do Align Plus.')}>
+          <Cartao style={{ padding: 16, gap: 16 }}>
+            <View style={{ gap: 4 }}>
+              <Linha titulo={t('Avisar antes de cada bloco')}>
+                <Switch
+                  accessibilityLabel={t('Avisar antes de cada bloco')}
+                  value={definicoes.avisosBlocos}
+                  onValueChange={alternarAvisos}
+                  disabled={!avisosDosBlocosDisponiveis}
+                  trackColor={{ false: cores.contorno, true: cores.tinta }}
+                />
+              </Linha>
+              <Text style={estilos.pequeno}>
+                {avisosDosBlocosDisponiveis
+                  ? t('Uma notificação antes de cada bloco das tarefas que ainda não fez, neste telemóvel. Os “Ocupado” não avisam.')
+                  : t('Os avisos só funcionam na app do telemóvel.')}
+              </Text>
+            </View>
+            {definicoes.avisosBlocos && avisosDosBlocosDisponiveis ? (
+              <View style={{ gap: 8 }}>
+                <Text style={estilos.corpo}>{t('Quanto tempo antes')}</Text>
+                <View style={{ flexDirection: 'row', gap: 6 }} accessibilityRole="radiogroup" accessibilityLabel={t('Quanto tempo antes')}>
+                  {MINUTOS_ANTES.map((minutos) => (
+                    <Opcao
+                      key={minutos}
+                      titulo={t('{n} min', { n: minutos })}
+                      rotulo={t('{n} minutos antes', { n: minutos })}
+                      ativa={definicoes.minutosAntes === minutos}
+                      onPress={() => mudar({ minutosAntes: minutos })}
+                      style={{ flex: 1, paddingHorizontal: 0 }}
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+            {definicoes.avisosBlocos && avisosDosBlocosDisponiveis && !exatos ? (
+              <View style={{ gap: 8 }}>
+                <Text style={estilos.pequeno}>{t('Para os avisos chegarem à hora certa, permita “Alarmes e lembretes” a esta app. Sem isso, o Android pode atrasá-los.')}</Text>
+                <Botao titulo={t('Permitir alarmes e lembretes')} variante="contorno" onPress={permitirAlarmesExatos} />
+              </View>
+            ) : null}
+          </Cartao>
+        </SoPlus>
       </Seccao>
 
       <Seccao titulo={t('Cópia de segurança')}>

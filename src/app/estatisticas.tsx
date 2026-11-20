@@ -56,7 +56,7 @@ export default function EstatisticasEcra() {
         </View>
       </View>
 
-      <SoPlus funcionalidade={t('As estatísticas')}>
+      <SoPlus mensagem={t('As estatísticas e o histórico fazem parte do Align Plus.')}>
         {vazio ? (
           <Cartao style={{ padding: 16 }}>
             <Text style={estilos.corpo}>{periodo.tipo === 'mes' ? t('Ainda não há nada neste mês.') : t('Ainda não há nada neste ano.')}</Text>

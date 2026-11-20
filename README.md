@@ -32,7 +32,7 @@ src/
     meta/[id].tsx        uma meta: progresso, linha do histórico, atualizar valor, pausar, concluir
     meta/nova.tsx        criar meta
     tarefa/nova.tsx      criar tarefa          tarefa/[id].tsx   alterar ou apagar tarefa
-    definicoes.tsx       revisão (dia, hora, lembrete), horas do calendário, cópia de segurança
+    definicoes.tsx       revisão (dia, hora, lembrete), horas do calendário, avisos dos blocos, cópia de segurança
     pesquisa.tsx         pesquisar áreas, metas e tarefas pelo nome (sem acentos nem maiúsculas)
     estatisticas.tsx     estatísticas e histórico do mês ou do ano (Align Plus)
     metas.tsx            "As minhas metas": todas as metas, por estado (ativas, pausadas, concluídas, abandonadas)
@@ -51,6 +51,7 @@ src/
     metas/               cartão da meta, linha de progresso, atualizar o valor
   estado/semana.ts       o dia de hoje e a semana escolhida nos separadores
   lembrete.ts            lembrete local da revisão (expo-notifications); lembrete.web.ts não faz nada
+  avisos.ts              avisos antes de cada bloco (Align Plus), refeitos quando os blocos mudam; avisos.web.ts não faz nada
   copiaFicheiro.ts       guardar e abrir o ficheiro da cópia; copiaFicheiro.web.ts para o navegador
   i18n/                  traduções: t('texto em português'), en.ts (inglês), listas.ts e o teste que garante
                          que nada fica por traduzir
@@ -102,6 +103,16 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
 - **Estatísticas** (`src/data/estatisticas.ts`): um mês ou um ano, com as mesmas contas da revisão.
   Uma semana conta para o mês da sua quinta-feira. Só contam as semanas que já começaram e as áreas
   por arquivar. `metas.concluida_em` guarda quando uma meta foi concluída (migração 0007).
+- **Avisos dos blocos** (`src/avisos.ts`, regras em `src/domain/avisos.ts`): uma notificação local uns
+  minutos antes (5, 10, 15 ou 30) de cada bloco das tarefas por fazer; os "Ocupado" não avisam. O
+  telemóvel guarda poucas notificações agendadas (64 no iOS), por isso agendam-se as 60 mais próximas,
+  nos 7 dias seguintes, e a lista refaz-se quando a app abre, quando volta a ficar à frente e sempre
+  que os blocos, as tarefas ou as definições mudam (só cancela e agenda o que mudou). A partir de
+  sexta-feira a semana seguinte é criada (cópia desta, como ao abri-la), para os avisos de segunda
+  existirem mesmo sem abrir a app no fim de semana. Tocar num aviso abre o Hoje. No Android 12+ as
+  notificações só chegam à hora certa com "Alarmes e lembretes" permitidos (`SCHEDULE_EXACT_ALARM`
+  no `app.json`); as Definições mostram como permitir. Colunas `definicoes.avisos_blocos` e
+  `minutos_antes` (migração 0008).
 - `definicoes.ultima_copia` guarda a data da última cópia de segurança; a revisão lembra de fazer
   uma quando passaram mais de 30 dias.
 - Mover ou retirar um bloco de uma tarefa recorrente pede um âmbito. "Só esta semana" guarda o
@@ -134,7 +145,8 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
 - [ ] **Fase 5 — Testes e lojas:** testar num iPhone e num Android reais, corrigir, EAS Build / Submit.
 
 O que falta verificar em telemóveis reais (não se consegue no navegador): o arrasto com o dedo
-e a sua fluidez, o zoom de dois dedos no calendário, o lembrete (notificação à hora escolhida), exportar pela folha de partilha e
+e a sua fluidez, o zoom de dois dedos no calendário, o lembrete (notificação à hora escolhida), os avisos dos
+blocos (à hora certa, tocar abre o Hoje, "Alarmes e lembretes" no Android), exportar pela folha de partilha e
 importar pelo seletor de ficheiros, e o uso em modo de avião.
 
 ## Testes de ponta a ponta

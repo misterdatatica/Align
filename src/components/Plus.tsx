@@ -17,17 +17,18 @@ export function EtiquetaPlus() {
 }
 
 /**
- * Mostra o conteúdo a quem tem o Align Plus; aos outros, um convite. Por agora o Plus está aberto a
- * todos (ver src/plus.ts), por isso mostra sempre o conteúdo.
+ * Mostra o conteúdo a quem tem o Align Plus; aos outros, um convite com a `mensagem` (ex.: "As
+ * estatísticas fazem parte do Align Plus."). Por agora o Plus está aberto a todos (ver src/plus.ts),
+ * por isso mostra sempre o conteúdo.
  */
-export function SoPlus({ children, funcionalidade }: { children: ReactNode; funcionalidade: string }) {
+export function SoPlus({ children, mensagem }: { children: ReactNode; mensagem: string }) {
   const { estilos } = useTema();
   const plus = usePlus();
   if (plus) return <>{children}</>;
   return (
     <Cartao style={{ padding: 16, gap: 8 }}>
       <EtiquetaPlus />
-      <Text style={estilos.corpo}>{t('{funcionalidade} faz parte do Align Plus.', { funcionalidade })}</Text>
+      <Text style={estilos.corpo}>{mensagem}</Text>
     </Cartao>
   );
 }

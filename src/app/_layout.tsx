@@ -7,21 +7,22 @@ import { useEffect, useMemo, useState } from 'react';
 import { Appearance, Platform, Pressable, Text, useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { useAvisosDosBlocos } from '@/avisos';
 import { AvisoTemporario } from '@/components/AvisoTemporario';
 import { useConsulta } from '@/data/consulta';
 import { carregarDefinicoes, type PreferenciaDeTema } from '@/data/definicoes';
 import { prepararBaseDeDados } from '@/db/preparar';
 import { deveReabrirDefinicoes } from '@/estado/reabrir';
 import { definirIdioma, escolherIdioma, t, type Idioma } from '@/i18n';
-import { configurarLembretes, useAbrirRevisaoPeloLembrete } from '@/lembrete';
+import { configurarLembretes, useAbrirPelasNotificacoes } from '@/lembrete';
 import { ContextoDoTema, TEMAS, type Esquema } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
 configurarLembretes();
 
-/** Só existe depois de a navegação estar montada, para o toque no lembrete ter para onde ir. */
-function AbrirRevisaoPeloLembrete() {
-  useAbrirRevisaoPeloLembrete();
+/** Só existe depois de a navegação estar montada, para o toque numa notificação ter para onde ir. */
+function AbrirPelasNotificacoes() {
+  useAbrirPelasNotificacoes();
   return null;
 }
 
@@ -178,6 +179,7 @@ function AppComTema({ idiomaDoSistema }: { idiomaDoSistema: Idioma }) {
   const idioma: Idioma = preferenciaDeIdioma === 'automatico' ? idiomaDoSistema : preferenciaDeIdioma;
   definirIdioma(idioma);
   useEffect(() => aplicarAoSistema(preferencia), [preferencia]);
+  useAvisosDosBlocos();
   const tema = TEMAS[preferencia === 'automatico' ? esquemaDoSistema : preferencia];
   const { cores } = tema;
 
@@ -193,7 +195,7 @@ function AppComTema({ idiomaDoSistema }: { idiomaDoSistema: Idioma }) {
       <ThemeProvider value={temaDaNavegacao}>
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: cores.fundo }}>
           <StatusBar style={tema.escuro ? 'light' : 'dark'} />
-          <AbrirRevisaoPeloLembrete />
+          <AbrirPelasNotificacoes />
           <Stack screenOptions={{ contentStyle: { backgroundColor: cores.fundo }, headerShadowVisible: false, headerStyle: { backgroundColor: cores.fundo }, headerTintColor: cores.tinta }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="area/[id]" options={{ title: '', headerBackTitle: t('Áreas'), headerStyle: { backgroundColor: cores.fundo } }} />

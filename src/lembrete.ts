@@ -2,6 +2,8 @@ import * as Notifications from 'expo-notifications';
 import { AndroidImportance, IosAuthorizationStatus, SchedulableTriggerInputTypes } from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
+
+import { eAvisoDeBloco } from '@/domain/avisos';
 import { t } from '@/i18n';
 
 /*
@@ -31,14 +33,26 @@ function concedida(permissao: Notifications.NotificationPermissionsStatus): bool
   return permissao.granted || permissao.ios?.status === IosAuthorizationStatus.PROVISIONAL;
 }
 
-/** Pede autorização para notificações, se ainda for preciso. Devolve se o lembrete pode ser agendado. */
-export async function pedirPermissaoDeLembrete(): Promise<boolean> {
+/**
+ * Pede autorização para notificações, se ainda for preciso. Devolve se ficou autorizado.
+ * @param criarCanalAntes no Android 13+, o pedido do sistema só aparece depois de existir um canal.
+ */
+export async function pedirPermissao(criarCanalAntes: () => Promise<void>): Promise<boolean> {
   const atual = await Notifications.getPermissionsAsync();
   if (concedida(atual)) return true;
   if (!atual.canAskAgain) return false;
-  // No Android 13+, o pedido do sistema só aparece depois de existir um canal.
-  await criarCanal();
+  await criarCanalAntes();
   return concedida(await Notifications.requestPermissionsAsync());
+}
+
+/** Pede autorização para notificações, se ainda for preciso. Devolve se o lembrete pode ser agendado. */
+export function pedirPermissaoDeLembrete(): Promise<boolean> {
+  return pedirPermissao(criarCanal);
+}
+
+/** As notificações estão autorizadas (sem pedir nada). */
+export async function notificacoesAutorizadas(): Promise<boolean> {
+  return concedida(await Notifications.getPermissionsAsync());
 }
 
 export async function cancelarLembrete(): Promise<void> {
@@ -62,14 +76,19 @@ export async function agendarLembrete(diaRevisao: number, horaRevisao: string): 
   });
 }
 
-/** Tocar no lembrete abre o separador Revisão. Usar uma vez, no layout principal. */
-export function useAbrirRevisaoPeloLembrete() {
+/**
+ * Tocar numa notificação abre o ecrã certo: o lembrete abre a Revisão; os avisos dos blocos, o Hoje.
+ * Usar uma vez, no layout principal.
+ */
+export function useAbrirPelasNotificacoes() {
   const router = useRouter();
   const resposta = Notifications.useLastNotificationResponse();
   useEffect(() => {
-    if (resposta?.notification.request.identifier !== IDENTIFICADOR) return;
-    router.navigate('/revisao');
-    // Para a mesma resposta não voltar a abrir a revisão no próximo arranque.
+    const identificador = resposta?.notification.request.identifier;
+    if (identificador === IDENTIFICADOR) router.navigate('/revisao');
+    else if (identificador && eAvisoDeBloco(identificador)) router.navigate('/');
+    else return;
+    // Para a mesma resposta não voltar a abrir o ecrã no próximo arranque.
     Notifications.clearLastNotificationResponseAsync().catch(() => {});
   }, [resposta, router]);
 }

@@ -205,6 +205,10 @@ export const definicoes = sqliteTable('definicoes', {
   idioma: text('idioma', { enum: ['automatico', 'pt', 'en'] })
     .notNull()
     .default('automatico'),
+  /** Avisos dos blocos (Align Plus): uma notificação antes de cada bloco das tarefas. */
+  avisosBlocos: integer('avisos_blocos', { mode: 'boolean' }).notNull().default(false),
+  /** Quantos minutos antes do bloco chega o aviso. */
+  minutosAntes: integer('minutos_antes').notNull().default(10),
   ...timestamps,
 });
 
