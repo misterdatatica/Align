@@ -1,11 +1,9 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
 import { comDesfazer } from '@/components/AvisoTemporario';
 import { avisarErro } from '@/components/dialogos';
 import { AvisoDeSemana } from '@/components/AvisoDeSemana';
-import { FormularioMeta } from '@/components/FormularioMeta';
 import { Icone } from '@/components/Icone';
 import { AtualizarValor } from '@/components/metas/AtualizarValor';
 import { GraficoMeta } from '@/components/metas/GraficoMeta';
@@ -37,7 +35,6 @@ export default function MetaEcra() {
   const semana = useSemanaEscolhida();
   const atual = useSemanaAtual();
   const meta = useConsulta(() => carregarMeta(metaId, semana, hoje), TABELAS, `${metaId}|${semana}|${hoje}`);
-  const [aAlterar, setAAlterar] = useState(false);
 
   if (!meta) {
     return (
@@ -49,14 +46,6 @@ export default function MetaEcra() {
     );
   }
 
-  if (aAlterar) {
-    return (
-      <>
-        <Stack.Screen options={{ title: t('Alterar meta') }} />
-        <FormularioMeta areaId={meta.areaId} meta={meta} hoje={hoje} aoFechar={() => setAAlterar(false)} />
-      </>
-    );
-  }
 
   const cor = corDaArea(meta.area.cor);
   const ativa = meta.estado === 'ativa';
@@ -172,7 +161,7 @@ export default function MetaEcra() {
       ) : null}
 
       <View style={{ gap: 4 }}>
-        <Botao titulo={t('Alterar meta')} icone="lapis" variante="contorno" onPress={() => setAAlterar(true)} />
+        <Botao titulo={t('Alterar meta')} icone="lapis" variante="contorno" onPress={() => router.push({ pathname: '/meta/alterar', params: { id: String(meta.id) } })} />
         {ativa ? (
           <>
             <Botao titulo={t('Pausar meta')} icone="pausa" variante="texto" onPress={() => mudarEstado('pausada')} style={{ justifyContent: 'center' }} />

@@ -19,7 +19,7 @@ import {
   valorComUnidade,
 } from './metas.ts';
 import { fimCopiado, lugaresACopiar, sobreposicoesDaSemana } from './proposta.ts';
-import { encaixarMeiaHora, formatarHoras, MAX_AREAS, podeCriarArea, progresso } from './regras.ts';
+import { acimaDoRecomendado, AREAS_RECOMENDADAS, encaixarMeiaHora, formatarHoras, progresso } from './regras.ts';
 import { descreverData, descreverSemana, diasDaSemana, inicioDaSemana, semanaNaFrase, somarMeses, somarSemanas } from './semana.ts';
 
 describe('semana', () => {
@@ -67,10 +67,10 @@ describe('semana na frase', () => {
 });
 
 describe('regras', () => {
-  it('limita a 7 áreas ativas', () => {
-    assert.equal(MAX_AREAS, 7);
-    assert.equal(podeCriarArea(6), true);
-    assert.equal(podeCriarArea(7), false);
+  it('recomenda até 7 áreas ativas, sem impedir mais', () => {
+    assert.equal(AREAS_RECOMENDADAS, 7);
+    assert.equal(acimaDoRecomendado(7), false);
+    assert.equal(acimaDoRecomendado(8), true);
   });
 
   it('formata horas', () => {

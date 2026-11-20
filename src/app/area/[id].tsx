@@ -103,7 +103,11 @@ export default function AreaEcra() {
             />
           </View>
         </Cartao>
-        {podeCriarMeta ? null : <Text style={estilos.pequeno}>{t('O máximo são {max} metas ativas por área. Conclua, pause ou abandone uma para criar outra.', { max: MAX_METAS_ATIVAS })}</Text>}
+        <Text style={[estilos.pequeno, podeCriarMeta ? null : { color: cores.texto2 }]}>
+          {podeCriarMeta
+            ? t('Até {max} metas ativas por área: menos metas, mais foco. As pausadas e as concluídas não contam.', { max: MAX_METAS_ATIVAS })
+            : t('O máximo são {max} metas ativas por área. Conclua, pause ou abandone uma para criar outra.', { max: MAX_METAS_ATIVAS })}
+        </Text>
         {outras.length > 0 ? (
           <Cartao style={{ marginTop: 4 }}>
             {outras.map((m, i) => (

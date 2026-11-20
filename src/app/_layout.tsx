@@ -121,6 +121,7 @@ function AppComTema() {
             <Stack.Screen name="area/[id]" options={{ title: '', headerBackTitle: t('Áreas'), headerStyle: { backgroundColor: cores.fundo } }} />
             <Stack.Screen name="area/nova" options={{ title: t('Nova área'), presentation: 'modal' }} />
             <Stack.Screen name="meta/nova" options={{ title: t('Nova meta'), presentation: 'modal' }} />
+            <Stack.Screen name="meta/alterar" options={{ title: t('Alterar meta'), presentation: 'modal' }} />
             <Stack.Screen name="meta/[id]" options={{ title: '', headerBackTitle: t('Área'), headerStyle: { backgroundColor: cores.fundo } }} />
             <Stack.Screen name="tarefa/nova" options={{ title: t('Nova tarefa'), presentation: 'modal' }} />
             <Stack.Screen name="tarefa/[id]" options={{ title: t('Alterar tarefa'), presentation: 'modal' }} />

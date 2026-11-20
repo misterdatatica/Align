@@ -12,7 +12,7 @@ import { Botao, BotaoIcone, Seccao, Titulo } from '@/components/ui';
 import { criarArea, reordenarAreas } from '@/data/areas';
 import { recarregarConsultas, useConsulta } from '@/data/consulta';
 import { carregarPlano } from '@/data/tarefas';
-import { MAX_AREAS, podeCriarArea } from '@/domain/regras';
+import { acimaDoRecomendado, AREAS_RECOMENDADAS } from '@/domain/regras';
 import { descreverSemanaPorExtenso, semanaNaFrase } from '@/domain/semana';
 import { usePrepararSemana, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
 import { SUGESTOES_DE_AREAS } from '@/sugestoes';
@@ -32,7 +32,7 @@ export default function AreasEcra() {
   const [aCriar, setACriar] = useState<string | null>(null);
 
   const lista = plano.areas;
-  const podeCriar = podeCriarArea(lista.length);
+  const demasiadas = acimaDoRecomendado(lista.length);
 
   async function criarSugestao(s: (typeof SUGESTOES_DE_AREAS)[number]) {
     setACriar(s.nome);
@@ -55,7 +55,7 @@ export default function AreasEcra() {
           <BotaoIcone icone="engrenagem" rotulo={t('Definições')} tamanho={22} cor={cores.texto2} onPress={() => router.push('/definicoes')} style={{ marginRight: -10, marginTop: -4 }} />
         </View>
 
-        <Seccao titulo={t('Áreas')} direita={<Text style={estilos.pequeno}>{t('{n} de {max} no máximo', { n: lista.length, max: MAX_AREAS })}</Text>}>
+        <Seccao titulo={t('Áreas')} direita={<Text style={[estilos.pequeno, demasiadas ? { color: cores.tinta, fontFamily: fontes.textoForte } : null]}>{t('{n} de {max} recomendadas', { n: lista.length, max: AREAS_RECOMENDADAS })}</Text>}>
           <AvisoDeSemana semana={semana} />
           <ListaDeAreas
             itens={lista}
@@ -100,11 +100,16 @@ export default function AreasEcra() {
             titulo={t('Nova área')}
             icone="mais"
             variante="tracejado"
-            disabled={!podeCriar}
             onPress={() => router.push('/area/nova')}
-            accessibilityHint={podeCriar ? undefined : t('Já tem {max} áreas. Arquive uma para criar outra.', { max: MAX_AREAS })}
             style={{ marginTop: 2 }}
           />
+          {lista.length > 0 ? (
+            <Text style={[estilos.pequeno, demasiadas ? { color: cores.texto2 } : null]}>
+              {demasiadas
+                ? t('Tem {n} áreas. Recomendamos até {max}: com menos áreas, cada uma recebe mais atenção. Pode arquivar as que não precisam de si agora.', { n: lista.length, max: AREAS_RECOMENDADAS })
+                : t('Recomendamos até {max} áreas: menos áreas, mais foco.', { max: AREAS_RECOMENDADAS })}
+            </Text>
+          ) : null}
         </Seccao>
       </ScrollView>
     </SafeAreaView>

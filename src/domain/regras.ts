@@ -2,10 +2,12 @@ import { separadorDecimal, t } from '../i18n/index.ts';
 
 /** Regras de negócio da especificação v1 que não dependem da base de dados. */
 
-export const MAX_AREAS = 7;
+/** Número de áreas ativas recomendado. Não é um limite: pode criar mais, mas a app avisa. */
+export const AREAS_RECOMENDADAS = 7;
 
-export function podeCriarArea(areasAtivas: number): boolean {
-  return areasAtivas < MAX_AREAS;
+/** Há mais áreas ativas do que as recomendadas (menos áreas, mais foco). */
+export function acimaDoRecomendado(areasAtivas: number): boolean {
+  return areasAtivas > AREAS_RECOMENDADAS;
 }
 
 /** Formata horas à portuguesa: 14 → "14 h", 7.5 → "7,5 h", 0.5 → "30 min". */

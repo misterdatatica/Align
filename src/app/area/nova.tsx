@@ -62,7 +62,7 @@ export default function NovaAreaEcra() {
         <SeletorIcone valor={icone} cor={cor} onChange={setIcone} />
       </Seccao>
       <Botao titulo={t('Criar área')} onPress={guardar} disabled={aGuardar || !nome.trim()} />
-      <Text style={[estilos.pequeno, { textAlign: 'center' }]}>{t('Pode ter até 7 áreas. Menos áreas, mais foco.')}</Text>
+      <Text style={[estilos.pequeno, { textAlign: 'center' }]}>{t('Recomendamos até 7 áreas: menos áreas, mais foco.')}</Text>
     </ScrollView>
   );
 }

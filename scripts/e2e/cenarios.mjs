@@ -98,7 +98,7 @@ const cenarios = {
   async semana(b, passo) {
     await passo('primeiro arranque e criar uma área pelo formulário', async () => {
       await comecar(b, ['Espiritual']);
-      await b.verTexto('1 de 7 no máximo');
+      await b.verTexto('1 de 7 recomendadas');
       await b.clicar('Nova área');
       await b.verTexto('NOME');
       await b.clicar('Nome da área');
@@ -108,7 +108,7 @@ const cenarios = {
       await b.clicar('Criar área');
       await b.ate(`document.querySelector('[aria-label="Nome da área"]')?.value === 'Família'`, 'o detalhe da área Família');
       await b.avaliar('history.back()');
-      await b.verTexto('2 de 7 no máximo');
+      await b.verTexto('2 de 7 recomendadas');
     });
 
     await passo('uma meta é um resultado com prazo: número com alvo, ou marco', async () => {
@@ -160,6 +160,31 @@ const cenarios = {
       await b.clicar('Conseguir meditar 1 h seguida', { exato: false });
       await b.clicar('Retomar meta');
       await b.verTexto('Pausar meta');
+      await b.avaliar('history.back()');
+      await b.verTexto('2 de 3 ativas');
+      await b.avaliar('history.back()');
+      await b.verTexto('1 tarefa · 14 h esta semana');
+    });
+
+    await passo('alterar uma meta abre um modal com Cancelar, que pergunta antes de perder alterações', async () => {
+      await b.clicar('Espiritual');
+      await b.verTexto('Até 3 metas ativas por área: menos metas, mais foco.');
+      await b.clicar('Fazer um retiro de silêncio', { exato: false });
+      await b.clicar('Alterar meta');
+      await b.verTexto('ONDE QUER CHEGAR?');
+      await b.clicar('Descrição da meta');
+      await b.escrever(' de 3 dias');
+      await b.clicar('Cancelar');
+      for (let i = 0; i < 30 && !b.dialogos.some((d) => d.includes('Sair sem guardar?')); i++) await b.esperar(100);
+      if (!b.dialogos.some((d) => d.includes('Sair sem guardar?'))) throw new Error('não perguntou antes de sair');
+      await b.naoVerTexto('ONDE QUER CHEGAR?');
+      await b.naoVerTexto('Fazer um retiro de silêncio de 3 dias');
+      await b.clicar('Alterar meta');
+      await b.clicar('Descrição da meta');
+      await b.escrever(' de 3 dias');
+      await b.clicar('Guardar alterações');
+      await b.verTexto('Fazer um retiro de silêncio de 3 dias');
+      if (b.dialogos.filter((d) => d.includes('Sair sem guardar?')).length !== 1) throw new Error('perguntou ao guardar');
       await b.avaliar('history.back()');
       await b.verTexto('2 de 3 ativas');
       await b.avaliar('history.back()');
@@ -513,7 +538,7 @@ const cenarios = {
       await b.verTexto('NO CALENDÁRIO');
       await b.verTexto('Não há nada no calendário para hoje.');
       await b.clicar('Áreas');
-      await b.verTexto('2 de 7 no máximo');
+      await b.verTexto('2 de 7 recomendadas');
       await b.naoVerTexto('Família');
     });
 
@@ -543,7 +568,7 @@ const cenarios = {
       await b.clicar('Criar área');
       await b.ate(`document.querySelector('[aria-label="Nome da área"]')?.value === 'Saúde'`, 'o detalhe da área Saúde');
       await b.avaliar('history.back()');
-      await b.verTexto('3 de 7 no máximo');
+      await b.verTexto('3 de 7 recomendadas');
 
       await b.clicar('Definições');
       await b.enviar('Page.setInterceptFileChooserDialog', { enabled: true });
@@ -555,7 +580,7 @@ const cenarios = {
       if (!b.dialogos.some((d) => d.includes('Importar esta cópia?'))) throw new Error('não pediu confirmação');
       if (!b.dialogos.some((d) => d.includes('Dados importados'))) throw new Error('a importação não terminou');
       await b.avaliar('history.back()');
-      await b.verTexto('2 de 7 no máximo');
+      await b.verTexto('2 de 7 recomendadas');
       await b.naoVerTexto('Saúde');
     });
 
@@ -565,7 +590,7 @@ const cenarios = {
       await b.esperar(1500);
       await b.ir('/', 'NO CALENDÁRIO');
       await b.clicar('Áreas');
-      await b.verTexto('2 de 7 no máximo');
+      await b.verTexto('2 de 7 recomendadas');
     });
   },
 

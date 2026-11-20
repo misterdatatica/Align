@@ -102,7 +102,7 @@ export default function BoasVindasEcra() {
 
         {passo === 1 ? (
           <>
-            <Cabecalho titulo={t('Quais são as suas áreas?')} texto={t('Escolha as que fazem sentido para si. Pode mudar os nomes e as cores, e criar outras, quando quiser. O máximo são 7.')} />
+            <Cabecalho titulo={t('Quais são as suas áreas?')} texto={t('Escolha as que fazem sentido para si. Pode mudar os nomes e as cores, e criar outras, quando quiser. Recomendamos até 7.')} />
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               {SUGESTOES_DE_AREAS.map((s) => {
                 const cor = corDaArea(s.cor);

@@ -4,7 +4,6 @@ import { carregarMetasDaArea, type MetaDetalhada } from '@/data/metas';
 import { carregarPlano } from '@/data/tarefas';
 import { db } from '@/db/client';
 import { areas, type Area } from '@/db/schema';
-import { MAX_AREAS, podeCriarArea } from '@/domain/regras';
 import type { ResumoTarefa } from '@/domain/tarefas';
 import { ErroDaApp } from '@/domain/erros';
 import { t } from '@/i18n';
@@ -14,17 +13,10 @@ export const consultaAreasAtivas = () =>
 
 export const consultaAreasArquivadas = () => db.select().from(areas).where(eq(areas.arquivada, true)).orderBy(asc(areas.nome));
 
-export class LimiteDeAreasError extends ErroDaApp {
-  constructor() {
-    super(t('Pode ter no máximo {max} áreas ativas. Arquive uma para criar outra.', { max: MAX_AREAS }));
-  }
-}
-
 export async function criarArea(dados: { nome: string; cor: string; icone: string; missao: string }) {
   const nome = dados.nome.trim();
   if (!nome) throw new ErroDaApp(t('A área precisa de um nome.'));
   const [{ total }] = await db.select({ total: count() }).from(areas).where(eq(areas.arquivada, false));
-  if (!podeCriarArea(total)) throw new LimiteDeAreasError();
   const [criada] = await db
     .insert(areas)
     .values({ ...dados, nome, missao: dados.missao.trim(), ordem: total })
@@ -60,10 +52,9 @@ export function arquivarArea(id: number): void {
   db.update(areas).set({ arquivada: true }).where(eq(areas.id, id)).run();
 }
 
-/** Volta a mostrar uma área arquivada, se ainda couber no limite de áreas ativas. */
+/** Volta a mostrar uma área arquivada (no fim da lista). */
 export async function reporArea(id: number) {
   const [{ total }] = await db.select({ total: count() }).from(areas).where(eq(areas.arquivada, false));
-  if (!podeCriarArea(total)) throw new LimiteDeAreasError();
   await db
     .update(areas)
     .set({ arquivada: false, ordem: total, atualizadoEm: sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))` })

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { Stack, useNavigation, usePreventRemove, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 
 import { CampoData } from '@/components/CampoData';
-import { avisarErro } from '@/components/dialogos';
+import { avisarErro, confirmar } from '@/components/dialogos';
 import { Botao, Opcao, Seccao } from '@/components/ui';
 import { atualizarMeta, criarMeta } from '@/data/metas';
 import type { Meta } from '@/db/schema';
@@ -28,6 +29,9 @@ const MEDIDAS = (): { medida: MedidaMeta; titulo: string; ajuda: string }[] => [
 /**
  * Criar ou alterar uma meta: um resultado a alcançar até uma data, medido com um número ou como um
  * marco. O que se faz para lá chegar são as tarefas, que se ligam à meta no formulário da tarefa.
+ *
+ * Abre como modal, com "Cancelar" no cabeçalho. Sair com alterações por guardar (Cancelar, voltar
+ * atrás ou deslizar o modal) pergunta primeiro "Sair sem guardar?".
  */
 export function FormularioMeta({ areaId, meta, hoje, aoFechar }: Props) {
   const { cores, estilos } = useTema();
@@ -38,6 +42,27 @@ export function FormularioMeta({ areaId, meta, hoje, aoFechar }: Props) {
   const [alvo, setAlvo] = useState(meta?.valorAlvo != null ? formatarValor(meta.valorAlvo) : '');
   const [unidade, setUnidade] = useState(meta?.unidade ?? '');
   const [aGuardar, setAGuardar] = useState(false);
+  const router = useRouter();
+  const navigation = useNavigation();
+
+  // O que estava no formulário ao abrir, para saber se há alterações por guardar.
+  const [noInicio] = useState(() => JSON.stringify([medida, descricao, prazo, inicial, alvo, unidade]));
+  const alterado = JSON.stringify([medida, descricao, prazo, inicial, alvo, unidade]) !== noInicio;
+
+  // Depois de guardar, fecha-se sem perguntar nada. Fecha-se depois do render seguinte, para o
+  // aviso de alterações por guardar já estar desligado.
+  const [guardada, setGuardada] = useState(false);
+  useEffect(() => {
+    if (guardada) aoFechar();
+    // Só quando acaba de guardar: aoFechar muda a cada render e fecharia o ecrã mais do que uma vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guardada]);
+
+  usePreventRemove(alterado && !guardada, ({ data }) => {
+    confirmar({ titulo: t('Sair sem guardar?'), mensagem: meta ? t('As alterações a esta meta perdem-se.') : t('A meta não é criada.'), acao: t('Sair'), destrutiva: true }).then((sim) => {
+      if (sim) navigation.dispatch(data.action);
+    });
+  });
 
   const valorInicial = lerValor(inicial);
   const valorAlvo = lerValor(alvo);
@@ -51,7 +76,7 @@ export function FormularioMeta({ areaId, meta, hoje, aoFechar }: Props) {
     try {
       if (meta) atualizarMeta(meta.id, dados);
       else criarMeta({ areaId, ...dados });
-      aoFechar();
+      setGuardada(true);
     } catch (erro) {
       avisarErro(t('Não foi possível guardar a meta'), erro);
       setAGuardar(false);
@@ -60,6 +85,7 @@ export function FormularioMeta({ areaId, meta, hoje, aoFechar }: Props) {
 
   return (
     <ScrollView style={estilos.ecra} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+      <Stack.Screen options={{ headerLeft: () => <Botao titulo={t('Cancelar')} variante="texto" onPress={() => router.back()} style={{ minHeight: 44, paddingHorizontal: 8 }} /> }} />
       <Seccao titulo={t('Onde quer chegar?')}>
         <TextInput
           value={descricao}
