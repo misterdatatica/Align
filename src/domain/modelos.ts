@@ -5,7 +5,7 @@ import { formatarHora } from './semana.ts';
 import { formatarDuracao } from './tarefas.ts';
 
 /*
- * Modelos (Align Plus): conjuntos de áreas com missão e tarefas já com horário, para quem prefere não
+ * Modelos (WeekAlign Plus): conjuntos de áreas com missão e tarefas já com horário, para quem prefere não
  * começar do zero. Aplicar um modelo acrescenta o que ainda não existe (ver src/data/modelos.ts); depois
  * muda-se tudo como o resto. Os textos estão em português e passam por t(), como os do resto da app.
  */

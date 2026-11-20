@@ -7,7 +7,7 @@ import { progressoDaMeta } from '@/domain/metas';
 import { deDataISO, descreverDataCurta, inicioDaSemana, minutosEntre } from '@/domain/semana';
 
 /*
- * Estatísticas e histórico (Align Plus) de um mês ou de um ano: horas planeadas e feitas (com as mesmas
+ * Estatísticas e histórico (WeekAlign Plus) de um mês ou de um ano: horas planeadas e feitas (com as mesmas
  * contas da revisão), por coluna (semanas do mês ou meses do ano) e por área, o que mais ficou por fazer,
  * as metas concluídas e a evolução das metas de número, e as reflexões das revisões.
  *

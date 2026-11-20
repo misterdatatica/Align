@@ -1,7 +1,7 @@
 import { MINUTOS_DIA, paraDataISO } from './semana.ts';
 
 /*
- * Eventos dos calendários do telemóvel (Align Plus): aparecem no calendário da semana como blocos
+ * Eventos dos calendários do telemóvel (WeekAlign Plus): aparecem no calendário da semana como blocos
  * "Ocupado", só para ver. O calendário da app só tem blocos dentro de um dia, por isso um evento que
  * passa da meia-noite fica partido em pedaços, um por dia.
  */

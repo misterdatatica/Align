@@ -1,6 +1,6 @@
 {
   "ios": {
-    "NSCalendarsUsageDescription": "Align shows the events from your calendars as “Busy” blocks in your weekly calendar. It only reads them: it doesn't create or change events.",
-    "NSCalendarsFullAccessUsageDescription": "Align shows the events from your calendars as “Busy” blocks in your weekly calendar. It only reads them: it doesn't create or change events."
+    "NSCalendarsUsageDescription": "WeekAlign shows the events from your calendars as “Busy” blocks in your weekly calendar. It only reads them: it doesn't create or change events.",
+    "NSCalendarsFullAccessUsageDescription": "WeekAlign shows the events from your calendars as “Busy” blocks in your weekly calendar. It only reads them: it doesn't create or change events."
   }
 }

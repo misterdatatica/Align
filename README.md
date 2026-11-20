@@ -1,4 +1,4 @@
-# Align — Áreas de Responsabilidade
+# WeekAlign — Áreas de Responsabilidade
 
 App móvel (iOS e Android) para definir áreas da vida, a missão de cada uma, metas (resultados com
 prazo), tarefas, e alocá-las num calendário semanal que cada semana começa como uma cópia da anterior.
@@ -35,9 +35,9 @@ src/
     definicoes.tsx       revisão (dia, hora, lembrete), horas do calendário, avisos dos blocos, calendários do
                          telemóvel, cópia de segurança
     pesquisa.tsx         pesquisar áreas, metas e tarefas pelo nome (sem acentos nem maiúsculas)
-    estatisticas.tsx     estatísticas e histórico do mês ou do ano (Align Plus)
+    estatisticas.tsx     estatísticas e histórico do mês ou do ano (WeekAlign Plus)
     metas.tsx            "As minhas metas": todas as metas, por estado (ativas, pausadas, concluídas, abandonadas)
-    modelos.tsx          modelos de áreas e tarefas já com horário (Align Plus)
+    modelos.tsx          modelos de áreas e tarefas já com horário (WeekAlign Plus)
     boas-vindas.tsx      primeiro arranque, em três passos (as áreas, ou um modelo)
   db/schema.ts           as entidades (Drizzle + SQLite), incluindo o histórico das metas e o plano das semanas
   db/client.ts           ligação à base de dados      db/preparar.ts   abre-a e aplica as migrações
@@ -53,8 +53,8 @@ src/
     metas/               cartão da meta, linha de progresso, atualizar o valor
   estado/semana.ts       o dia de hoje e a semana escolhida nos separadores
   lembrete.ts            lembrete local da revisão (expo-notifications); lembrete.web.ts não faz nada
-  avisos.ts              avisos antes de cada bloco (Align Plus), refeitos quando os blocos mudam; avisos.web.ts não faz nada
-  eventos.ts             eventos dos calendários do telemóvel como "Ocupado" (Align Plus); eventos.web.ts não faz nada
+  avisos.ts              avisos antes de cada bloco (WeekAlign Plus), refeitos quando os blocos mudam; avisos.web.ts não faz nada
+  eventos.ts             eventos dos calendários do telemóvel como "Ocupado" (WeekAlign Plus); eventos.web.ts não faz nada
 idiomas/                 textos do iOS por idioma (o pedido de acesso aos calendários)
   copiaFicheiro.ts       guardar e abrir o ficheiro da cópia; copiaFicheiro.web.ts para o navegador
   i18n/                  traduções: t('texto em português'), en.ts (inglês), listas.ts e o teste que garante
@@ -101,7 +101,7 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
   `t('Revisão de {dia}', { dia })`. Os textos novos vão para `src/i18n/en.ts`; `npm test` falha se
   algum ficar sem tradução, se as `{chavetas}` não baterem certo ou se sobrar uma tradução que já não se usa.
   Datas, meses, dias da semana e o separador decimal também mudam com o idioma.
-- **Align Plus:** as funcionalidades pagas perguntam a `temPlus()` (`src/plus.ts`), que por agora
+- **WeekAlign Plus:** as funcionalidades pagas perguntam a `temPlus()` (`src/plus.ts`), que por agora
   responde sempre que sim. Quando houver pagamentos, só aí se muda. `SoPlus` e `EtiquetaPlus` estão
   em `src/components/Plus.tsx`.
 - **Estatísticas** (`src/data/estatisticas.ts`): um mês ou um ano, com as mesmas contas da revisão.

@@ -21,11 +21,11 @@ export type Definicoes = {
   tema: PreferenciaDeTema;
   /** Idioma: o do telemóvel, ou sempre português ou inglês. */
   idioma: PreferenciaDeIdioma;
-  /** Avisos dos blocos (Align Plus): uma notificação antes de cada bloco das tarefas. */
+  /** Avisos dos blocos (WeekAlign Plus): uma notificação antes de cada bloco das tarefas. */
   avisosBlocos: boolean;
   /** Quantos minutos antes do bloco chega o aviso. */
   minutosAntes: number;
-  /** Mostrar os eventos dos calendários do telemóvel como "Ocupado" (Align Plus). */
+  /** Mostrar os eventos dos calendários do telemóvel como "Ocupado" (WeekAlign Plus). */
   eventosTelemovel: boolean;
   /** Os calendários do telemóvel escondidos (ids). Os que não estão aqui aparecem, mesmo os novos. */
   calendariosEscondidos: string[];

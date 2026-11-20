@@ -18,7 +18,7 @@ import { fontes, useTema } from '@/theme';
 const TABELAS = ['areas', 'metas', 'metas_registos', 'tarefas', 'tarefas_semana', 'blocos', 'revisoes', 'semanas'] as const;
 
 /**
- * Estatísticas e histórico (Align Plus): o balanço de um mês ou de um ano. Horas feitas contra as
+ * Estatísticas e histórico (WeekAlign Plus): o balanço de um mês ou de um ano. Horas feitas contra as
  * planeadas, por semana ou por mês e por área, as metas, o que mais ficou por fazer e as reflexões.
  */
 export default function EstatisticasEcra() {
@@ -56,7 +56,7 @@ export default function EstatisticasEcra() {
         </View>
       </View>
 
-      <SoPlus mensagem={t('As estatísticas e o histórico fazem parte do Align Plus.')}>
+      <SoPlus mensagem={t('As estatísticas e o histórico fazem parte do WeekAlign Plus.')}>
         {vazio ? (
           <Cartao style={{ padding: 16 }}>
             <Text style={estilos.corpo}>{periodo.tipo === 'mes' ? t('Ainda não há nada neste mês.') : t('Ainda não há nada neste ano.')}</Text>

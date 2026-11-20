@@ -10,7 +10,7 @@ import { deDataISO, inicioDaSemana, somarSemanas } from '@/domain/semana';
 import { temPlus } from '@/plus';
 
 /*
- * Eventos dos calendários do telemóvel (Align Plus): os do Google Calendar, do iCloud e de outras contas
+ * Eventos dos calendários do telemóvel (WeekAlign Plus): os do Google Calendar, do iCloud e de outras contas
  * que o telemóvel tenha. Leem-se da semana atual e das seguintes e guardam-se como blocos "Ocupado"
  * (ver src/data/eventos.ts), refeitos quando a app abre, quando volta a ficar à frente e quando as
  * definições mudam. A app só lê: não cria nem muda eventos. Na web não há: ver eventos.web.ts.

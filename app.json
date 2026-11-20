@@ -1,16 +1,17 @@
 {
   "expo": {
-    "name": "Align",
+    "name": "WeekAlign",
     "slug": "align",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "pt.weekalign.app"
     },
     "android": {
-      "package": "pt.align.app",
+      "package": "pt.weekalign.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -49,7 +50,7 @@
       [
         "expo-calendar",
         {
-          "calendarPermission": "Align shows the events from your calendars as “Busy” blocks in your weekly calendar. It only reads them: it doesn't create or change events.",
+          "calendarPermission": "WeekAlign shows the events from your calendars as “Busy” blocks in your weekly calendar. It only reads them: it doesn't create or change events.",
           "remindersPermission": false
         }
       ]
@@ -58,7 +59,7 @@
       "pt": "./idiomas/pt.json",
       "en": "./idiomas/en.json"
     },
-    "scheme": "align",
+    "scheme": "weekalign",
     "experiments": {
       "typedRoutes": true
     },

@@ -268,7 +268,7 @@ export default function DefinicoesEcra() {
       </Seccao>
 
       <Seccao titulo={t('Avisos dos blocos')} direita={<EtiquetaPlus />}>
-        <SoPlus mensagem={t('Os avisos antes de cada bloco fazem parte do Align Plus.')}>
+        <SoPlus mensagem={t('Os avisos antes de cada bloco fazem parte do WeekAlign Plus.')}>
           <Cartao style={{ padding: 16, gap: 16 }}>
             <View style={{ gap: 4 }}>
               <Linha titulo={t('Avisar antes de cada bloco')}>
@@ -314,7 +314,7 @@ export default function DefinicoesEcra() {
       </Seccao>
 
       <Seccao titulo={t('Calendários do telemóvel')} direita={<EtiquetaPlus />}>
-        <SoPlus mensagem={t('Ver os eventos do telemóvel no calendário faz parte do Align Plus.')}>
+        <SoPlus mensagem={t('Ver os eventos do telemóvel no calendário faz parte do WeekAlign Plus.')}>
           <Cartao style={{ padding: 16, gap: 16 }}>
             <View style={{ gap: 4 }}>
               <Linha titulo={t('Mostrar os eventos do telemóvel')}>

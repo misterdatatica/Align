@@ -3,7 +3,7 @@ import { deDataISO } from './semana.ts';
 import { formatarIntervalo } from './calendario.ts';
 
 /*
- * Avisos dos blocos (Align Plus): uma notificação uns minutos antes de cada bloco das tarefas. O
+ * Avisos dos blocos (WeekAlign Plus): uma notificação uns minutos antes de cada bloco das tarefas. O
  * telemóvel só guarda um número limitado de notificações agendadas (64 no iOS), por isso agendam-se as
  * mais próximas, numa janela que se refaz sempre que os blocos mudam ou a app abre.
  */

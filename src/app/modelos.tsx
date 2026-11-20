@@ -13,7 +13,7 @@ import { t } from '@/i18n';
 import { useTema } from '@/theme';
 
 /**
- * Modelos (Align Plus): áreas com missão e tarefas já com horário. Usar um modelo junta-o ao que já
+ * Modelos (WeekAlign Plus): áreas com missão e tarefas já com horário. Usar um modelo junta-o ao que já
  * existe (sem repetir áreas nem tarefas com o mesmo nome), com "Desfazer".
  */
 export default function ModelosEcra() {
@@ -42,7 +42,7 @@ export default function ModelosEcra() {
       <Text style={[estilos.corpo, { color: cores.texto2 }]}>
         {t('Áreas com missão e tarefas já com horário, para não começar do zero. Juntam-se às que já tem, e depois muda tudo à sua medida.')}
       </Text>
-      <SoPlus mensagem={t('Os modelos fazem parte do Align Plus.')}>
+      <SoPlus mensagem={t('Os modelos fazem parte do WeekAlign Plus.')}>
         {MODELOS().map((m) => (
           <CartaoDoModelo key={m.id} modelo={m}>
             {aberto === m.id ? <TarefasDoModelo modelo={m} /> : null}

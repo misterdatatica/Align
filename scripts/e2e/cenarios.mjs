@@ -697,7 +697,7 @@ const cenarios = {
     });
   },
 
-  /** Modelos (Align Plus): no primeiro arranque e no separador Áreas, com "Desfazer". */
+  /** Modelos (WeekAlign Plus): no primeiro arranque e no separador Áreas, com "Desfazer". */
   async modelos(b, passo) {
     await passo('o primeiro arranque pode começar com um modelo', async () => {
       await b.ir('/', 'Uma semana alinhada');

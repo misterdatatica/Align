@@ -1,6 +1,6 @@
 {
   "ios": {
-    "NSCalendarsUsageDescription": "O Align mostra os eventos dos seus calendários como blocos “Ocupado” no calendário da semana. Só os lê: não cria nem muda eventos.",
-    "NSCalendarsFullAccessUsageDescription": "O Align mostra os eventos dos seus calendários como blocos “Ocupado” no calendário da semana. Só os lê: não cria nem muda eventos."
+    "NSCalendarsUsageDescription": "O WeekAlign mostra os eventos dos seus calendários como blocos “Ocupado” no calendário da semana. Só os lê: não cria nem muda eventos.",
+    "NSCalendarsFullAccessUsageDescription": "O WeekAlign mostra os eventos dos seus calendários como blocos “Ocupado” no calendário da semana. Só os lê: não cria nem muda eventos."
   }
 }

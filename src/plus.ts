@@ -1,5 +1,5 @@
 /*
- * Align Plus: as funcionalidades pagas (estatísticas, avisos dos blocos, modelos, calendário do
+ * WeekAlign Plus: as funcionalidades pagas (estatísticas, avisos dos blocos, modelos, calendário do
  * telemóvel, widget).
  *
  * Ainda não há base de pagamentos, por isso todas estão abertas: temPlus() responde sempre que sim.
@@ -7,7 +7,7 @@
  * usePlus() e não sabem de onde vem a resposta.
  */
 
-/** O utilizador tem o Align Plus? */
+/** O utilizador tem o WeekAlign Plus? */
 export function temPlus(): boolean {
   return true;
 }

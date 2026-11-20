@@ -12,7 +12,7 @@ import { notificacoesAutorizadas, pedirPermissao } from '@/lembrete';
 import { temPlus } from '@/plus';
 
 /*
- * Avisos dos blocos (Align Plus), no telemóvel: notificações locais, agendadas uns minutos antes de cada
+ * Avisos dos blocos (WeekAlign Plus), no telemóvel: notificações locais, agendadas uns minutos antes de cada
  * bloco das tarefas por fazer (ver src/domain/avisos.ts). Refazem-se quando a app abre, quando volta a
  * ficar à frente e sempre que os blocos, as tarefas ou as definições mudam. Na web não há avisos: ver
  * avisos.web.ts.
