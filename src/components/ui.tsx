@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type PressableProps, type TextStyle, type ViewStyle } from 'react-native';
+import { Pressable, Text, View, type PressableProps, type ViewStyle } from 'react-native';
 
-import { cores, coresArea, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 import { Icone, iconesArea, type NomeIcone } from './Icone';
 
 /** Altura de linha de cada tamanho de título do design. */
@@ -9,6 +9,7 @@ const ALTURA_TITULO = { 30: 36, 28: 34, 24: 32 } as const;
 
 /** Título do ecrã. O design usa 30 px nas Áreas, 28 px na Semana e na Revisão e 24 px no Calendário. */
 export function Titulo({ children, subtitulo, tamanho = 30 }: { children: ReactNode; subtitulo?: string; tamanho?: 30 | 28 | 24 }) {
+  const { estilos } = useTema();
   return (
     <View style={{ gap: 4 }}>
       {subtitulo ? <Text style={estilos.subtitulo}>{subtitulo}</Text> : null}
@@ -20,6 +21,7 @@ export function Titulo({ children, subtitulo, tamanho = 30 }: { children: ReactN
 }
 
 export function Seccao({ titulo, direita, children, style }: { titulo: string; direita?: ReactNode; children: ReactNode; style?: ViewStyle }) {
+  const { estilos } = useTema();
   return (
     <View style={[{ gap: 8 }, style]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -34,6 +36,7 @@ export function Seccao({ titulo, direita, children, style }: { titulo: string; d
 }
 
 export function Cartao({ children, style }: { children: ReactNode; style?: ViewStyle }) {
+  const { estilos } = useTema();
   return <View style={[estilos.cartao, style]}>{children}</View>;
 }
 
@@ -46,7 +49,8 @@ type BotaoProps = Omit<PressableProps, 'children' | 'style'> & {
 };
 
 export function Botao({ titulo, icone, variante = 'primario', style, disabled, ...resto }: BotaoProps) {
-  const cor = variante === 'primario' ? '#FFFFFF' : variante === 'perigo' ? cores.perigo : cores.tinta;
+  const { cores, estilos } = useTema();
+  const cor = variante === 'primario' ? cores.sobreTinta : variante === 'perigo' ? cores.perigo : cores.tinta;
   return (
     <Pressable
       accessibilityRole="button"
@@ -78,7 +82,9 @@ type BotaoIconeProps = Omit<PressableProps, 'children' | 'style'> & {
 };
 
 /** Botão só com ícone, com alvo de toque de 44 px. */
-export function BotaoIcone({ icone, rotulo, cor = cores.tinta, tamanho = 20, style, disabled, ...resto }: BotaoIconeProps) {
+export function BotaoIcone({ icone, rotulo, cor: corPedida, tamanho = 20, style, disabled, ...resto }: BotaoIconeProps) {
+  const { cores } = useTema();
+  const cor = corPedida ?? cores.tinta;
   return (
     <Pressable
       accessibilityRole="button"
@@ -117,6 +123,7 @@ export function Opcao({
   ponto?: string;
   style?: ViewStyle;
 }) {
+  const { cores } = useTema();
   return (
     <Pressable
       accessibilityRole={multipla ? 'checkbox' : 'radio'}
@@ -141,7 +148,7 @@ export function Opcao({
       ]}
     >
       {ponto ? <View style={{ width: 10, height: 10, borderRadius: 999, backgroundColor: ponto }} /> : null}
-      <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, color: ativa ? '#FFFFFF' : cores.tinta }}>{titulo}</Text>
+      <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, color: ativa ? cores.sobreTinta : cores.tinta }}>{titulo}</Text>
     </Pressable>
   );
 }
@@ -166,6 +173,7 @@ export function Passo({
   /** O que se está a ajustar, para o leitor de ecrã (ex.: "Duração"). */
   rotulo: string;
 }) {
+  const { cores } = useTema();
   return (
     <View
       accessible
@@ -187,7 +195,9 @@ export function Passo({
 }
 
 /** Barra de progresso do design: 8 px, cantos redondos, pista cinzenta. */
-export function BarraProgresso({ valor, cor, pista = cores.pista }: { valor: number; cor: string; pista?: string }) {
+export function BarraProgresso({ valor, cor, pista: pistaPedida }: { valor: number; cor: string; pista?: string }) {
+  const { cores } = useTema();
+  const pista = pistaPedida ?? cores.pista;
   const proporcao = Math.min(1, Math.max(0, valor));
   return (
     <View style={{ height: 8, borderRadius: 999, backgroundColor: pista, overflow: 'hidden' }} aria-hidden>
@@ -197,6 +207,7 @@ export function BarraProgresso({ valor, cor, pista = cores.pista }: { valor: num
 }
 
 export function SeletorCor({ valor, onChange }: { valor: string; onChange: (id: string) => void }) {
+  const { cores, coresArea } = useTema();
   return (
     <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
       {coresArea.map((c) => {
@@ -228,6 +239,7 @@ export function SeletorCor({ valor, onChange }: { valor: string; onChange: (id: 
 
 /** Escolha do ícone da área; o ícone ativo usa a cor da área. */
 export function SeletorIcone({ valor, cor, onChange }: { valor: string; cor: string; onChange: (nome: NomeIcone) => void }) {
+  const { cores, corDaArea } = useTema();
   const c = corDaArea(cor);
   return (
     <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }} accessibilityRole="radiogroup" accessibilityLabel="Ícone">
@@ -258,28 +270,3 @@ export function SeletorIcone({ valor, cor, onChange }: { valor: string; cor: str
     </View>
   );
 }
-
-export const estilos = StyleSheet.create({
-  ecra: { flex: 1, backgroundColor: cores.fundo },
-  conteudo: { padding: 16, gap: 20, paddingBottom: 32 },
-  titulo: { fontFamily: fontes.titulo, fontSize: 30, lineHeight: 36, letterSpacing: -0.6, color: cores.tinta },
-  subtitulo: { fontFamily: fontes.textoMedio, fontSize: 13, lineHeight: 18, color: cores.texto3 },
-  rotulo: { fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, letterSpacing: 0.7, color: cores.texto3 },
-  cartao: { backgroundColor: cores.superficie, borderRadius: 16, borderWidth: 1, borderColor: cores.linha },
-  botao: { minHeight: 48, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 16 },
-  textoBotao: { fontFamily: fontes.textoForte, fontSize: 15 },
-  corpo: { fontFamily: fontes.texto, fontSize: 15, lineHeight: 20, color: cores.tinta } as TextStyle,
-  pequeno: { fontFamily: fontes.texto, fontSize: 13, lineHeight: 18, color: cores.texto3 } as TextStyle,
-  campo: {
-    fontFamily: fontes.texto,
-    fontSize: 16,
-    color: cores.tinta,
-    backgroundColor: cores.superficie,
-    borderWidth: 1,
-    borderColor: '#8A909A',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    minHeight: 48,
-  } as TextStyle,
-});

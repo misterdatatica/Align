@@ -5,10 +5,10 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming, type SharedValu
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { Icone, type NomeIcone } from '@/components/Icone';
-import { estilos } from '@/components/ui';
+
 import type { Area } from '@/db/schema';
 import { formatarHoras } from '@/domain/regras';
-import { cores, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 /** Espaço entre cartões, como no design. */
 const INTERVALO = 10;
@@ -92,6 +92,7 @@ type CartaoProps = {
 };
 
 function CartaoDeArea({ item, indice, total, alturasNaOrdem, ativo, destino, deslocamento, aoMedir, aoAbrir, aoMover, quando }: CartaoProps) {
+  const { cores, estilos, corDaArea } = useTema();
   const { area, tarefas, minutosPlaneados } = item;
   const cor = corDaArea(area.cor);
   const n = tarefas.length;

@@ -1,12 +1,12 @@
 import { Pressable, Text, View } from 'react-native';
 
 import { Icone } from '@/components/Icone';
-import { BarraProgresso, estilos } from '@/components/ui';
+import { BarraProgresso } from '@/components/ui';
 import type { MetaDetalhada } from '@/data/metas';
 import { NOME_DO_ESTADO } from '@/domain/metas';
 import { descreverRecorrencia } from '@/domain/recorrencia';
 import { formatarDuracao } from '@/domain/tarefas';
-import { cores, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 import { TEXTO_ESTAGNADA, textoDoPrazo, textoDoProgresso } from './textos';
 
@@ -21,6 +21,7 @@ type Props = {
 
 /** Uma meta no detalhe da área: progresso, prazo, dias que faltam e as tarefas ligadas. Tocar abre-a. */
 export function CartaoMeta({ meta, cor, aoAbrir, quando }: Props) {
+  const { cores, estilos } = useTema();
   const ativa = meta.estado === 'ativa';
   const progresso = textoDoProgresso(meta);
   const prazo = textoDoPrazo(meta);

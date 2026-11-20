@@ -8,17 +8,18 @@ import { avisarErro } from '@/components/dialogos';
 import { Icone, type NomeIcone } from '@/components/Icone';
 import { LinhaTarefa } from '@/components/LinhaTarefa';
 import { CartaoMeta } from '@/components/metas/CartaoMeta';
-import { Botao, Cartao, Seccao, SeletorCor, SeletorIcone, estilos } from '@/components/ui';
+import { Botao, Cartao, Seccao, SeletorCor, SeletorIcone } from '@/components/ui';
 import { arquivarArea, atualizarArea, carregarAreaNaSemana } from '@/data/areas';
 import { useConsulta } from '@/data/consulta';
 import { MAX_METAS_ATIVAS, podeAtivarMeta } from '@/domain/metas';
 import { semanaNaFrase } from '@/domain/semana';
 import { useHoje, usePrepararSemana, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
-import { cores, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 const TABELAS = ['areas', 'metas', 'metas_registos', 'tarefas', 'tarefas_semana', 'blocos'] as const;
 
 export default function AreaEcra() {
+  const { cores, estilos, corDaArea } = useTema();
   const { id } = useLocalSearchParams<{ id: string }>();
   const areaId = Number(id);
   const router = useRouter();

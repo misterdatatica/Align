@@ -16,9 +16,14 @@ export type Definicoes = {
   lembreteAtivo: boolean;
   /** Quando foi exportada a última cópia de segurança (ISO); null = nunca. */
   ultimaCopia: string | null;
+  /** Aparência: segue o telemóvel, ou fica sempre clara ou escura. */
+  tema: PreferenciaDeTema;
 };
 
-export const DEFINICOES_INICIAIS: Definicoes = { diaRevisao: 0, horaRevisao: '18:00', inicioGrelha: 6, fimGrelha: 23, lembreteAtivo: false, ultimaCopia: null };
+export type PreferenciaDeTema = 'automatico' | 'claro' | 'escuro';
+const PREFERENCIAS_DE_TEMA: readonly PreferenciaDeTema[] = ['automatico', 'claro', 'escuro'];
+
+export const DEFINICOES_INICIAIS: Definicoes = { diaRevisao: 0, horaRevisao: '18:00', inicioGrelha: 6, fimGrelha: 23, lembreteAtivo: false, ultimaCopia: null, tema: 'automatico' };
 
 const ID = 1;
 
@@ -32,6 +37,7 @@ export function carregarDefinicoes(): Definicoes {
     fimGrelha: linha.fimGrelha,
     lembreteAtivo: linha.lembreteAtivo,
     ultimaCopia: linha.ultimaCopia,
+    tema: linha.tema,
   };
 }
 
@@ -53,6 +59,7 @@ export function guardarDefinicoes(alteracoes: Partial<Definicoes>): Definicoes {
   if (!Number.isInteger(novas.inicioGrelha) || !Number.isInteger(novas.fimGrelha) || novas.inicioGrelha < 0 || novas.fimGrelha > 24 || novas.fimGrelha - novas.inicioGrelha < 4) {
     throw new ErroDaApp('O calendário tem de mostrar pelo menos 4 horas.');
   }
+  if (!PREFERENCIAS_DE_TEMA.includes(novas.tema)) throw new ErroDaApp('A aparência escolhida não é válida.');
   db.insert(definicoes)
     .values({ id: ID, ...novas })
     .onConflictDoUpdate({ target: definicoes.id, set: { ...novas, atualizadoEm: sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))` } })

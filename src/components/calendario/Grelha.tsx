@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanima
 import { scheduleOnRN } from 'react-native-worklets';
 
 import type { BlocoCalendario, CalendarioDaSemana } from '@/data/calendario';
-import { cores, fontes, type CorArea } from '@/theme';
+import { type CorArea, fontes, useTema } from '@/theme';
 
 import { LARGURA_HORAS, MEIA_HORA_MAXIMA, MEIA_HORA_MINIMA, MODO_NENHUM, TOPO_GRELHA, type Arrasto, type RefDeVista } from './arrasto';
 import { Bloco } from './Bloco';
@@ -37,6 +37,7 @@ function guardarZoom(altura: number) {
 
 /** A grelha dos dias visíveis: linhas de hora, blocos e o destino tracejado enquanto se arrasta. */
 export function Grelha({ calendario, arrasto, grelhaRef, blocoArrastado, corDoArrasto, blocosEmAtencao, primeiroDia, numDias, aoTocarBloco, aoTocarVazio }: Props) {
+  const { cores } = useTema();
   const { inicioMin, fimMin } = calendario;
   const [largura, setLargura] = useState(0);
   const [alturaVisivel, setAlturaVisivel] = useState(0);

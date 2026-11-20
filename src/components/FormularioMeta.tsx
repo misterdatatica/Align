@@ -3,12 +3,12 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 
 import { CampoData } from '@/components/CampoData';
 import { avisarErro } from '@/components/dialogos';
-import { Botao, Opcao, Seccao, estilos } from '@/components/ui';
+import { Botao, Opcao, Seccao } from '@/components/ui';
 import { atualizarMeta, criarMeta } from '@/data/metas';
 import type { Meta } from '@/db/schema';
 import { alvoDescendente, descreverDiasQueFaltam, diasQueFaltam, formatarValor, lerValor, valorComUnidade, type MedidaMeta } from '@/domain/metas';
 import { descreverData } from '@/domain/semana';
-import { cores } from '@/theme';
+import { useTema } from '@/theme';
 
 type Props = {
   areaId: number;
@@ -29,6 +29,7 @@ const MEDIDAS: { medida: MedidaMeta; titulo: string; ajuda: string }[] = [
  * marco. O que se faz para lá chegar são as tarefas, que se ligam à meta no formulário da tarefa.
  */
 export function FormularioMeta({ areaId, meta, hoje, aoFechar }: Props) {
+  const { cores, estilos } = useTema();
   const [medida, setMedida] = useState<MedidaMeta>(meta?.medida ?? 'numero');
   const [descricao, setDescricao] = useState(meta?.descricao ?? '');
   const [prazo, setPrazo] = useState(meta?.prazo ?? '');

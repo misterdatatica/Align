@@ -36,6 +36,13 @@
       "when": 1795167732363,
       "tag": "0004_copia_de_seguranca",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1795175546438,
+      "tag": "0005_aparencia",
+      "breakpoints": true
     }
   ]
 }

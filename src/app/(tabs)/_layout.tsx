@@ -3,10 +3,11 @@ import { View, type ColorValue } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icone, type NomeIcone } from '@/components/Icone';
-import { cores, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 function iconeTab(nome: NomeIcone) {
   return function IconeTab({ focused, color }: { focused: boolean; color: ColorValue }) {
+    const { cores } = useTema();
     return (
       <View
         style={{
@@ -25,6 +26,7 @@ function iconeTab(nome: NomeIcone) {
 }
 
 export default function TabsLayout() {
+  const { cores } = useTema();
   // Cada separador precisa de 56 px: 5 de margem interna, 28 do ícone, 4 de intervalo, 14 da etiqueta e mais 5.
   // Com 3 px por cima e por baixo fica com os 8 px do design; em telemóveis com barra de gestos usa-se a margem do sistema.
   const margemInferior = Math.max(useSafeAreaInsets().bottom, 3);

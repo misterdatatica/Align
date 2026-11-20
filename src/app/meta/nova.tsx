@@ -2,10 +2,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
 
 import { FormularioMeta } from '@/components/FormularioMeta';
-import { Botao, estilos } from '@/components/ui';
+import { Botao } from '@/components/ui';
 import { useHoje } from '@/estado/semana';
+import { useTema } from '@/theme';
 
 export default function NovaMetaEcra() {
+  const { estilos } = useTema();
   const { areaId } = useLocalSearchParams<{ areaId?: string }>();
   const router = useRouter();
   const hoje = useHoje();

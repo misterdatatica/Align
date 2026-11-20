@@ -3,7 +3,7 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 
 import { comDesfazer } from '@/components/AvisoTemporario';
 import { avisarErro } from '@/components/dialogos';
-import { Botao, Opcao, Passo, Seccao, estilos } from '@/components/ui';
+import { Botao, Opcao, Passo, Seccao } from '@/components/ui';
 import { consultaAreasAtivas } from '@/data/areas';
 import { useConsulta } from '@/data/consulta';
 import { metasParaTarefas } from '@/data/metas';
@@ -13,7 +13,7 @@ import { instanciasPorSemana, type Recorrencia } from '@/domain/recorrencia';
 import { formatarHoras } from '@/domain/regras';
 import { DIAS_LONGOS, descreverSemana } from '@/domain/semana';
 import { DURACAO_MAXIMA_MIN, PASSO_DURACAO_MIN, formatarDuracao, nomeCurtoDe } from '@/domain/tarefas';
-import { cores, corDaArea } from '@/theme';
+import { useTema } from '@/theme';
 
 type TipoRepeticao = 'nenhuma' | 'diaria' | 'vezes' | 'dias';
 
@@ -44,6 +44,7 @@ type Props = {
 
 /** Criar ou alterar uma tarefa: nome, área, duração, repetição e a meta para a qual contribui. */
 export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoFechar }: Props) {
+  const { cores, estilos, corDaArea } = useTema();
   const listaAreas = useConsulta(() => consultaAreasAtivas().all(), ['areas']);
   const [nome, setNome] = useState(tarefa?.nome ?? '');
   const [nomeCurto, setNomeCurto] = useState(tarefa?.nomeCurto ?? '');

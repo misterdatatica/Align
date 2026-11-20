@@ -3,13 +3,15 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { FormularioTarefa } from '@/components/FormularioTarefa';
-import { Botao, estilos } from '@/components/ui';
+import { Botao } from '@/components/ui';
 import { carregarTarefa } from '@/data/tarefas';
 import { useSemanaEscolhida } from '@/estado/semana';
+import { useTema } from '@/theme';
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function EditarTarefaEcra() {
+  const { estilos } = useTema();
   const { id, semana } = useLocalSearchParams<{ id: string; semana?: string }>();
   // Sem semana nos parâmetros, vale a que se está a planear.
   const semanaEscolhida = useSemanaEscolhida();

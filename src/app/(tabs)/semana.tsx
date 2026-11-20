@@ -5,19 +5,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Icone } from '@/components/Icone';
 import { LinhaTarefa } from '@/components/LinhaTarefa';
 import { SeletorSemana } from '@/components/SeletorSemana';
-import { Botao, BotaoIcone, Cartao, Titulo, estilos } from '@/components/ui';
+import { Botao, BotaoIcone, Cartao, Titulo } from '@/components/ui';
 import { useConsulta } from '@/data/consulta';
 import { carregarPlanoDaSemana } from '@/data/semanas';
 import { carregarPlano, type PlanoDaSemana } from '@/data/tarefas';
 import { formatarHoras } from '@/domain/regras';
 import { descreverSemanaPorExtenso, somarSemanas } from '@/domain/semana';
 import { escolherSemana, useHoje, usePrepararSemana, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
-import { cores, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos'] as const;
 const TABELAS_DO_PLANO = ['semanas'] as const;
 
 export default function SemanaEcra() {
+  const { cores, estilos } = useTema();
   const router = useRouter();
   const semana = useSemanaEscolhida();
   const semanaAtual = useSemanaAtual();
@@ -74,6 +75,7 @@ export default function SemanaEcra() {
 
 /** De onde veio a semana: começa sempre igual à anterior, sem nada para aceitar. */
 function OrigemDaSemana({ estado, semana, origemSemana }: { estado: 'por_planear' | 'aceite'; semana: string; origemSemana: string | null }) {
+  const { cores, estilos } = useTema();
   let texto: string | null = null;
   if (estado === 'por_planear') texto = 'Esta semana já passou e não chegou a ser planeada.';
   else if (origemSemana) {
@@ -89,6 +91,7 @@ function OrigemDaSemana({ estado, semana, origemSemana }: { estado: 'por_planear
 }
 
 function Numero({ valor, legenda }: { valor: string; legenda: string }) {
+  const { cores } = useTema();
   return (
     <View style={{ flex: 1, gap: 2 }} accessible accessibilityLabel={`${valor} ${legenda}`}>
       <Text style={{ fontFamily: fontes.titulo, fontSize: 22, lineHeight: 28, color: cores.tinta }}>{valor}</Text>
@@ -98,6 +101,7 @@ function Numero({ valor, legenda }: { valor: string; legenda: string }) {
 }
 
 function AreaDaSemana({ grupo, semana }: { grupo: PlanoDaSemana['areas'][number]; semana: string }) {
+  const { cores, estilos, corDaArea } = useTema();
   const router = useRouter();
   const { area, tarefas, minutosPlaneados } = grupo;
   return (

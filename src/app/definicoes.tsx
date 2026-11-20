@@ -1,20 +1,26 @@
 import { ScrollView, Switch, Text, View } from 'react-native';
 
 import { avisar, avisarErro, confirmar } from '@/components/dialogos';
-import { Botao, Cartao, Opcao, Passo, Seccao, estilos } from '@/components/ui';
+import { Botao, Cartao, Opcao, Passo, Seccao } from '@/components/ui';
 import { exportarCopia, ONDE_GUARDAR_A_COPIA } from '@/components/exportarCopia';
 import { escolherFicheiro } from '@/copiaFicheiro';
 import { consultaAreasArquivadas, reporArea } from '@/data/areas';
 import { recarregarConsultas, useConsulta } from '@/data/consulta';
 import { importarDados, lerCopia, resumirCopia } from '@/data/copia';
-import { carregarDefinicoes, guardarDefinicoes, type Definicoes } from '@/data/definicoes';
+import { carregarDefinicoes, guardarDefinicoes, type Definicoes, type PreferenciaDeTema } from '@/data/definicoes';
 import { DIAS_DE_REVISAO } from '@/domain/revisao';
 import { descreverDia, formatarHora, paraDataISO } from '@/domain/semana';
 import { agendarLembrete, cancelarLembrete, lembretesDisponiveis, pedirPermissaoDeLembrete } from '@/lembrete';
-import { cores, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 /** Dias pela ordem da semana portuguesa (segunda primeiro), com o número que as definições guardam (0 = domingo). */
 const DIAS = [1, 2, 3, 4, 5, 6, 0].map((numero) => ({ numero, nome: DIAS_DE_REVISAO[numero] }));
+
+const APARENCIAS: { valor: PreferenciaDeTema; titulo: string; ajuda: string }[] = [
+  { valor: 'automatico', titulo: 'Automático', ajuda: 'Segue o modo claro ou escuro do telemóvel.' },
+  { valor: 'claro', titulo: 'Claro', ajuda: 'Sempre clara, mesmo com o telemóvel em modo escuro.' },
+  { valor: 'escuro', titulo: 'Escuro', ajuda: 'Sempre escura, mesmo com o telemóvel em modo claro.' },
+];
 
 function minutosDe(hora: string): number {
   const [h, m] = hora.split(':').map(Number);
@@ -22,6 +28,7 @@ function minutosDe(hora: string): number {
 }
 
 export default function DefinicoesEcra() {
+  const { cores, estilos, corDaArea } = useTema();
   const definicoes = useConsulta(carregarDefinicoes, ['definicoes']);
   const arquivadas = useConsulta(() => consultaAreasArquivadas().all(), ['areas']);
 
@@ -84,6 +91,17 @@ export default function DefinicoesEcra() {
 
   return (
     <ScrollView style={estilos.ecra} contentContainerStyle={estilos.conteudo}>
+      <Seccao titulo="Aparência">
+        <Cartao style={{ padding: 16, gap: 10 }}>
+          <View style={{ flexDirection: 'row', gap: 6 }} accessibilityRole="radiogroup" accessibilityLabel="Aparência">
+            {APARENCIAS.map((a) => (
+              <Opcao key={a.valor} titulo={a.titulo} ativa={definicoes.tema === a.valor} onPress={() => mudar({ tema: a.valor })} style={{ flex: 1, paddingHorizontal: 0 }} />
+            ))}
+          </View>
+          <Text style={estilos.pequeno}>{APARENCIAS.find((a) => a.valor === definicoes.tema)?.ajuda}</Text>
+        </Cartao>
+      </Seccao>
+
       <Seccao titulo="Revisão semanal">
         <Cartao style={{ padding: 16, gap: 16 }}>
           <View style={{ gap: 8 }}>
@@ -198,6 +216,7 @@ export default function DefinicoesEcra() {
 }
 
 function Linha({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  const { estilos } = useTema();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
       <Text style={[estilos.corpo, { flexShrink: 1 }]}>{titulo}</Text>

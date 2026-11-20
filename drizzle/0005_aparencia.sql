@@ -1,0 +1,1 @@
+ALTER TABLE `definicoes` ADD `tema` text DEFAULT 'automatico' NOT NULL;

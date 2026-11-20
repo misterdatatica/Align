@@ -9,7 +9,7 @@ import { avisarErro } from '@/components/dialogos';
 import { BotaoIcone } from '@/components/ui';
 import { recarregarConsultas } from '@/data/consulta';
 import { exportarDados, importarDados } from '@/data/copia';
-import { cores, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 /*
  * Aviso temporário por cima do fundo do ecrã ("Tarefa apagada · Desfazer"). Em vez de pedir
@@ -96,6 +96,7 @@ const ALTURA_SEPARADORES = 60;
 
 /** O aviso em si. Vai uma vez no layout principal, por cima de todos os ecrãs. */
 export function AvisoTemporario() {
+  const { cores } = useTema();
   const aviso = useSyncExternalStore(
     subscrever,
     () => atual,
@@ -120,7 +121,7 @@ export function AvisoTemporario() {
         accessibilityLiveRegion="polite"
         style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 16, paddingRight: 4, paddingVertical: 4, minHeight: 52, borderRadius: 14, backgroundColor: cores.tinta, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 }}
       >
-        <Text style={{ flex: 1, paddingVertical: 8, fontFamily: fontes.textoMedio, fontSize: 14, lineHeight: 20, color: '#FFFFFF' }}>{aviso.texto}</Text>
+        <Text style={{ flex: 1, paddingVertical: 8, fontFamily: fontes.textoMedio, fontSize: 14, lineHeight: 20, color: cores.sobreTinta }}>{aviso.texto}</Text>
         {aviso.desfazer ? (
           <Pressable
             accessibilityRole="button"
@@ -129,12 +130,12 @@ export function AvisoTemporario() {
               fecharAviso(aviso.id);
               desfazer?.();
             }}
-            style={({ pressed }) => ({ minHeight: 40, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, backgroundColor: '#FFFFFF', opacity: pressed ? 0.8 : 1 })}
+            style={({ pressed }) => ({ minHeight: 40, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, backgroundColor: cores.sobreTinta, opacity: pressed ? 0.8 : 1 })}
           >
             <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, color: cores.tinta }}>Desfazer</Text>
           </Pressable>
         ) : null}
-        <BotaoIcone icone="fechar" rotulo="Fechar aviso" cor="#FFFFFF" tamanho={18} onPress={() => fecharAviso(aviso.id)} />
+        <BotaoIcone icone="fechar" rotulo="Fechar aviso" cor={cores.sobreTinta} tamanho={18} onPress={() => fecharAviso(aviso.id)} />
       </View>
     </Animated.View>
   );

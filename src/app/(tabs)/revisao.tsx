@@ -10,7 +10,7 @@ import { exportarCopia, ONDE_GUARDAR_A_COPIA } from '@/components/exportarCopia'
 import { Icone } from '@/components/Icone';
 import { AtualizarValor } from '@/components/metas/AtualizarValor';
 import { TEXTO_ESTAGNADA, textoDoPrazo, textoDoProgresso } from '@/components/metas/textos';
-import { BarraProgresso, Botao, Cartao, Seccao, Titulo, estilos } from '@/components/ui';
+import { BarraProgresso, Botao, Cartao, Seccao, Titulo } from '@/components/ui';
 import { useConsulta } from '@/data/consulta';
 import { mudarEstadoDaMeta, type MetaDetalhada } from '@/data/metas';
 import { precisaDeCopia } from '@/data/definicoes';
@@ -21,7 +21,7 @@ import { percentagemCumprida } from '@/domain/revisao';
 import { DIAS_CURTOS, descreverDia, descreverSemanaPorExtenso, somarSemanas } from '@/domain/semana';
 import { formatarDuracao } from '@/domain/tarefas';
 import { escolherSemana, useHoje } from '@/estado/semana';
-import { cores, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 const TABELAS = ['areas', 'metas', 'metas_registos', 'tarefas', 'tarefas_semana', 'blocos', 'revisoes', 'definicoes'] as const;
 
@@ -33,6 +33,7 @@ export default function RevisaoEcra() {
 }
 
 function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) {
+  const { cores, estilos, corDaArea } = useTema();
   const router = useRouter();
   const { semana, disponivel, fechadaEm, areas, porConfirmar, porFazer, metas } = revisao;
   /** Marcos marcados como alcançados nesta revisão: deixam de estar ativos, mas ficam à vista. */
@@ -321,6 +322,7 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
 
 /** Caixa de visto do design: 22 px, escura quando marcada. */
 function Caixa({ marcada }: { marcada: boolean }) {
+  const { cores } = useTema();
   return (
     <View
       style={{
@@ -334,13 +336,14 @@ function Caixa({ marcada }: { marcada: boolean }) {
         backgroundColor: marcada ? cores.tinta : cores.superficie,
       }}
     >
-      {marcada ? <Icone nome="certo" tamanho={15} cor="#FFFFFF" espessura={2.6} /> : null}
+      {marcada ? <Icone nome="certo" tamanho={15} cor={cores.sobreTinta} espessura={2.6} /> : null}
     </View>
   );
 }
 
 /** Botão pequeno das respostas a "Feito?". */
 function Resposta({ titulo, rotulo, cheia, onPress }: { titulo: string; rotulo: string; cheia?: boolean; onPress: () => void }) {
+  const { cores } = useTema();
   return (
     <Pressable
       accessibilityRole="button"
@@ -360,13 +363,14 @@ function Resposta({ titulo, rotulo, cheia, onPress }: { titulo: string; rotulo: 
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, color: cheia ? '#FFFFFF' : cores.tinta }}>{titulo}</Text>
+      <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, color: cheia ? cores.sobreTinta : cores.tinta }}>{titulo}</Text>
     </Pressable>
   );
 }
 
 /** Pergunta de reflexão com um campo que se guarda sozinho. */
 function Nota({ titulo, inicial, guardar }: { titulo: string; inicial: string; guardar: (texto: string) => void }) {
+  const { cores } = useTema();
   return (
     <View style={{ gap: 6 }}>
       <Text style={{ fontFamily: fontes.textoForte, fontSize: 14, lineHeight: 20, color: cores.tinta }}>{titulo}</Text>

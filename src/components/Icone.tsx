@@ -1,5 +1,7 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
+import { useTema } from '@/theme';
+
 export type NomeIcone =
   | 'folha'
   | 'casa'
@@ -43,7 +45,9 @@ const ESCONDIDO =
   process.env.EXPO_OS === 'web' ? ({ 'aria-hidden': true } as const) : ({ accessibilityElementsHidden: true, importantForAccessibility: 'no' } as const);
 
 /** Ícones de traço simples, desenhados à mão (viewBox 24×24). */
-export function Icone({ nome, tamanho = 20, cor = '#15171C', espessura = 1.8 }: Props) {
+export function Icone({ nome, tamanho = 20, cor: corPedida, espessura = 1.8 }: Props) {
+  const { cores } = useTema();
+  const cor = corPedida ?? cores.tinta;
   const traco = { stroke: cor, strokeWidth: espessura, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
   return (
     <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24" {...ESCONDIDO}>

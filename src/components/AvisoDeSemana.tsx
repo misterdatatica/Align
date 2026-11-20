@@ -3,13 +3,14 @@ import { Pressable, Text, View } from 'react-native';
 import { Icone } from '@/components/Icone';
 import { descreverSemanaPorExtenso } from '@/domain/semana';
 import { escolherSemana, useSemanaAtual } from '@/estado/semana';
-import { cores, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 /**
  * Faixa que diz que o ecrã está a mostrar outra semana que não a atual (a que se está a planear no
  * separador Semana), com um atalho para voltar a esta semana. Na semana atual não aparece.
  */
 export function AvisoDeSemana({ semana }: { semana: string }) {
+  const { cores } = useTema();
   const atual = useSemanaAtual();
   if (semana === atual) return null;
   return (

@@ -8,7 +8,7 @@ import { prepararBd } from '../../scripts/testes/bd.ts';
 import { db } from '../db/client.ts';
 import { areas, definicoes } from '../db/schema.ts';
 import { alocarTarefa, criarOcupado, marcarBlocoFeito } from './calendario.ts';
-import { guardarDefinicoes, precisaDeCopia, registarCopia } from './definicoes.ts';
+import { carregarDefinicoes, guardarDefinicoes, precisaDeCopia, registarCopia } from './definicoes.ts';
 import { carregarHoje } from './hoje.ts';
 import { comecarRevisao, carregarRevisao } from './revisao.ts';
 import { criarTarefa, garantirSemana } from './tarefas.ts';
@@ -73,5 +73,15 @@ describe('fazer a revisão mais cedo', () => {
     assert.equal(carregarRevisao(QUARTA).disponivel, false);
     comecarRevisao(SEMANA);
     assert.deepEqual([carregarRevisao(QUARTA).semana, carregarRevisao(QUARTA).disponivel], [SEMANA, true]);
+  });
+});
+
+describe('aparência', () => {
+  it('guarda a preferência de tema e recusa valores desconhecidos', () => {
+    assert.equal(carregarDefinicoes().tema, 'automatico');
+    guardarDefinicoes({ tema: 'escuro' });
+    assert.equal(carregarDefinicoes().tema, 'escuro');
+    assert.throws(() => guardarDefinicoes({ tema: 'roxo' as never }), /aparência/);
+    assert.equal(carregarDefinicoes().tema, 'escuro');
   });
 });

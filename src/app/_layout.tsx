@@ -1,15 +1,17 @@
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, useFonts } from '@expo-google-fonts/inter';
 import { SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold } from '@expo-google-fonts/space-grotesk';
-import { SplashScreen, Stack } from 'expo-router';
+import { DarkTheme, DefaultTheme, SplashScreen, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Appearance, Platform, Text, useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AvisoTemporario } from '@/components/AvisoTemporario';
+import { useConsulta } from '@/data/consulta';
+import { carregarDefinicoes, type PreferenciaDeTema } from '@/data/definicoes';
 import { prepararBaseDeDados } from '@/db/preparar';
 import { configurarLembretes, useAbrirRevisaoPeloLembrete } from '@/lembrete';
-import { cores } from '@/theme';
+import { ContextoDoTema, TEMAS, type Esquema } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
 configurarLembretes();
@@ -40,7 +42,22 @@ function useBaseDeDados() {
   return estado;
 }
 
+/** O esquema que o telemóvel (ou o navegador) está a usar. */
+function useEsquemaDoSistema(): Esquema {
+  return useColorScheme() === 'dark' ? 'escuro' : 'claro';
+}
+
+/**
+ * Aplica a preferência de aparência aos componentes do sistema (alertas, teclado, seletores). No
+ * telemóvel, "Claro" ou "Escuro" sobrepõem-se ao do sistema; "Automático" volta a segui-lo.
+ */
+function aplicarAoSistema(preferencia: PreferenciaDeTema) {
+  if (Platform.OS === 'web') return;
+  Appearance.setColorScheme(preferencia === 'claro' ? 'light' : preferencia === 'escuro' ? 'dark' : 'unspecified');
+}
+
 export default function RootLayout() {
+  const esquemaDoSistema = useEsquemaDoSistema();
   const [fontesProntas] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -60,6 +77,7 @@ export default function RootLayout() {
   if (erroBd) {
     // A causa (o erro original do SQLite) ajuda a perceber o que falhou.
     const causa = erroBd.cause instanceof Error ? erroBd.cause.message : null;
+    const { cores } = TEMAS[esquemaDoSistema];
     return (
       <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 8, backgroundColor: cores.fundo }}>
         <Text style={{ fontSize: 17, fontWeight: '600', color: cores.tinta }}>Não foi possível preparar a base de dados.</Text>
@@ -69,22 +87,43 @@ export default function RootLayout() {
     );
   }
 
+  return <AppComTema />;
+}
+
+/** A app depois de a base de dados estar pronta: o tema vem das definições e do sistema. */
+function AppComTema() {
+  const esquemaDoSistema = useEsquemaDoSistema();
+  const preferencia = useConsulta(() => carregarDefinicoes().tema, ['definicoes']);
+  useEffect(() => aplicarAoSistema(preferencia), [preferencia]);
+  const tema = TEMAS[preferencia === 'automatico' ? esquemaDoSistema : preferencia];
+  const { cores } = tema;
+
+  // Cabeçalhos e fundos da navegação com as cores do tema.
+  const temaDaNavegacao = useMemo(() => {
+    const base = tema.escuro ? DarkTheme : DefaultTheme;
+    return { ...base, colors: { ...base.colors, primary: cores.tinta, background: cores.fundo, card: cores.fundo, text: cores.tinta, border: cores.linha } };
+  }, [tema, cores]);
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="dark" />
-      <AbrirRevisaoPeloLembrete />
-      <Stack screenOptions={{ contentStyle: { backgroundColor: cores.fundo }, headerShadowVisible: false }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="area/[id]" options={{ title: '', headerBackTitle: 'Áreas', headerStyle: { backgroundColor: cores.fundo } }} />
-        <Stack.Screen name="area/nova" options={{ title: 'Nova área', presentation: 'modal' }} />
-        <Stack.Screen name="meta/nova" options={{ title: 'Nova meta', presentation: 'modal' }} />
-        <Stack.Screen name="meta/[id]" options={{ title: '', headerBackTitle: 'Área', headerStyle: { backgroundColor: cores.fundo } }} />
-        <Stack.Screen name="tarefa/nova" options={{ title: 'Nova tarefa', presentation: 'modal' }} />
-        <Stack.Screen name="tarefa/[id]" options={{ title: 'Alterar tarefa', presentation: 'modal' }} />
-        <Stack.Screen name="boas-vindas" options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="definicoes" options={{ title: 'Definições', headerBackTitle: 'Áreas', headerStyle: { backgroundColor: cores.fundo } }} />
-      </Stack>
-      <AvisoTemporario />
-    </GestureHandlerRootView>
+    <ContextoDoTema.Provider value={tema}>
+      <ThemeProvider value={temaDaNavegacao}>
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: cores.fundo }}>
+          <StatusBar style={tema.escuro ? 'light' : 'dark'} />
+          <AbrirRevisaoPeloLembrete />
+          <Stack screenOptions={{ contentStyle: { backgroundColor: cores.fundo }, headerShadowVisible: false, headerStyle: { backgroundColor: cores.fundo }, headerTintColor: cores.tinta }}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="area/[id]" options={{ title: '', headerBackTitle: 'Áreas', headerStyle: { backgroundColor: cores.fundo } }} />
+            <Stack.Screen name="area/nova" options={{ title: 'Nova área', presentation: 'modal' }} />
+            <Stack.Screen name="meta/nova" options={{ title: 'Nova meta', presentation: 'modal' }} />
+            <Stack.Screen name="meta/[id]" options={{ title: '', headerBackTitle: 'Área', headerStyle: { backgroundColor: cores.fundo } }} />
+            <Stack.Screen name="tarefa/nova" options={{ title: 'Nova tarefa', presentation: 'modal' }} />
+            <Stack.Screen name="tarefa/[id]" options={{ title: 'Alterar tarefa', presentation: 'modal' }} />
+            <Stack.Screen name="boas-vindas" options={{ headerShown: false, gestureEnabled: false }} />
+            <Stack.Screen name="definicoes" options={{ title: 'Definições', headerBackTitle: 'Áreas', headerStyle: { backgroundColor: cores.fundo } }} />
+          </Stack>
+          <AvisoTemporario />
+        </GestureHandlerRootView>
+      </ThemeProvider>
+    </ContextoDoTema.Provider>
   );
 }

@@ -49,7 +49,8 @@ src/
   estado/semana.ts       o dia de hoje e a semana escolhida nos separadores
   lembrete.ts            lembrete local da revisão (expo-notifications); lembrete.web.ts não faz nada
   copiaFicheiro.ts       guardar e abrir o ficheiro da cópia; copiaFicheiro.web.ts para o navegador
-  theme.ts               cores e fontes do design
+  theme.ts               paletas clara e escura, cores das áreas, fontes e estilos partilhados; os ecrãs
+                         leem o tema com useTema() (o layout principal escolhe-o pela preferência e pelo sistema)
 drizzle/                 migrações geradas (incluídas no pacote como .sql)
 scripts/testes/          apoio aos testes em Node (substitui o expo-sqlite por node:sqlite)
 scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
@@ -79,6 +80,10 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
 - Apagar, arquivar, concluir, pausar ou abandonar faz-se logo e mostra um aviso com **Desfazer**
   durante 5 s. Desfazer repõe uma fotografia dos dados tirada antes da ação; o aviso sai assim que
   outra coisa mudar os dados.
+- **Aparência** (`definicoes.tema`): automático (segue o telemóvel), claro ou escuro. Nada usa cores
+  fixas: os componentes pedem `useTema()`. No telemóvel, "Claro" e "Escuro" também se aplicam aos
+  componentes do sistema (`Appearance.setColorScheme`); no Android o modo automático precisa do
+  `expo-system-ui`.
 - `definicoes.ultima_copia` guarda a data da última cópia de segurança; a revisão lembra de fazer
   uma quando passaram mais de 30 dias.
 - Mover ou retirar um bloco de uma tarefa recorrente pede um âmbito. "Só esta semana" guarda o
@@ -104,7 +109,7 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
       passo "Como estão as suas metas?" na revisão.
 - [x] **Uso diário:** ecrã Hoje, semana nova sempre igual à anterior, "Desfazer" em vez de
       confirmações, erros compreensíveis, "Guardado ✓", revisão em dois passos (e mais cedo),
-      calendário de 1, 3 ou 7 dias com zoom de dois dedos, lembrete de cópia de segurança.
+      calendário de 1, 3 ou 7 dias com zoom de dois dedos, lembrete de cópia de segurança, modo escuro.
 - [ ] **Fase 5 — Testes e lojas:** testar num iPhone e num Android reais, corrigir, EAS Build / Submit.
 
 O que falta verificar em telemóveis reais (não se consegue no navegador): o arrasto com o dedo

@@ -4,7 +4,7 @@ import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 
 import { formatarValor, valorComUnidade, type PontoDaLinha } from '@/domain/metas';
 import { deDataISO, descreverData, descreverDataCurta } from '@/domain/semana';
-import { cores, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 type Props = {
   /** O valor inicial seguido das atualizações, por ordem de data (ver `pontosDaLinha`). */
@@ -29,6 +29,8 @@ const dias = (iso: string) => Math.round(deDataISO(iso).getTime() / 86_400_000);
  * escolhido (por omissão, o último) lê-se por cima do gráfico, e tocar noutro ponto muda-o.
  */
 export function GraficoMeta({ pontos, alvo, prazo, unidade, cor }: Props) {
+  const { cores } = useTema();
+  const estiloEixo = { ...estiloEixoSemCor, color: cores.texto3 };
   const [largura, setLargura] = useState(0);
   const [escolhido, setEscolhido] = useState<number | null>(null);
   const ultimo = pontos.length - 1;
@@ -100,4 +102,4 @@ export function GraficoMeta({ pontos, alvo, prazo, unidade, cor }: Props) {
   );
 }
 
-const estiloEixo = { fontFamily: fontes.texto, fontSize: 11, lineHeight: 14, color: cores.texto3, fontVariant: ['tabular-nums' as const] };
+const estiloEixoSemCor = { fontFamily: fontes.texto, fontSize: 11, lineHeight: 14, fontVariant: ['tabular-nums' as const] };

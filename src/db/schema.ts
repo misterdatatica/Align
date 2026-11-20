@@ -185,6 +185,10 @@ export const definicoes = sqliteTable('definicoes', {
   lembreteAtivo: integer('lembrete_ativo', { mode: 'boolean' }).notNull().default(false),
   /** Quando foi exportada a última cópia de segurança (ISO); null = nunca. */
   ultimaCopia: text('ultima_copia'),
+  /** Aparência: segue o telemóvel, ou fica sempre clara ou escura. */
+  tema: text('tema', { enum: ['automatico', 'claro', 'escuro'] })
+    .notNull()
+    .default('automatico'),
   ...timestamps,
 });
 

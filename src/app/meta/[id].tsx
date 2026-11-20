@@ -10,7 +10,7 @@ import { Icone } from '@/components/Icone';
 import { AtualizarValor } from '@/components/metas/AtualizarValor';
 import { GraficoMeta } from '@/components/metas/GraficoMeta';
 import { TEXTO_ESTAGNADA, textoDoPrazo, textoDoProgresso } from '@/components/metas/textos';
-import { BarraProgresso, Botao, BotaoIcone, Cartao, Seccao, estilos } from '@/components/ui';
+import { BarraProgresso, Botao, BotaoIcone, Cartao, Seccao } from '@/components/ui';
 import { useConsulta } from '@/data/consulta';
 import { apagarMeta, apagarRegisto, carregarMeta, mudarEstadoDaMeta } from '@/data/metas';
 import { NOME_DO_ESTADO, formatarValor, pontosDaLinha, valorComUnidade, type EstadoMeta } from '@/domain/metas';
@@ -18,7 +18,7 @@ import { descreverRecorrencia } from '@/domain/recorrencia';
 import { descreverData, semanaNaFrase } from '@/domain/semana';
 import { formatarDuracao } from '@/domain/tarefas';
 import { useHoje, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
-import { cores, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 const TABELAS = ['areas', 'metas', 'metas_registos', 'tarefas', 'tarefas_semana'] as const;
 
@@ -26,6 +26,7 @@ const TABELAS = ['areas', 'metas', 'metas_registos', 'tarefas', 'tarefas_semana'
 const TEXTO_DO_ESTADO: Record<EstadoMeta, string> = { concluida: 'Meta concluída', pausada: 'Meta em pausa', abandonada: 'Meta abandonada', ativa: 'Meta ativa outra vez' };
 
 export default function MetaEcra() {
+  const { cores, estilos, corDaArea } = useTema();
   const { id } = useLocalSearchParams<{ id: string }>();
   const metaId = Number(id);
   const router = useRouter();
@@ -186,6 +187,7 @@ export default function MetaEcra() {
 }
 
 function Aviso({ texto }: { texto: string }) {
+  const { cores, estilos } = useTema();
   return (
     <View style={{ flexDirection: 'row', gap: 8, padding: 12, borderRadius: 12, backgroundColor: cores.fundo }}>
       <View style={{ marginTop: 1 }}>

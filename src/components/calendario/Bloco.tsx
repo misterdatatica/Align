@@ -6,13 +6,14 @@ import { Icone } from '@/components/Icone';
 import type { BlocoCalendario } from '@/data/calendario';
 import { formatarIntervalo } from '@/domain/calendario';
 import { DIAS_LONGOS } from '@/domain/semana';
-import { cores, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 /**
  * Riscas diagonais dos blocos "Ocupado" (compromissos fixos, sem área).
  * `legenda` desenha a versão pequena e mais escura que o design usa na legenda.
  */
 export function Riscas({ legenda }: { legenda?: boolean }) {
+  const { cores } = useTema();
   const risca = legenda ? 2 : 5;
   const id = legenda ? 'riscas-legenda' : 'riscas-ocupado';
   return (
@@ -47,6 +48,7 @@ type Props = {
  * Tocar abre os detalhes; manter premido arrasta (gesto da grelha, ver arrasto.ts).
  */
 export function Bloco({ bloco, esquerda, topo, largura, altura, esbatido, atencao, aoTocar }: Props) {
+  const { cores, corDaArea } = useTema();
   const ocupado = bloco.tipo === 'ocupado';
   const cor = ocupado ? null : corDaArea(bloco.cor ?? '');
   const corTexto = cor ? cor.texto : cores.texto2;
@@ -72,7 +74,7 @@ export function Bloco({ bloco, esquerda, topo, largura, altura, esbatido, atenca
         overflow: 'hidden',
         borderWidth: atencao ? 2 : 1,
         // Contorno do design: a cor forte da área a 45% (ou cinzento a 20% nos "Ocupado").
-        borderColor: atencao ? cores.perigo : cor ? `${cor.forte}73` : '#3F445033',
+        borderColor: atencao ? cores.perigo : cor ? `${cor.forte}73` : cores.contornoOcupado,
         backgroundColor: cor ? cor.tinta : cores.ocupadoClaro,
         opacity: esbatido ? 0.35 : 1,
       }}

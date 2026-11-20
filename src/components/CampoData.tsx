@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 
-import { Opcao, estilos } from '@/components/ui';
+import { Opcao } from '@/components/ui';
 import { dataValida } from '@/domain/metas';
 import { somarMeses } from '@/domain/semana';
-import { cores } from '@/theme';
+import { useTema } from '@/theme';
 
 type Props = {
   /** AAAA-MM-DD, ou '' enquanto a data não estiver completa. */
@@ -30,6 +30,7 @@ const so_digitos = (texto: string, maximo: number) => texto.replace(/\D/g, '').s
  * dia, mês e ano escritos com o teclado numérico, e atalhos para os prazos mais comuns.
  */
 export function CampoData({ valor, onChange, hoje, rotulo }: Props) {
+  const { cores, estilos } = useTema();
   const [ano0, mes0, dia0] = valor ? valor.split('-') : ['', '', ''];
   const [dia, setDia] = useState(dia0 ? String(Number(dia0)) : '');
   const [mes, setMes] = useState(mes0 ? String(Number(mes0)) : '');

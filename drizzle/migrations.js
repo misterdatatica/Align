@@ -6,6 +6,7 @@ import m0001 from './0001_metas_vezes.sql';
 import m0002 from './0002_tarefas_por_semana.sql';
 import m0003 from './0003_metas_resultado_e_proposta.sql';
 import m0004 from './0004_copia_de_seguranca.sql';
+import m0005 from './0005_aparencia.sql';
 
   export default {
     journal,
@@ -14,7 +15,8 @@ import m0004 from './0004_copia_de_seguranca.sql';
 m0001,
 m0002,
 m0003,
-m0004
+m0004,
+m0005
     }
   }
   

@@ -12,7 +12,7 @@ import { Grelha } from '@/components/calendario/Grelha';
 import { avisarErro } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
 import { SeletorSemana } from '@/components/SeletorSemana';
-import { BotaoIcone, Titulo, estilos } from '@/components/ui';
+import { BotaoIcone, Titulo } from '@/components/ui';
 import {
   alocarRestantes,
   alocarTarefa,
@@ -28,7 +28,7 @@ import { formatarIntervalo, inicioEncaixado, sobrepostos, type Intervalo } from 
 import { sobreposicoesDaSemana, type Ambito } from '@/domain/proposta';
 import { DIAS_CURTOS, deDataISO, indiceDoDia, somarSemanas } from '@/domain/semana';
 import { escolherSemana, useHoje, usePrepararSemana, useSemanaEscolhida } from '@/estado/semana';
-import { cores, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos', 'definicoes'] as const;
 
@@ -61,6 +61,7 @@ type Aviso = { texto: string; acao?: { titulo: string; executar: () => void } };
 type Pergunta = { titulo: string; executar: (ambito: Ambito) => void };
 
 export default function CalendarioEcra() {
+  const { cores, estilos, corDaArea } = useTema();
   const router = useRouter();
   const semana = useSemanaEscolhida();
   const hoje = useHoje();
@@ -294,8 +295,8 @@ export default function CalendarioEcra() {
               backgroundColor: escolha?.tipo === 'ocupado' ? cores.tinta : cores.superficie,
             }}
           >
-            <Icone nome="mais" tamanho={14} cor={escolha?.tipo === 'ocupado' ? '#FFFFFF' : cores.tinta} espessura={2.2} />
-            <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: escolha?.tipo === 'ocupado' ? '#FFFFFF' : cores.tinta }}>Ocupado</Text>
+            <Icone nome="mais" tamanho={14} cor={escolha?.tipo === 'ocupado' ? cores.sobreTinta : cores.tinta} espessura={2.2} />
+            <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: escolha?.tipo === 'ocupado' ? cores.sobreTinta : cores.tinta }}>Ocupado</Text>
           </Pressable>
         </View>
 
@@ -341,7 +342,7 @@ export default function CalendarioEcra() {
               >
                 <Text style={{ fontFamily: fontes.texto, fontSize: 11, lineHeight: 14, color: cores.texto3 }}>{DIAS_CURTOS[i]}</Text>
                 <View style={{ minWidth: 24, height: 22, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: eHoje ? cores.tinta : 'transparent' }}>
-                  <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: eHoje ? '#FFFFFF' : cores.tinta }}>{deDataISO(dia).getDate()}</Text>
+                  <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: eHoje ? cores.sobreTinta : cores.tinta }}>{deDataISO(dia).getDate()}</Text>
                 </View>
               </Pressable>
             );
@@ -417,6 +418,7 @@ export default function CalendarioEcra() {
 }
 
 function ItemDaLegenda({ nome, children }: { nome: string; children: React.ReactNode }) {
+  const { cores } = useTema();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
       {children}
@@ -427,22 +429,23 @@ function ItemDaLegenda({ nome, children }: { nome: string; children: React.React
 
 /** Faixa escura por cima do fundo da grelha: instruções do modo "tocar para alocar" e avisos de sobreposição. */
 function Faixa({ texto, acao, aoFechar, rotuloFechar }: { texto: string; acao?: { titulo: string; executar: () => void }; aoFechar: () => void; rotuloFechar: string }) {
+  const { cores } = useTema();
   return (
     <View
       accessibilityLiveRegion="polite"
       style={{ position: 'absolute', left: 0, right: 0, bottom: 4, flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 14, paddingVertical: 4, borderRadius: 14, backgroundColor: cores.tinta }}
     >
-      <Text style={{ flex: 1, paddingVertical: 6, fontFamily: fontes.textoMedio, fontSize: 13, lineHeight: 18, color: '#FFFFFF' }}>{texto}</Text>
+      <Text style={{ flex: 1, paddingVertical: 6, fontFamily: fontes.textoMedio, fontSize: 13, lineHeight: 18, color: cores.sobreTinta }}>{texto}</Text>
       {acao ? (
         <Pressable
           accessibilityRole="button"
           onPress={acao.executar}
-          style={{ minHeight: 36, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 999, backgroundColor: '#FFFFFF' }}
+          style={{ minHeight: 36, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 999, backgroundColor: cores.sobreTinta }}
         >
           <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, color: cores.tinta }}>{acao.titulo}</Text>
         </Pressable>
       ) : null}
-      <BotaoIcone icone="fechar" rotulo={rotuloFechar} cor="#FFFFFF" tamanho={18} onPress={aoFechar} />
+      <BotaoIcone icone="fechar" rotulo={rotuloFechar} cor={cores.sobreTinta} tamanho={18} onPress={aoFechar} />
     </View>
   );
 }

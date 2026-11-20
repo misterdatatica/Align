@@ -1,9 +1,9 @@
 import { Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Botao, estilos } from '@/components/ui';
+import { Botao } from '@/components/ui';
 import type { Ambito } from '@/domain/proposta';
-import { cores, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 type Props = {
   /** O que se está a mudar, ex.: "Mover “Meditar” para ter 07:00?". */
@@ -17,6 +17,7 @@ type Props = {
  * "Só esta semana" (a semana seguinte volta ao horário habitual) ou "Esta e as seguintes".
  */
 export function EscolhaDeAmbito({ titulo, aoEscolher, aoCancelar }: Props) {
+  const { cores, estilos } = useTema();
   return (
     <View style={{ gap: 12 }}>
       <View style={{ gap: 2 }}>
@@ -36,11 +37,12 @@ export function EscolhaDeAmbito({ titulo, aoEscolher, aoCancelar }: Props) {
 
 /** A mesma pergunta numa folha própria, para quando o bloco foi mudado a arrastar. */
 export function FolhaDeAmbito({ pergunta, aoEscolher, aoCancelar }: { pergunta: string | null; aoEscolher: (ambito: Ambito) => void; aoCancelar: () => void }) {
+  const { cores } = useTema();
   const margens = useSafeAreaInsets();
   return (
     <Modal visible={pergunta !== null} transparent animationType="slide" onRequestClose={aoCancelar} statusBarTranslucent>
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" onPress={aoCancelar} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: 'rgba(21, 23, 28, 0.45)' }} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" onPress={aoCancelar} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: cores.veu }} />
         <View accessibilityViewIsModal style={{ backgroundColor: cores.fundo, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 20, paddingBottom: Math.max(margens.bottom, 16) }}>
           {pergunta !== null ? <EscolhaDeAmbito titulo={pergunta} aoEscolher={aoEscolher} aoCancelar={aoCancelar} /> : null}
         </View>

@@ -12,7 +12,7 @@ import { BotaoIcone } from '@/components/ui';
 import { apagarTarefa, marcarVez } from '@/data/tarefas';
 import { descreverRecorrencia } from '@/domain/recorrencia';
 import { detalheDaLinha, estadoDaLinha, type EstadoLinha, type ResumoTarefa } from '@/domain/tarefas';
-import { cores, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 type Props = {
   tarefa: ResumoTarefa;
@@ -25,6 +25,7 @@ type Props = {
 
 /** Uma tarefa na lista da semana: tocar abre-a para alterar, deslizar para a esquerda apaga-a. */
 export function LinhaTarefa({ tarefa, semana, porExtenso, semLinha }: Props) {
+  const { cores } = useTema();
   const router = useRouter();
   const deslizante = useRef<SwipeableMethods>(null);
   const estado = estadoDaLinha(tarefa);
@@ -100,12 +101,13 @@ export function LinhaTarefa({ tarefa, semana, porExtenso, semLinha }: Props) {
 
 /** O botão vermelho por trás da linha. Fica invisível enquanto a linha está fechada, para não espreitar nos cantos do cartão. */
 function AcaoApagar({ progresso, nome, aoApagar }: { progresso: SharedValue<number>; nome: string; aoApagar: () => void }) {
+  const { cores } = useTema();
   const visivel = useAnimatedStyle(() => ({ opacity: progresso.value > 0.01 ? 1 : 0 }));
   return (
     <Animated.View style={[{ width: 88, backgroundColor: cores.perigo }, visivel]}>
       <Pressable accessibilityRole="button" accessibilityLabel={`Apagar ${nome}`} onPress={aoApagar} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-        <Icone nome="lixo" tamanho={18} cor="#FFFFFF" />
-        <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, color: '#FFFFFF' }}>Apagar</Text>
+        <Icone nome="lixo" tamanho={18} cor={cores.sobreTinta} />
+        <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, color: cores.sobreTinta }}>Apagar</Text>
       </Pressable>
     </Animated.View>
   );
@@ -116,6 +118,7 @@ function textoDoEstado(estado: Exclude<EstadoLinha, { tipo: 'contagem' }>, porEx
 }
 
 function Estado({ estado, porExtenso }: { estado: Exclude<EstadoLinha, { tipo: 'contagem' }>; porExtenso?: boolean }) {
+  const { cores } = useTema();
   const texto = textoDoEstado(estado, porExtenso);
   if (estado.tipo === 'por_alocar') {
     return (
@@ -134,6 +137,7 @@ function Estado({ estado, porExtenso }: { estado: Exclude<EstadoLinha, { tipo: '
 
 /** Tarefas sem duração: uma caixa de visto (1 vez) ou menos / contagem / mais (várias vezes). */
 function Contagem({ nome, feitas, total, aoContar }: { nome: string; feitas: number; total: number; aoContar: (feita: boolean) => void }) {
+  const { cores } = useTema();
   if (total === 1) {
     const feita = feitas === 1;
     return (
@@ -156,7 +160,7 @@ function Contagem({ nome, feitas, total, aoContar }: { nome: string; feitas: num
             backgroundColor: feita ? cores.tinta : 'transparent',
           }}
         >
-          {feita ? <Icone nome="certo" tamanho={14} cor="#FFFFFF" espessura={2.4} /> : null}
+          {feita ? <Icone nome="certo" tamanho={14} cor={cores.sobreTinta} espessura={2.4} /> : null}
         </View>
       </Pressable>
     );

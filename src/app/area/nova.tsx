@@ -4,11 +4,12 @@ import { ScrollView, Text, TextInput } from 'react-native';
 
 import { avisarErro } from '@/components/dialogos';
 import type { NomeIcone } from '@/components/Icone';
-import { Botao, Seccao, SeletorCor, SeletorIcone, estilos } from '@/components/ui';
+import { Botao, Seccao, SeletorCor, SeletorIcone } from '@/components/ui';
 import { criarArea } from '@/data/areas';
-import { cores } from '@/theme';
+import { useTema } from '@/theme';
 
 export default function NovaAreaEcra() {
+  const { cores, estilos } = useTema();
   const router = useRouter();
   const [nome, setNome] = useState('');
   const [missao, setMissao] = useState('');

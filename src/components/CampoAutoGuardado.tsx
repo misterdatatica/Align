@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Text, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
 
 import { avisarErro } from '@/components/dialogos';
-import { cores, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 /** Quanto tempo fica à vista o "Guardado ✓". */
 const GUARDADO_MS = 1500;
@@ -24,6 +24,7 @@ type Props = Omit<TextInputProps, 'value' | 'onChangeText' | 'onBlur'> & {
  * Cada vez que guarda mostra um "Guardado ✓" discreto por baixo do campo, durante um instante.
  */
 export function CampoAutoGuardado({ inicial, guardar: guardarTexto, obrigatorio, erro, contentor, ...resto }: Props) {
+  const { cores } = useTema();
   const [texto, setTexto] = useState(inicial);
   const [guardadoVisivel, setGuardadoVisivel] = useState(false);
   const temporizadorDoAviso = useRef<ReturnType<typeof setTimeout> | null>(null);

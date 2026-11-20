@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 
 import { avisarErro } from '@/components/dialogos';
-import { Botao, estilos } from '@/components/ui';
+import { Botao } from '@/components/ui';
 import { registarValor, type MetaDetalhada } from '@/data/metas';
 import { formatarValor, lerValor } from '@/domain/metas';
-import { cores } from '@/theme';
+import { useTema } from '@/theme';
 
 type Props = {
   meta: Pick<MetaDetalhada, 'id' | 'descricao' | 'valorAtual' | 'unidade' | 'registos'>;
@@ -18,6 +18,7 @@ type Props = {
  * registar o mesmo valor também conta ("continua em 25").
  */
 export function AtualizarValor({ meta, hoje }: Props) {
+  const { cores, estilos } = useTema();
   const [texto, setTexto] = useState(meta.valorAtual === null ? '' : formatarValor(meta.valorAtual));
   const valor = lerValor(texto);
   const registadoHoje = meta.registos.at(-1)?.data === hoje;

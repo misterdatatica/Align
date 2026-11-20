@@ -7,7 +7,7 @@ import { Riscas } from '@/components/calendario/Bloco';
 import { avisarErro } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
 import { LinhaTarefa } from '@/components/LinhaTarefa';
-import { Botao, Cartao, Seccao, Titulo, estilos } from '@/components/ui';
+import { Botao, Cartao, Seccao, Titulo } from '@/components/ui';
 import { marcarBlocoFeito, type BlocoCalendario } from '@/data/calendario';
 import { useConsulta } from '@/data/consulta';
 import { primeiroArranque } from '@/data/definicoes';
@@ -17,7 +17,7 @@ import { formatarIntervalo } from '@/domain/calendario';
 import { DIAS_DE_REVISAO } from '@/domain/revisao';
 import { descreverDia, descreverSemanaPorExtenso } from '@/domain/semana';
 import { escolherSemana, useHoje, usePrepararSemana } from '@/estado/semana';
-import { cores, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos', 'definicoes'] as const;
 const TABELAS_DA_REVISAO = ['tarefas_semana', 'revisoes', 'definicoes'] as const;
@@ -42,6 +42,7 @@ function useAgora(): number {
  * como feito, e as tarefas sem duração da semana. É o ecrã que a app abre.
  */
 export default function HojeEcra() {
+  const { cores, estilos, corDaArea } = useTema();
   const router = useRouter();
   const hoje = useHoje();
   const dia = useConsulta(() => carregarHoje(hoje), TABELAS, hoje);
@@ -74,13 +75,13 @@ export default function HojeEcra() {
             style={({ pressed }) => ({ marginTop: -4, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16, backgroundColor: cores.tinta, opacity: pressed ? 0.85 : 1 })}
           >
             <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: cores.tintaSuave, alignItems: 'center', justifyContent: 'center' }}>
-              <Icone nome="revisao" cor="#FFFFFF" />
+              <Icone nome="revisao" cor={cores.sobreTinta} />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: '#FFFFFF' }}>{`Revisão de ${DIAS_DE_REVISAO[porRever.diaRevisao]}`}</Text>
+              <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: cores.sobreTinta }}>{`Revisão de ${DIAS_DE_REVISAO[porRever.diaRevisao]}`}</Text>
               <Text style={{ fontFamily: fontes.texto, fontSize: 13, lineHeight: 18, color: cores.textoSobreTinta }}>{`Como correu a semana de ${descreverSemanaPorExtenso(porRever.semana)}?`}</Text>
             </View>
-            <Icone nome="seta-direita" tamanho={18} cor="#FFFFFF" espessura={2} />
+            <Icone nome="seta-direita" tamanho={18} cor={cores.sobreTinta} espessura={2} />
           </Pressable>
         ) : null}
 
@@ -144,6 +145,7 @@ export default function HojeEcra() {
 
 /** Um bloco de hoje: hora, nome e área, e a caixa para o marcar como feito (os "Ocupado" não se marcam). */
 function LinhaDoBloco({ bloco, agora, primeira }: { bloco: BlocoCalendario; agora: number; primeira: boolean }) {
+  const { cores, corDaArea } = useTema();
   const ocupado = bloco.tipo === 'ocupado';
   const aDecorrer = agora >= bloco.inicioMin && agora < bloco.fimMin;
   const passou = agora >= bloco.fimMin;
@@ -166,7 +168,7 @@ function LinhaDoBloco({ bloco, agora, primeira }: { bloco: BlocoCalendario; agor
           <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: aDecorrer ? cores.tinta : cores.texto3, fontVariant: ['tabular-nums'] }}>{intervalo}</Text>
           {aDecorrer ? (
             <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: cores.tinta }}>
-              <Text style={{ fontFamily: fontes.textoForte, fontSize: 10, lineHeight: 14, color: '#FFFFFF' }}>AGORA</Text>
+              <Text style={{ fontFamily: fontes.textoForte, fontSize: 10, lineHeight: 14, color: cores.sobreTinta }}>AGORA</Text>
             </View>
           ) : null}
         </View>
@@ -192,7 +194,7 @@ function LinhaDoBloco({ bloco, agora, primeira }: { bloco: BlocoCalendario; agor
               backgroundColor: bloco.feito ? cores.tinta : 'transparent',
             }}
           >
-            {bloco.feito ? <Icone nome="certo" tamanho={15} cor="#FFFFFF" espessura={2.4} /> : null}
+            {bloco.feito ? <Icone nome="certo" tamanho={15} cor={cores.sobreTinta} espessura={2.4} /> : null}
           </View>
         </View>
       )}

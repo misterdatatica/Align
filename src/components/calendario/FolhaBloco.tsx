@@ -5,13 +5,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { comDesfazer } from '@/components/AvisoTemporario';
 import { CampoAutoGuardado } from '@/components/CampoAutoGuardado';
 import { avisarErro } from '@/components/dialogos';
-import { Botao, BotaoIcone, Opcao, Passo, estilos } from '@/components/ui';
+import { Botao, BotaoIcone, Opcao, Passo } from '@/components/ui';
 import { alocarTarefa, marcarBlocoFeito, moverBloco, renomearOcupado, retirarBloco, type BlocoCalendario, type CalendarioDaSemana, type TarefaPorAlocar } from '@/data/calendario';
 import { formatarIntervalo, PASSO_MIN, sobrepostos } from '@/domain/calendario';
 import type { Ambito } from '@/domain/proposta';
 import { DIAS_CURTOS, DIAS_LONGOS, MINUTOS_DIA, descreverDia, formatarHora } from '@/domain/semana';
 import { formatarDuracao } from '@/domain/tarefas';
-import { cores, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 import { EscolhaDeAmbito } from './EscolhaDeAmbito';
 
@@ -29,6 +29,7 @@ type Props = {
  * arrastar: dia, hora de início e duração mudam-se com botões, que funcionam com o leitor de ecrã.
  */
 export function FolhaBloco({ alvo, calendario, aoFechar }: Props) {
+  const { cores } = useTema();
   const margens = useSafeAreaInsets();
   const bloco = alvo?.tipo === 'bloco' ? calendario.blocos.find((b) => b.id === alvo.blocoId) : undefined;
   const tarefa = alvo?.tipo === 'nova' ? calendario.porAlocar.find((t) => t.tarefaId === alvo.tarefaId) : undefined;
@@ -42,7 +43,7 @@ export function FolhaBloco({ alvo, calendario, aoFechar }: Props) {
   return (
     <Modal visible={aberta} transparent animationType="slide" onRequestClose={aoFechar} statusBarTranslucent>
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Fechar" onPress={aoFechar} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: 'rgba(21, 23, 28, 0.45)' }} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Fechar" onPress={aoFechar} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: cores.veu }} />
         <View
           accessibilityViewIsModal
           style={{ backgroundColor: cores.fundo, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 8, paddingBottom: Math.max(margens.bottom, 16), gap: 16 }}
@@ -57,6 +58,7 @@ export function FolhaBloco({ alvo, calendario, aoFechar }: Props) {
 }
 
 function Cabecalho({ titulo, subtitulo, cor, aoFechar }: { titulo: string; subtitulo: string; cor: string | null; aoFechar: () => void }) {
+  const { cores, estilos } = useTema();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
       <View style={{ marginTop: 9, width: 10, height: 10, borderRadius: cor ? 999 : 2, backgroundColor: cor ?? cores.tracejado }} />
@@ -75,6 +77,7 @@ type Horario = { dia: number; inicioMin: number; fimMin: number };
 
 /** Dia, hora de início e duração, escolhidos com botões. */
 function EscolhaDeHorario({ horario, dias, duracaoFixa, aoMudar }: { horario: Horario; dias: string[]; duracaoFixa?: boolean; aoMudar: (h: Horario) => void }) {
+  const { estilos } = useTema();
   const duracao = horario.fimMin - horario.inicioMin;
   return (
     <View style={{ gap: 12 }}>
@@ -123,6 +126,7 @@ function EscolhaDeHorario({ horario, dias, duracaoFixa, aoMudar }: { horario: Ho
 }
 
 function DetalheDoBloco({ bloco, calendario, aoFechar }: { bloco: BlocoCalendario; calendario: CalendarioDaSemana; aoFechar: () => void }) {
+  const { cores, estilos, corDaArea } = useTema();
   const ocupado = bloco.tipo === 'ocupado';
   // Nos blocos de tarefas recorrentes o horário só se guarda depois de se escolher o âmbito.
   const [pendente, setPendente] = useState<Horario | null>(null);
@@ -217,6 +221,7 @@ function DetalheDoBloco({ bloco, calendario, aoFechar }: { bloco: BlocoCalendari
 }
 
 function NovaAlocacao({ tarefa, calendario, aoFechar }: { tarefa: TarefaPorAlocar; calendario: CalendarioDaSemana; aoFechar: () => void }) {
+  const { corDaArea } = useTema();
   // Sugere as 9:00 de segunda, ou o início da grelha se começar mais tarde.
   const inicial = Math.min(Math.max(calendario.inicioMin, 9 * 60), MINUTOS_DIA - tarefa.duracaoMin);
   const [horario, setHorario] = useState<Horario>({ dia: 0, inicioMin: inicial, fimMin: inicial + tarefa.duracaoMin });

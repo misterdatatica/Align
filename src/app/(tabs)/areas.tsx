@@ -8,7 +8,7 @@ import { AvisoDeSemana } from '@/components/AvisoDeSemana';
 import { avisarErro } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
 import { ListaDeAreas } from '@/components/ListaDeAreas';
-import { Botao, BotaoIcone, Seccao, Titulo, estilos } from '@/components/ui';
+import { Botao, BotaoIcone, Seccao, Titulo } from '@/components/ui';
 import { criarArea, reordenarAreas } from '@/data/areas';
 import { recarregarConsultas, useConsulta } from '@/data/consulta';
 import { carregarPlano } from '@/data/tarefas';
@@ -16,11 +16,12 @@ import { MAX_AREAS, podeCriarArea } from '@/domain/regras';
 import { descreverSemanaPorExtenso, semanaNaFrase } from '@/domain/semana';
 import { usePrepararSemana, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
 import { SUGESTOES_DE_AREAS } from '@/sugestoes';
-import { cores, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos'] as const;
 
 export default function AreasEcra() {
+  const { cores, estilos, corDaArea } = useTema();
   const router = useRouter();
   // As contagens são da semana que se está a planear (a do separador Semana).
   const semana = useSemanaEscolhida();

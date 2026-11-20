@@ -3,11 +3,11 @@ import { GestureDetector, Pressable, ScrollView } from 'react-native-gesture-han
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { Icone } from '@/components/Icone';
-import { Botao, estilos } from '@/components/ui';
+import { Botao } from '@/components/ui';
 import type { CalendarioDaSemana, TarefaPorAlocar } from '@/data/calendario';
 import { formatarHoras } from '@/domain/regras';
 import { formatarDuracao } from '@/domain/tarefas';
-import { cores, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 import { MODO_NENHUM, useGestoDaBandeja, type Arrasto, type RefDeVista } from './arrasto';
 
@@ -26,6 +26,7 @@ type Props = {
 
 /** A bandeja "Por alocar": as tarefas da semana que ainda não têm lugar no calendário. */
 export function Bandeja({ calendario, arrasto, bandejaRef, escolhida, arrastada, aoEscolher, aoPlanear }: Props) {
+  const { cores, estilos } = useTema();
   const { porAlocar, minutosPorAlocar, blocos } = calendario;
   return (
     <Animated.View ref={bandejaRef} collapsable={false} style={[estilos.cartao, { padding: 12, gap: 8 }]}>
@@ -63,6 +64,7 @@ type FichaProps = {
 
 /** Uma tarefa por alocar: arrasta-se para a grelha, ou toca-se nela e depois na hora. */
 function Ficha({ tarefa, arrasto, escolhida, arrastada, aoEscolher }: FichaProps) {
+  const { corDaArea } = useTema();
   const gesto = useGestoDaBandeja(arrasto, tarefa.tarefaId, tarefa.duracaoMin);
   const cor = corDaArea(tarefa.cor);
   const duracao = formatarDuracao(tarefa.duracaoMin);
@@ -98,7 +100,7 @@ function Ficha({ tarefa, arrasto, escolhida, arrastada, aoEscolher }: FichaProps
         </View>
         {tarefa.quantas > 1 ? (
           <View style={{ minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: cor.texto }}>
-            <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: '#FFFFFF', fontVariant: ['tabular-nums'] }}>{`×${tarefa.quantas}`}</Text>
+            <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: cor.tinta, fontVariant: ['tabular-nums'] }}>{`×${tarefa.quantas}`}</Text>
           </View>
         ) : null}
       </Pressable>
@@ -117,6 +119,7 @@ type FantasmaProps = {
 
 /** Etiqueta que acompanha o dedo durante o arrasto, com o nome e o destino. Vive numa camada por cima do ecrã. */
 export function Fantasma({ arrasto, camadaRef, nome, destino }: FantasmaProps) {
+  const { cores } = useTema();
   const { modo, dedoX, dedoY, camadaX, camadaY } = arrasto;
   const estilo = useAnimatedStyle(() => ({
     opacity: modo.get() === MODO_NENHUM ? 0 : 1,
@@ -128,7 +131,7 @@ export function Fantasma({ arrasto, camadaRef, nome, destino }: FantasmaProps) {
       <Animated.View style={[{ position: 'absolute', left: -80, top: -64, width: 160, alignItems: 'center' }, estilo]}>
         {nome ? (
           <View style={{ maxWidth: 160, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: cores.tinta, alignItems: 'center' }}>
-            <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: '#FFFFFF' }} numberOfLines={1}>
+            <Text style={{ fontFamily: fontes.textoForte, fontSize: 12, lineHeight: 16, color: cores.sobreTinta }} numberOfLines={1}>
               {nome}
             </Text>
             {destino ? <Text style={{ fontFamily: fontes.textoMedio, fontSize: 11, lineHeight: 14, color: cores.textoSobreTinta, fontVariant: ['tabular-nums'] }}>{destino}</Text> : null}

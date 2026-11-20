@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avisar, avisarErro } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
-import { Botao, Cartao, Opcao, Passo, estilos } from '@/components/ui';
+import { Botao, Cartao, Opcao, Passo } from '@/components/ui';
 import { criarArea } from '@/data/areas';
 import { recarregarConsultas } from '@/data/consulta';
 import { DEFINICOES_INICIAIS, guardarDefinicoes } from '@/data/definicoes';
@@ -14,7 +14,7 @@ import { DIAS_DE_REVISAO } from '@/domain/revisao';
 import { formatarHora, inicioDaSemana } from '@/domain/semana';
 import { agendarLembrete, lembretesDisponiveis, pedirPermissaoDeLembrete } from '@/lembrete';
 import { SUGESTOES_DE_AREAS } from '@/sugestoes';
-import { cores, corDaArea, fontes } from '@/theme';
+import { fontes, useTema } from '@/theme';
 
 const NIVEIS = [
   { nome: 'Área', texto: 'Uma responsabilidade da sua vida: Espiritual, Família, Trabalho…' },
@@ -31,6 +31,7 @@ const DIAS = [1, 2, 3, 4, 5, 6, 0];
  * Só aparece enquanto não houver áreas nem definições guardadas (ver o ecrã das áreas).
  */
 export default function BoasVindasEcra() {
+  const { cores, estilos, corDaArea } = useTema();
   const router = useRouter();
   const [passo, setPasso] = useState(0);
   const [escolhidas, setEscolhidas] = useState<string[]>([]);
@@ -85,7 +86,7 @@ export default function BoasVindasEcra() {
               {NIVEIS.map((nivel, i) => (
                 <View key={nivel.nome} style={{ flexDirection: 'row', gap: 12, padding: 16, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: cores.linhaSuave }}>
                   <View style={{ width: 28, height: 28, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: cores.tinta }}>
-                    <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, color: '#FFFFFF' }}>{i + 1}</Text>
+                    <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, color: cores.sobreTinta }}>{i + 1}</Text>
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={{ fontFamily: fontes.textoForte, fontSize: 16, lineHeight: 22, color: cores.tinta }}>{nivel.nome}</Text>
@@ -174,6 +175,7 @@ export default function BoasVindasEcra() {
 }
 
 function Cabecalho({ titulo, texto }: { titulo: string; texto: string }) {
+  const { cores, estilos } = useTema();
   return (
     <View style={{ gap: 8 }}>
       <Text style={[estilos.titulo, { fontSize: 28, lineHeight: 34 }]} accessibilityRole="header">
