@@ -122,7 +122,11 @@ export default function CalendarioEcra() {
     return () => clearTimeout(temporizador);
   }, [aviso]);
 
-  const blocosNaGrelha = useMemo(() => blocos.map((b) => ({ id: b.id, dia: b.dia, inicio: b.inicioMin, fim: b.fimMin, coluna: b.coluna, colunas: b.colunas })), [blocos]);
+  // Os eventos do telemóvel não se arrastam: mudam-se na app de calendário.
+  const blocosNaGrelha = useMemo(
+    () => blocos.filter((b) => !b.doTelemovel).map((b) => ({ id: b.id, dia: b.dia, inicio: b.inicioMin, fim: b.fimMin, coluna: b.coluna, colunas: b.colunas })),
+    [blocos],
+  );
 
   const { grelhaRef, bandejaRef, camadaRef, ...arrasto } = useArrasto({
     inicioMin: calendario.inicioMin,

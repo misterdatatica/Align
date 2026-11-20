@@ -164,6 +164,25 @@ function DetalheDoBloco({ bloco, calendario, aoFechar }: { bloco: BlocoCalendari
     setAPerguntar(null);
   }
 
+  if (bloco.doTelemovel) {
+    return (
+      <>
+        <Cabecalho
+          titulo={bloco.nome}
+          subtitulo={`${t('Calendário do telemóvel')} · ${descreverDia(calendario.dias[bloco.dia])} · ${formatarIntervalo(bloco.inicioMin, bloco.fimMin)}`}
+          cor={null}
+          aoFechar={aoFechar}
+        />
+        {outros.length > 0 ? (
+          <Text style={[estilos.pequeno, { color: cores.perigo }]}>
+            {outros.length > 1 ? t('Sobrepõe-se a “{outro}” e a mais {n}.', { outro: outros[0].nome, n: outros.length - 1 }) : t('Sobrepõe-se a “{outro}”.', { outro: outros[0].nome })}
+          </Text>
+        ) : null}
+        <Text style={estilos.corpo}>{t('Este evento vem do calendário do telemóvel e aqui é só para ver. Para o mudar ou apagar, use a app de calendário.')}</Text>
+      </>
+    );
+  }
+
   if (aPerguntar) {
     const titulo =
       aPerguntar === 'retirar'

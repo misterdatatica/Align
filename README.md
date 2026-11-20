@@ -32,7 +32,8 @@ src/
     meta/[id].tsx        uma meta: progresso, linha do histórico, atualizar valor, pausar, concluir
     meta/nova.tsx        criar meta
     tarefa/nova.tsx      criar tarefa          tarefa/[id].tsx   alterar ou apagar tarefa
-    definicoes.tsx       revisão (dia, hora, lembrete), horas do calendário, avisos dos blocos, cópia de segurança
+    definicoes.tsx       revisão (dia, hora, lembrete), horas do calendário, avisos dos blocos, calendários do
+                         telemóvel, cópia de segurança
     pesquisa.tsx         pesquisar áreas, metas e tarefas pelo nome (sem acentos nem maiúsculas)
     estatisticas.tsx     estatísticas e histórico do mês ou do ano (Align Plus)
     metas.tsx            "As minhas metas": todas as metas, por estado (ativas, pausadas, concluídas, abandonadas)
@@ -53,6 +54,8 @@ src/
   estado/semana.ts       o dia de hoje e a semana escolhida nos separadores
   lembrete.ts            lembrete local da revisão (expo-notifications); lembrete.web.ts não faz nada
   avisos.ts              avisos antes de cada bloco (Align Plus), refeitos quando os blocos mudam; avisos.web.ts não faz nada
+  eventos.ts             eventos dos calendários do telemóvel como "Ocupado" (Align Plus); eventos.web.ts não faz nada
+idiomas/                 textos do iOS por idioma (o pedido de acesso aos calendários)
   copiaFicheiro.ts       guardar e abrir o ficheiro da cópia; copiaFicheiro.web.ts para o navegador
   i18n/                  traduções: t('texto em português'), en.ts (inglês), listas.ts e o teste que garante
                          que nada fica por traduzir
@@ -122,6 +125,16 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
   começa daí para a frente: nesta semana só entram as vezes que ainda estão para vir, e a semana
   seguinte é criada logo com o modelo inteiro (as outras copiam-na). Os testes verificam que nenhum
   modelo tem blocos sobrepostos e que os horários batem certo com as recorrências.
+- **Calendários do telemóvel** (`src/eventos.ts`, com `expo-calendar`): os eventos do Google Calendar,
+  do iCloud e das outras contas do telemóvel, da semana atual e das 4 seguintes, guardam-se como blocos
+  "Ocupado" com `blocos.evento_id` (migração 0009), para o calendário, o Hoje e os avisos de
+  sobreposição os verem como os outros. A app só lê. Refazem-se quando a app abre, quando volta a ficar
+  à frente e quando as definições mudam, e só se escreve o que mudou (`src/data/eventos.ts`). Ficam de
+  fora os de dia inteiro, os cancelados e os marcados como "livre"; um evento que passa da meia-noite
+  fica partido por dia. São só para ver: não se arrastam nem se editam, não se copiam para a semana
+  seguinte, não contam para "semana desatualizada", "Limpar" não os tira e não vão na cópia de
+  segurança. Nas Definições escolhe-se que calendários mostrar (`definicoes.calendarios_escondidos`:
+  os novos aparecem). O pedido de acesso no iOS está em `idiomas/` (português e inglês).
 - `definicoes.ultima_copia` guarda a data da última cópia de segurança; a revisão lembra de fazer
   uma quando passaram mais de 30 dias.
 - Mover ou retirar um bloco de uma tarefa recorrente pede um âmbito. "Só esta semana" guarda o
@@ -155,7 +168,8 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
 
 O que falta verificar em telemóveis reais (não se consegue no navegador): o arrasto com o dedo
 e a sua fluidez, o zoom de dois dedos no calendário, o lembrete (notificação à hora escolhida), os avisos dos
-blocos (à hora certa, tocar abre o Hoje, "Alarmes e lembretes" no Android), exportar pela folha de partilha e
+blocos (à hora certa, tocar abre o Hoje, "Alarmes e lembretes" no Android), os eventos dos calendários do
+telemóvel (acesso, escolher calendários, eventos que mudam lá fora), exportar pela folha de partilha e
 importar pelo seletor de ficheiros, e o uso em modo de avião.
 
 ## Testes de ponta a ponta

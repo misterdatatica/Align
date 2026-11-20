@@ -45,6 +45,8 @@ export type BlocoCalendario = {
   recorrente: boolean;
   /** Este bloco foi mudado só nesta semana: a semana seguinte volta ao horário habitual. */
   soEstaSemana: boolean;
+  /** Um "Ocupado" que vem de um evento do calendário do telemóvel: só para ver (muda-se lá). */
+  doTelemovel: boolean;
   /** Blocos sobrepostos ficam lado a lado: coluna deste bloco e número de colunas do grupo. */
   coluna: number;
   colunas: number;
@@ -127,12 +129,13 @@ export function carregarCalendario(semana: string): CalendarioDaSemana {
       tarefaId: b.tarefaId,
       recorrente: tarefa.recorrente,
       soEstaSemana: tarefa.recorrente && b.habitualInicio !== null,
+      doTelemovel: false,
     });
   }
 
   const { desde, ate } = limitesDaSemana(semana);
   const ocupados = db
-    .select({ id: blocos.id, inicio: blocos.inicio, fim: blocos.fim, titulo: blocos.titulo })
+    .select({ id: blocos.id, inicio: blocos.inicio, fim: blocos.fim, titulo: blocos.titulo, eventoId: blocos.eventoId })
     .from(blocos)
     .where(and(isNull(blocos.tarefaSemanaId), gte(blocos.inicio, desde), lt(blocos.inicio, ate)))
     .orderBy(asc(blocos.inicio), asc(blocos.id))
@@ -155,6 +158,7 @@ export function carregarCalendario(semana: string): CalendarioDaSemana {
       tarefaId: null,
       recorrente: false,
       soEstaSemana: false,
+      doTelemovel: b.eventoId !== null,
     });
   }
 
@@ -267,6 +271,7 @@ function lerBloco(bd: Bd, id: number) {
       tarefaId: tarefas.id,
       serieId: tarefas.serieId,
       recorrencia: tarefas.recorrencia,
+      eventoId: blocos.eventoId,
     })
     .from(blocos)
     .leftJoin(tarefasSemana, eq(blocos.tarefaSemanaId, tarefasSemana.id))
@@ -339,6 +344,7 @@ export function moverBloco(id: number, dia: string, inicioMin: number, fimMin: n
   db.transaction((tx) => {
     const bloco = lerBloco(tx, id);
     if (!bloco) throw new ErroDaApp(t('O bloco já não existe.'));
+    if (bloco.eventoId !== null) throw new ErroDaApp(t('Este evento vem do calendário do telemóvel: mude-o lá.'));
     // Um bloco de tarefa não sai da semana da sua instância.
     if (bloco.semana && !diasDaSemana(bloco.semana).includes(dia)) throw new ErroDaApp(t('O dia escolhido não pertence a esta semana.'));
     const novo = { inicio: paraDataHora(dia, inicioMin), fim: paraDataHora(dia, fimMin) };
@@ -385,6 +391,7 @@ export function retirarBloco(id: number, ambito: Ambito = 'seguintes'): void {
   db.transaction((tx) => {
     const bloco = lerBloco(tx, id);
     if (!bloco) return;
+    if (bloco.eventoId !== null) throw new ErroDaApp(t('Este evento vem do calendário do telemóvel: mude-o lá.'));
     tx.delete(blocos).where(eq(blocos.id, id)).run();
     if (bloco.instanciaId === null) return;
 
@@ -412,6 +419,6 @@ export function criarOcupado(dia: string, inicioMin: number, fimMin: number, tit
 export function renomearOcupado(id: number, titulo: string): void {
   db.update(blocos)
     .set({ titulo: titulo.trim() || null, atualizadoEm: AGORA })
-    .where(and(eq(blocos.id, id), isNull(blocos.tarefaSemanaId)))
+    .where(and(eq(blocos.id, id), isNull(blocos.tarefaSemanaId), isNull(blocos.eventoId)))
     .run();
 }

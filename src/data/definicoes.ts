@@ -25,6 +25,10 @@ export type Definicoes = {
   avisosBlocos: boolean;
   /** Quantos minutos antes do bloco chega o aviso. */
   minutosAntes: number;
+  /** Mostrar os eventos dos calendários do telemóvel como "Ocupado" (Align Plus). */
+  eventosTelemovel: boolean;
+  /** Os calendários do telemóvel escondidos (ids). Os que não estão aqui aparecem, mesmo os novos. */
+  calendariosEscondidos: string[];
 };
 
 /** Os minutos de antecedência que se podem escolher para os avisos dos blocos. */
@@ -36,7 +40,7 @@ const PREFERENCIAS_DE_IDIOMA: readonly PreferenciaDeIdioma[] = ['automatico', 'p
 export type PreferenciaDeTema = 'automatico' | 'claro' | 'escuro';
 const PREFERENCIAS_DE_TEMA: readonly PreferenciaDeTema[] = ['automatico', 'claro', 'escuro'];
 
-export const DEFINICOES_INICIAIS: Definicoes = { diaRevisao: 0, horaRevisao: '18:00', inicioGrelha: 6, fimGrelha: 23, lembreteAtivo: false, ultimaCopia: null, tema: 'automatico', idioma: 'automatico', avisosBlocos: false, minutosAntes: 10 };
+export const DEFINICOES_INICIAIS: Definicoes = { diaRevisao: 0, horaRevisao: '18:00', inicioGrelha: 6, fimGrelha: 23, lembreteAtivo: false, ultimaCopia: null, tema: 'automatico', idioma: 'automatico', avisosBlocos: false, minutosAntes: 10, eventosTelemovel: false, calendariosEscondidos: [] };
 
 const ID = 1;
 
@@ -54,6 +58,8 @@ export function carregarDefinicoes(): Definicoes {
     idioma: linha.idioma,
     avisosBlocos: linha.avisosBlocos,
     minutosAntes: linha.minutosAntes,
+    eventosTelemovel: linha.eventosTelemovel,
+    calendariosEscondidos: linha.calendariosEscondidos ?? [],
   };
 }
 
@@ -78,6 +84,7 @@ export function guardarDefinicoes(alteracoes: Partial<Definicoes>): Definicoes {
   if (!PREFERENCIAS_DE_TEMA.includes(novas.tema)) throw new ErroDaApp(t('A aparência escolhida não é válida.'));
   if (!PREFERENCIAS_DE_IDIOMA.includes(novas.idioma)) throw new ErroDaApp(t('O idioma escolhido não é válido.'));
   if (!Number.isInteger(novas.minutosAntes) || novas.minutosAntes < 0 || novas.minutosAntes > 120) throw new ErroDaApp(t('A antecedência dos avisos não é válida.'));
+  if (!Array.isArray(novas.calendariosEscondidos) || novas.calendariosEscondidos.some((id) => typeof id !== 'string')) throw new ErroDaApp(t('Os calendários escolhidos não são válidos.'));
   db.insert(definicoes)
     .values({ id: ID, ...novas })
     .onConflictDoUpdate({ target: definicoes.id, set: { ...novas, atualizadoEm: sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))` } })

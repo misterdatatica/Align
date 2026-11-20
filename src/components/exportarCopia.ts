@@ -17,7 +17,7 @@ export function ondeGuardarACopia(): string {
 /** Escreve a cópia de segurança num ficheiro, abre a folha de partilha e regista a data da cópia. */
 export async function exportarCopia(): Promise<boolean> {
   try {
-    await partilharFicheiro(`align-${paraDataISO(new Date())}.json`, JSON.stringify(exportarDados(), null, 2));
+    await partilharFicheiro(`align-${paraDataISO(new Date())}.json`, JSON.stringify(exportarDados(new Date(), { paraFicheiro: true }), null, 2));
     registarCopia();
     return true;
   } catch (erro) {

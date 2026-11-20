@@ -149,6 +149,12 @@ export const blocos = sqliteTable(
     inicio: text('inicio').notNull(),
     fim: text('fim').notNull(),
     feito: integer('feito', { mode: 'boolean' }).notNull().default(false),
+    /**
+     * Nos blocos "Ocupado" que vêm de um evento do calendário do telemóvel (Align Plus): a chave do
+     * evento e do dia. São só para ver, não se copiam para a semana seguinte e não vão na cópia de
+     * segurança. null = criado na app.
+     */
+    eventoId: text('evento_id'),
     ...timestamps,
   },
   (t) => [index('blocos_inicio_idx').on(t.inicio), index('blocos_tarefa_semana_idx').on(t.tarefaSemanaId)],
@@ -209,6 +215,10 @@ export const definicoes = sqliteTable('definicoes', {
   avisosBlocos: integer('avisos_blocos', { mode: 'boolean' }).notNull().default(false),
   /** Quantos minutos antes do bloco chega o aviso. */
   minutosAntes: integer('minutos_antes').notNull().default(10),
+  /** Mostrar os eventos dos calendários do telemóvel como "Ocupado" (Align Plus). */
+  eventosTelemovel: integer('eventos_telemovel', { mode: 'boolean' }).notNull().default(false),
+  /** Os calendários do telemóvel que o utilizador escondeu (ids); null = nenhum. Os novos aparecem. */
+  calendariosEscondidos: text('calendarios_escondidos', { mode: 'json' }).$type<string[]>(),
   ...timestamps,
 });
 

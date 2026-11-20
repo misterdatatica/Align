@@ -45,8 +45,19 @@
             "android": ["pt-PT", "en"]
           }
         }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Align shows the events from your calendars as “Busy” blocks in your weekly calendar. It only reads them: it doesn't create or change events.",
+          "remindersPermission": false
+        }
       ]
     ],
+    "locales": {
+      "pt": "./idiomas/pt.json",
+      "en": "./idiomas/en.json"
+    },
     "scheme": "align",
     "experiments": {
       "typedRoutes": true

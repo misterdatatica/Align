@@ -232,7 +232,9 @@ function LinhaDoBloco({ bloco, agora, primeira }: { bloco: BlocoCalendario; agor
         >
           {bloco.nome}
         </Text>
-        {bloco.area ? <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 16, color: cores.texto3 }}>{bloco.area}</Text> : null}
+        {bloco.area || bloco.doTelemovel ? (
+          <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 16, color: cores.texto3 }}>{bloco.area ?? t('Calendário do telemóvel')}</Text>
+        ) : null}
       </View>
       {ocupado ? null : (
         <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>

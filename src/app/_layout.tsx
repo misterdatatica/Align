@@ -12,6 +12,7 @@ import { AvisoTemporario } from '@/components/AvisoTemporario';
 import { useConsulta } from '@/data/consulta';
 import { carregarDefinicoes, type PreferenciaDeTema } from '@/data/definicoes';
 import { prepararBaseDeDados } from '@/db/preparar';
+import { useEventosDoTelemovel } from '@/eventos';
 import { deveReabrirDefinicoes } from '@/estado/reabrir';
 import { definirIdioma, escolherIdioma, t, type Idioma } from '@/i18n';
 import { configurarLembretes, useAbrirPelasNotificacoes } from '@/lembrete';
@@ -180,6 +181,7 @@ function AppComTema({ idiomaDoSistema }: { idiomaDoSistema: Idioma }) {
   definirIdioma(idioma);
   useEffect(() => aplicarAoSistema(preferencia), [preferencia]);
   useAvisosDosBlocos();
+  useEventosDoTelemovel();
   const tema = TEMAS[preferencia === 'automatico' ? esquemaDoSistema : preferencia];
   const { cores } = tema;
 

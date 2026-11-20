@@ -633,10 +633,13 @@ const cenarios = {
       await b.verTexto('24:00');
     });
 
-    await passo('os avisos antes de cada bloco (Plus) só existem na app do telemóvel', async () => {
+    await passo('os avisos dos blocos e os calendários do telemóvel (Plus) só existem na app do telemóvel', async () => {
       await b.verTexto('AVISOS DOS BLOCOS');
       await b.verTexto('Os avisos só funcionam na app do telemóvel.');
       await b.naoVerTexto('Quanto tempo antes');
+      await b.verTexto('CALENDÁRIOS DO TELEMÓVEL');
+      await b.verTexto('Os eventos do telemóvel só aparecem na app do telemóvel.');
+      await b.naoVerTexto('Que calendários mostrar');
     });
 
     await passo('o idioma escolhe-se nas definições, e as definições voltam a abrir já no idioma novo', async () => {

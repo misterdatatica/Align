@@ -64,6 +64,13 @@
       "when": 1795184964243,
       "tag": "0008_avisos_dos_blocos",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1795187088558,
+      "tag": "0009_eventos_do_telemovel",
+      "breakpoints": true
     }
   ]
 }

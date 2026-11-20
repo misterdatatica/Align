@@ -47,7 +47,7 @@ function semanaDesatualizada(anterior: string, desde: string): boolean {
   const ocupadoNovo = db
     .select({ id: blocos.id })
     .from(blocos)
-    .where(and(isNull(blocos.tarefaSemanaId), gte(blocos.inicio, inicio), lt(blocos.inicio, ate), gt(blocos.criadoEm, desde)))
+    .where(and(isNull(blocos.tarefaSemanaId), isNull(blocos.eventoId), gte(blocos.inicio, inicio), lt(blocos.inicio, ate), gt(blocos.criadoEm, desde)))
     .limit(1)
     .get();
   if (ocupadoNovo) return true;
@@ -201,12 +201,13 @@ function gerar(tx: Bd, semana: string, origem: string | null, ultimaPlaneada: st
   }
 
   if (origem) {
+    // Só os "Ocupado" feitos na app: os eventos do telemóvel vêm do telemóvel em cada semana.
     const ocupadosEm = (s: string) => {
       const { desde, ate } = limitesDaSemana(s);
       return tx
         .select({ titulo: blocos.titulo, inicio: blocos.inicio, fim: blocos.fim })
         .from(blocos)
-        .where(and(isNull(blocos.tarefaSemanaId), gte(blocos.inicio, desde), lt(blocos.inicio, ate)))
+        .where(and(isNull(blocos.tarefaSemanaId), isNull(blocos.eventoId), gte(blocos.inicio, desde), lt(blocos.inicio, ate)))
         .orderBy(asc(blocos.inicio), asc(blocos.id))
         .all();
     };
@@ -226,7 +227,7 @@ function gerar(tx: Bd, semana: string, origem: string | null, ultimaPlaneada: st
 
 /**
  * Esvazia uma semana para a refazer: saem os blocos por fazer e os "Ocupado"; as tarefas ficam, por
- * alocar. O que já foi feito fica como está.
+ * alocar. O que já foi feito fica como está, e os eventos do telemóvel também (são do telemóvel).
  */
 function limpar(tx: Bd, semana: string) {
   const porFazer = tx
@@ -247,7 +248,7 @@ function limpar(tx: Bd, semana: string) {
     .run();
   const { desde, ate } = limitesDaSemana(semana);
   tx.delete(blocos)
-    .where(and(isNull(blocos.tarefaSemanaId), gte(blocos.inicio, desde), lt(blocos.inicio, ate)))
+    .where(and(isNull(blocos.tarefaSemanaId), isNull(blocos.eventoId), gte(blocos.inicio, desde), lt(blocos.inicio, ate)))
     .run();
 }
 

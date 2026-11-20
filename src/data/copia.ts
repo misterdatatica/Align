@@ -1,3 +1,5 @@
+import { isNull } from 'drizzle-orm';
+
 import { db } from '@/db/client';
 import { areas, blocos, definicoes, metas, metasRegistos, revisoes, semanas, tarefas, tarefasSemana } from '@/db/schema';
 import { formatarValor } from '@/domain/metas';
@@ -29,7 +31,11 @@ export type CopiaDeSeguranca = {
   dados: { [T in NomeTabela]: (typeof TABELAS)[T]['$inferSelect'][] };
 };
 
-export function exportarDados(agora: Date = new Date()): CopiaDeSeguranca {
+/**
+ * Todos os dados. `paraFicheiro`: para a cópia de segurança, sem os eventos do telemóvel (voltam a vir
+ * do telemóvel); as fotografias para "Desfazer" levam tudo.
+ */
+export function exportarDados(agora: Date = new Date(), { paraFicheiro = false }: { paraFicheiro?: boolean } = {}): CopiaDeSeguranca {
   return {
     app: APP,
     versao: VERSAO,
@@ -40,7 +46,11 @@ export function exportarDados(agora: Date = new Date()): CopiaDeSeguranca {
       metasRegistos: db.select().from(metasRegistos).all(),
       tarefas: db.select().from(tarefas).all(),
       tarefasSemana: db.select().from(tarefasSemana).all(),
-      blocos: db.select().from(blocos).all(),
+      blocos: db
+        .select()
+        .from(blocos)
+        .where(paraFicheiro ? isNull(blocos.eventoId) : undefined)
+        .all(),
       revisoes: db.select().from(revisoes).all(),
       semanas: db.select().from(semanas).all(),
       definicoes: db.select().from(definicoes).all(),

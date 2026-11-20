@@ -13,6 +13,7 @@ import { importarDados, lerCopia, resumirCopia } from '@/data/copia';
 import { carregarDefinicoes, guardarDefinicoes, MINUTOS_ANTES, type Definicoes, type PreferenciaDeIdioma, type PreferenciaDeTema } from '@/data/definicoes';
 import { pedirParaReabrirDefinicoes } from '@/estado/reabrir';
 import { DIAS_DE_REVISAO } from '@/domain/revisao';
+import { eventosDisponiveis, listarCalendarios, pedirAcessoAosCalendarios, sincronizarEventosDoTelemovel, type CalendarioDoTelemovel } from '@/eventos';
 import { descreverDia, formatarHora, paraDataISO } from '@/domain/semana';
 import { agendarLembrete, cancelarLembrete, lembretesDisponiveis, pedirPermissaoDeLembrete } from '@/lembrete';
 import { fontes, useTema } from '@/theme';
@@ -113,6 +114,20 @@ export default function DefinicoesEcra() {
     }
   }
 
+  /** O acesso aos calendários só é pedido aqui, quando se ligam os eventos do telemóvel. */
+  async function alternarEventos(ativo: boolean) {
+    try {
+      if (ativo && !(await pedirAcessoAosCalendarios())) {
+        avisar(t('Sem acesso aos calendários'), t('Para ver os seus eventos, autorize o acesso aos calendários desta app nas definições do telemóvel.'));
+        return;
+      }
+      guardarDefinicoes({ eventosTelemovel: ativo });
+      await sincronizarEventosDoTelemovel();
+    } catch (erro) {
+      avisarErro(t('Não foi possível mudar os calendários do telemóvel'), erro);
+    }
+  }
+
   async function importar() {
     try {
       const texto = await escolherFicheiro();
@@ -134,8 +149,9 @@ export default function DefinicoesEcra() {
         await cancelarLembrete();
         if (importadas.lembreteAtivo) guardarDefinicoes({ lembreteAtivo: false });
       }
-      // Os avisos dos blocos também (agendam-se sozinhos, quando as definições mudam).
+      // Os avisos dos blocos também (agendam-se sozinhos, quando as definições mudam), e os eventos.
       if (importadas.avisosBlocos && !(await pedirPermissaoDosAvisos())) guardarDefinicoes({ avisosBlocos: false });
+      if (importadas.eventosTelemovel && !(await pedirAcessoAosCalendarios())) guardarDefinicoes({ eventosTelemovel: false });
       avisar(t('Dados importados'), t('A app tem agora {resumo}.', { resumo: resumirCopia(copia) }));
     } catch (erro) {
       avisarErro(t('Não foi possível importar os dados'), erro);
@@ -297,6 +313,32 @@ export default function DefinicoesEcra() {
         </SoPlus>
       </Seccao>
 
+      <Seccao titulo={t('Calendários do telemóvel')} direita={<EtiquetaPlus />}>
+        <SoPlus mensagem={t('Ver os eventos do telemóvel no calendário faz parte do Align Plus.')}>
+          <Cartao style={{ padding: 16, gap: 16 }}>
+            <View style={{ gap: 4 }}>
+              <Linha titulo={t('Mostrar os eventos do telemóvel')}>
+                <Switch
+                  accessibilityLabel={t('Mostrar os eventos do telemóvel')}
+                  value={definicoes.eventosTelemovel}
+                  onValueChange={alternarEventos}
+                  disabled={!eventosDisponiveis}
+                  trackColor={{ false: cores.contorno, true: cores.tinta }}
+                />
+              </Linha>
+              <Text style={estilos.pequeno}>
+                {eventosDisponiveis
+                  ? t('Os eventos do Google Calendar, do iCloud e das outras contas do telemóvel aparecem no calendário como “Ocupado”, só para ver. Os de dia inteiro não aparecem.')
+                  : t('Os eventos do telemóvel só aparecem na app do telemóvel.')}
+              </Text>
+            </View>
+            {definicoes.eventosTelemovel && eventosDisponiveis ? (
+              <CalendariosDoTelemovel escondidos={definicoes.calendariosEscondidos} aoMudar={(calendariosEscondidos) => mudar({ calendariosEscondidos })} />
+            ) : null}
+          </Cartao>
+        </SoPlus>
+      </Seccao>
+
       <Seccao titulo={t('Cópia de segurança')}>
         <Cartao style={{ padding: 16, gap: 10 }}>
           <Text style={estilos.pequeno}>{t('Guarde os dados num ficheiro para os recuperar noutro telemóvel ou depois de reinstalar a app.')}</Text>
@@ -333,6 +375,57 @@ export default function DefinicoesEcra() {
 
       <Text style={[estilos.pequeno, { textAlign: 'center' }]}>{t('Os seus dados ficam só neste dispositivo. A app não recolhe nem envia nada.')}</Text>
     </ScrollView>
+  );
+}
+
+/** Os calendários do telemóvel, cada um com o seu interruptor. Os que se desligam ficam escondidos. */
+function CalendariosDoTelemovel({ escondidos, aoMudar }: { escondidos: string[]; aoMudar: (escondidos: string[]) => void }) {
+  const { cores, estilos } = useTema();
+  const [calendarios, setCalendarios] = useState<CalendarioDoTelemovel[] | null>(null);
+  useEffect(() => {
+    let ativo = true;
+    listarCalendarios()
+      .then((lista) => {
+        if (ativo) setCalendarios(lista);
+      })
+      .catch(() => {
+        if (ativo) setCalendarios([]);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  if (calendarios === null) return <Text style={estilos.pequeno}>{t('A procurar os calendários…')}</Text>;
+  if (calendarios.length === 0) return <Text style={estilos.pequeno}>{t('Não foram encontrados calendários neste telemóvel.')}</Text>;
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={estilos.corpo}>{t('Que calendários mostrar')}</Text>
+      {calendarios.map((c) => {
+        const visivel = !escondidos.includes(c.id);
+        return (
+          <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}>
+            <View style={{ width: 10, height: 10, borderRadius: 999, backgroundColor: c.cor ?? cores.texto3 }} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={estilos.corpo} numberOfLines={1}>
+                {c.titulo}
+              </Text>
+              {c.conta ? (
+                <Text style={estilos.pequeno} numberOfLines={1}>
+                  {c.conta}
+                </Text>
+              ) : null}
+            </View>
+            <Switch
+              accessibilityLabel={t('Mostrar o calendário {nome}', { nome: c.titulo })}
+              value={visivel}
+              onValueChange={(mostrar) => aoMudar(mostrar ? escondidos.filter((id) => id !== c.id) : [...escondidos, c.id])}
+              trackColor={{ false: cores.contorno, true: cores.tinta }}
+            />
+          </View>
+        );
+      })}
+    </View>
   );
 }
 
