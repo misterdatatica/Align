@@ -9,7 +9,7 @@ import { db } from '../db/client.ts';
 import { areas, semanas, tarefasSemana } from '../db/schema.ts';
 import { alocarTarefa, carregarCalendario, criarOcupado, marcarBlocoFeito, moverBloco, retirarBloco } from './calendario.ts';
 import { fecharRevisao } from './revisao.ts';
-import { carregarPlanoDaSemana, planearSemana, refazerSemana } from './semanas.ts';
+import { carregarPlanoDaSemana, limparSemana, planearSemana, refazerSemana } from './semanas.ts';
 import { carregarPlano, criarTarefa, editarTarefa, garantirSemana } from './tarefas.ts';
 
 // Quatro semanas seguidas; "hoje" é o domingo da primeira (o dia da revisão).
@@ -217,6 +217,45 @@ describe('refazer a partir da semana anterior', () => {
     assert.throws(() => refazerSemana('2026-11-02', HOJE), /atual e as seguintes/);
     assert.throws(() => refazerSemana(S1, HOJE), /anterior para copiar/);
     assert.throws(() => refazerSemana(S3, HOJE), /ainda não tem plano/);
+  });
+});
+
+describe('semana desatualizada e limpar a semana', () => {
+  /** Os tempos guardam-se ao milissegundo: espera um pouco para "depois" ser mesmo depois. */
+  const passar = () => {
+    const fim = Date.now() + 5;
+    while (Date.now() < fim);
+  };
+
+  it('avisa quando a semana anterior ganhou um "Ocupado" ou uma tarefa única depois de esta ter sido criada', () => {
+    primeiraSemana();
+    planearSemana(S2, HOJE);
+    assert.equal(carregarPlanoDaSemana(S2, DOMINGO).desatualizada, false);
+    passar();
+    criarOcupado(dia(S1, 5), 10 * 60, 11 * 60, 'Mercado');
+    assert.equal(carregarPlanoDaSemana(S2, DOMINGO).desatualizada, true);
+    passar();
+    refazerSemana(S2, HOJE);
+    assert.equal(carregarPlanoDaSemana(S2, DOMINGO).desatualizada, false, 'refazer apanha o que mudou');
+    passar();
+    criarTarefa({ areaId: 1, nome: 'Marcar dentista', duracaoMin: 30, recorrencia: null }, S1);
+    assert.equal(carregarPlanoDaSemana(S2, DOMINGO).desatualizada, true);
+    assert.equal(carregarPlanoDaSemana(S1, DOMINGO).desatualizada, false, 'a primeira semana não tem anterior');
+  });
+
+  it('limpar tira os blocos e os "Ocupado", deixa as tarefas por alocar e o que já foi feito', () => {
+    primeiraSemana();
+    planearSemana(S2, HOJE);
+    const terca = blocoEm(S2, 'Meditar', 1);
+    marcarBlocoFeito(terca.id, true);
+    limparSemana(S2, HOJE);
+    assert.deepEqual(blocosDe(S2), ['Meditar 1 390-510 feito']);
+    assert.deepEqual(porAlocar(S2), ['Meditar ×6', 'Treino ×2', 'Curso online ×1 (vem da semana passada)', 'Ligar aos avós ×1 (vem da semana passada)']);
+    const plano = carregarPlanoDaSemana(S2, DOMINGO);
+    assert.deepEqual([plano.origem, plano.origemSemana, plano.temAnterior], ['vazia', null, true]);
+    refazerSemana(S2, HOJE);
+    assert.equal(blocosDe(S2).length, 8, 'refazer volta a pôr tudo');
+    assert.throws(() => limparSemana('2026-11-02', HOJE), /atual e as seguintes/);
   });
 });
 

@@ -38,7 +38,7 @@ export function LinhaTarefa({ tarefa, semana, porExtenso, semLinha }: Props) {
 
   /** Sai desta semana e das seguintes (as anteriores ficam no histórico), com uns segundos para desfazer. */
   function apagar() {
-    if (!comDesfazer(`“${tarefa.nome}” apagada`, () => apagarTarefa(tarefa.id, semana), t('Não foi possível apagar a tarefa'))) deslizante.current?.close();
+    if (!comDesfazer(t('“{nome}” apagada', { nome: tarefa.nome }), () => apagarTarefa(tarefa.id, semana), t('Não foi possível apagar a tarefa'))) deslizante.current?.close();
   }
 
   function contar(feita: boolean) {

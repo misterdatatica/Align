@@ -8,7 +8,7 @@ import { LinhaTarefa } from '@/components/LinhaTarefa';
 import { SeletorSemana } from '@/components/SeletorSemana';
 import { Botao, BotaoIcone, Cartao, Titulo } from '@/components/ui';
 import { useConsulta } from '@/data/consulta';
-import { carregarPlanoDaSemana, refazerSemana } from '@/data/semanas';
+import { carregarPlanoDaSemana, limparSemana, refazerSemana, type PlanoDaSemana as PlanoDaSemanaPlaneada } from '@/data/semanas';
 import { carregarPlano, type PlanoDaSemana } from '@/data/tarefas';
 import { formatarHoras } from '@/domain/regras';
 import { descreverSemanaPorExtenso, somarSemanas } from '@/domain/semana';
@@ -42,7 +42,7 @@ export default function SemanaEcra() {
           )}
         </View>
 
-        <OrigemDaSemana estado={planoDaSemana.estado} semana={semana} origemSemana={planoDaSemana.origemSemana} podeRefazer={planoDaSemana.podePlanear} />
+        <OrigemDaSemana plano={planoDaSemana} />
 
         <Cartao style={{ padding: 16, gap: 14 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -77,34 +77,59 @@ export default function SemanaEcra() {
 
 /** De onde veio a semana: começa sempre igual à anterior, sem nada para aceitar. */
 /**
- * De onde veio a semana, e "Refazer a partir da semana anterior" para as semanas criadas antes de a
- * anterior mudar (ex.: abertas com antecedência).
+ * De onde veio a semana, um aviso quando a anterior mudou depois de esta ter sido criada, e as ações
+ * "Refazer a partir da semana anterior" e "Limpar esta semana" (ambas com "Desfazer").
  */
-function OrigemDaSemana({ estado, semana, origemSemana, podeRefazer }: { estado: 'por_planear' | 'aceite'; semana: string; origemSemana: string | null; podeRefazer: boolean }) {
+function OrigemDaSemana({ plano }: { plano: PlanoDaSemanaPlaneada }) {
   const { cores, estilos } = useTema();
+  const { estado, semana, origem, origemSemana, podePlanear, temAnterior, desatualizada } = plano;
   let texto: string | null = null;
   if (estado === 'por_planear') texto = t('Esta semana já passou e não chegou a ser planeada.');
   else if (origemSemana) {
     texto = origemSemana === somarSemanas(semana, -1) ? t('Começou igual à semana passada. Mude o que quiser: a semana seguinte começa igual a esta.') : t('Começou igual à semana de {semana}, a última planeada.', { semana: descreverSemanaPorExtenso(origemSemana) });
-  }
-  if (!texto) return null;
+  } else if (origem === 'vazia' && temAnterior) texto = t('Esta semana foi limpa: as tarefas que repetem ficam por alocar.');
+  const acoes = estado === 'aceite' && podePlanear;
+  if (!texto && !acoes) return null;
   return (
-    <View style={{ gap: 2, marginTop: -4 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Icone nome="repetir" tamanho={14} cor={cores.texto3} espessura={2} />
-        <Text style={[estilos.pequeno, { flex: 1 }]}>{texto}</Text>
-      </View>
-      {podeRefazer && origemSemana ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityHint={t('Volta a copiar a semana anterior, com o que lá mudou entretanto. Os blocos mudados só nesta semana perdem-se; as tarefas e o que já foi feito ficam.')}
-          onPress={() => comDesfazer(t('Semana refeita a partir da semana anterior'), () => refazerSemana(semana), t('Não foi possível refazer a semana'))}
-          style={({ pressed }) => ({ minHeight: 40, alignSelf: 'flex-start', justifyContent: 'center', paddingLeft: 22, opacity: pressed ? 0.6 : 1 })}
-        >
-          <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, color: cores.tinta, textDecorationLine: 'underline' }}>{t('Refazer a partir da semana anterior')}</Text>
-        </Pressable>
+    <View style={{ gap: 4, marginTop: -4 }}>
+      {texto ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Icone nome="repetir" tamanho={14} cor={cores.texto3} espessura={2} />
+          <Text style={[estilos.pequeno, { flex: 1 }]}>{texto}</Text>
+        </View>
+      ) : null}
+      {acoes && desatualizada ? (
+        <View style={{ flexDirection: 'row', gap: 8, padding: 12, borderRadius: 12, backgroundColor: cores.superficie, borderWidth: 1, borderColor: cores.contorno }} accessibilityLiveRegion="polite">
+          <Icone nome="aviso" tamanho={16} cor={cores.tinta} />
+          <Text style={[estilos.pequeno, { flex: 1, color: cores.texto2 }]}>{t('A semana anterior mudou depois de esta ter sido criada (um “Ocupado” ou uma tarefa nova). Refaça-a para apanhar as mudanças.')}</Text>
+        </View>
+      ) : null}
+      {acoes ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, paddingLeft: 22 }}>
+          {temAnterior ? (
+            <Ligacao
+              titulo={t('Refazer a partir da semana anterior')}
+              dica={t('Volta a copiar a semana anterior, com o que lá mudou entretanto. Os blocos mudados só nesta semana perdem-se; as tarefas e o que já foi feito ficam.')}
+              aoPremir={() => comDesfazer(t('Semana refeita a partir da semana anterior'), () => refazerSemana(semana), t('Não foi possível refazer a semana'))}
+            />
+          ) : null}
+          <Ligacao
+            titulo={t('Limpar esta semana')}
+            dica={t('Tira os blocos e os “Ocupado” desta semana, para começar do zero. As tarefas ficam por alocar e o que já foi feito fica.')}
+            aoPremir={() => comDesfazer(t('Semana limpa: as tarefas ficaram por alocar'), () => limparSemana(semana), t('Não foi possível limpar a semana'))}
+          />
+        </View>
       ) : null}
     </View>
+  );
+}
+
+function Ligacao({ titulo, dica, aoPremir }: { titulo: string; dica: string; aoPremir: () => void }) {
+  const { cores } = useTema();
+  return (
+    <Pressable accessibilityRole="button" accessibilityHint={dica} onPress={aoPremir} style={({ pressed }) => ({ minHeight: 40, justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}>
+      <Text style={{ fontFamily: fontes.textoForte, fontSize: 13, color: cores.tinta, textDecorationLine: 'underline' }}>{titulo}</Text>
+    </Pressable>
   );
 }
 

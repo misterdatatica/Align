@@ -9,6 +9,7 @@ import { Riscas } from '@/components/calendario/Bloco';
 import { FolhaDeAmbito } from '@/components/calendario/EscolhaDeAmbito';
 import { FolhaBloco, type AlvoDaFolha } from '@/components/calendario/FolhaBloco';
 import { Grelha } from '@/components/calendario/Grelha';
+import { comDesfazer } from '@/components/AvisoTemporario';
 import { avisarErro } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
 import { SeletorSemana } from '@/components/SeletorSemana';
@@ -191,19 +192,22 @@ export default function CalendarioEcra() {
         const bloco = blocos.find((b) => b.id === largada.id);
         if (bloco && largada.naGrelha) {
           if (bloco.dia !== largada.dia || bloco.inicioMin !== largada.inicioMin || bloco.fimMin !== largada.fimMin) {
+            const quando = `${t(DIAS_CURTOS[largada.dia]).toLowerCase()}, ${formatarIntervalo(largada.inicioMin, largada.fimMin)}`;
             const mover = (ambito?: Ambito) => {
-              moverBloco(bloco.id, dias[largada.dia], largada.inicioMin, largada.fimMin, ambito);
+              // Mover ou esticar com o dedo pode sair ao lado: fica um aviso com "Desfazer".
+              if (!comDesfazer(t('“{nome}” mudado para {quando}', { nome: bloco.nome, quando }), () => moverBloco(bloco.id, dias[largada.dia], largada.inicioMin, largada.fimMin, ambito), t('Não foi possível mudar o calendário'))) return;
               const texto = textoDeSobreposicao(bloco.nome, { id: bloco.id, dia: largada.dia, inicioMin: largada.inicioMin, fimMin: largada.fimMin });
               setAviso(texto ? { texto } : null);
             };
             // Um bloco de uma tarefa recorrente fica onde estava até se responder à pergunta.
-            if (bloco.recorrente) setPergunta({ titulo: t('Mudar “{nome}” para {quando}?', { nome: bloco.nome, quando: `${t(DIAS_CURTOS[largada.dia]).toLowerCase()}, ${formatarIntervalo(largada.inicioMin, largada.fimMin)}` }), executar: mover });
+            if (bloco.recorrente) setPergunta({ titulo: t('Mudar “{nome}” para {quando}?', { nome: bloco.nome, quando }), executar: mover });
             else mover();
           }
         } else if (bloco && largada.naBandeja && largada.modo === MODO_MOVER && bloco.tipo === 'tarefa') {
           // Largar um bloco em cima da bandeja devolve-o a "Por alocar".
-          if (bloco.recorrente) setPergunta({ titulo: t('Devolver “{nome}” a “Por alocar”?', { nome: bloco.nome }), executar: (ambito) => retirarBloco(bloco.id, ambito) });
-          else retirarBloco(bloco.id);
+          const devolver = (ambito?: Ambito) => comDesfazer(t('“{nome}” voltou a “Por alocar”', { nome: bloco.nome }), () => retirarBloco(bloco.id, ambito), t('Não foi possível mudar o calendário'));
+          if (bloco.recorrente) setPergunta({ titulo: t('Devolver “{nome}” a “Por alocar”?', { nome: bloco.nome }), executar: devolver });
+          else devolver();
         }
       }
     } catch (erro) {

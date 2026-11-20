@@ -1,5 +1,18 @@
 /** Traduções para inglês (britânico), pelo texto em português (ver index.ts). */
 export const EN: Record<string, string> = {
+  "Não foi possível limpar a semana": "Couldn't clear the week",
+  "Semana limpa: as tarefas ficaram por alocar": "Week cleared: tasks are now unscheduled",
+  "Tira os blocos e os “Ocupado” desta semana, para começar do zero. As tarefas ficam por alocar e o que já foi feito fica.": "Removes this week's blocks and “Busy” blocks so you can start from scratch. Tasks are left unscheduled and what's already done is kept.",
+  "Limpar esta semana": "Clear this week",
+  "A semana anterior mudou depois de esta ter sido criada (um “Ocupado” ou uma tarefa nova). Refaça-a para apanhar as mudanças.": "The previous week changed after this one was created (a “Busy” block or a new task). Redo it to pick up the changes.",
+  "Esta semana foi limpa: as tarefas que repetem ficam por alocar.": "This week was cleared: repeating tasks are left unscheduled.",
+  "Só se limpam a semana atual e as seguintes.": "Only the current and upcoming weeks can be cleared.",
+  "“{nome}” mudado para {quando}": "“{nome}” moved to {quando}",
+  "“{nome}” apagada": "“{nome}” deleted",
+  "“{nome}” arquivada": "“{nome}” archived",
+  "As alterações a esta tarefa perdem-se.": "Your changes to this task will be lost.",
+  "A tarefa não é criada.": "The task won't be created.",
+  "Tentar outra vez": "Try again",
   "semana de {semana}": "week of {semana}",
   "Tarefas": "Tasks",
   "Nada encontrado para “{texto}”.": "Nothing found for “{texto}”.",

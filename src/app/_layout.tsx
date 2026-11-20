@@ -4,7 +4,7 @@ import { DarkTheme, DefaultTheme, router, SplashScreen, Stack, ThemeProvider } f
 import { useLocales } from 'expo-localization';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { Appearance, Platform, Text, useColorScheme, View } from 'react-native';
+import { Appearance, Platform, Pressable, Text, useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AvisoTemporario } from '@/components/AvisoTemporario';
@@ -45,6 +45,39 @@ function useBaseDeDados() {
   return estado;
 }
 
+/**
+ * Só no navegador: ao recarregar a página depressa, a página anterior ainda pode ter a base de dados
+ * presa, e tentar outra vez na mesma página não resolve (o worker do SQLite fica num estado inválido).
+ * Recarregar a página resolve. Faz-se sozinho até 3 vezes seguidas; o contador vive na sessão do
+ * separador e volta a zero quando a base de dados abre.
+ */
+const TENTATIVAS_NO_NAVEGADOR = 3;
+const CHAVE_TENTATIVAS = 'align-tentativas-de-abrir';
+
+function lerTentativas(): number {
+  try {
+    return Number(window.sessionStorage.getItem(CHAVE_TENTATIVAS) ?? 0) || 0;
+  } catch {
+    return TENTATIVAS_NO_NAVEGADOR;
+  }
+}
+
+function guardarTentativas(n: number) {
+  try {
+    if (n === 0) window.sessionStorage.removeItem(CHAVE_TENTATIVAS);
+    else window.sessionStorage.setItem(CHAVE_TENTATIVAS, String(n));
+  } catch {
+    // Sem armazenamento (navegação privada): mostra-se o erro, com "Tentar outra vez".
+  }
+}
+
+/** O erro é o do ficheiro preso pela página anterior (só acontece no navegador). */
+function basePresaNoNavegador(erro: Error | null): boolean {
+  if (Platform.OS !== 'web' || !erro) return false;
+  const causa = erro.cause instanceof Error ? erro.cause.message : '';
+  return /Access Handle|createSyncAccessHandle|Invalid VFS state/i.test(`${erro.message} ${causa}`);
+}
+
 /** O esquema que o telemóvel (ou o navegador) está a usar. */
 function useEsquemaDoSistema(): Esquema {
   return useColorScheme() === 'dark' ? 'escuro' : 'claro';
@@ -78,7 +111,21 @@ export default function RootLayout() {
     if (pronto) SplashScreen.hideAsync();
   }, [pronto]);
 
-  if (!pronto) return null;
+  // No navegador, uma base de dados presa pela página anterior resolve-se a recarregar (ver acima).
+  const recarregarSozinho = basePresaNoNavegador(erroBd) && lerTentativas() < TENTATIVAS_NO_NAVEGADOR;
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    if (bdPronta) {
+      guardarTentativas(0);
+      return;
+    }
+    if (!recarregarSozinho) return;
+    guardarTentativas(lerTentativas() + 1);
+    const temporizador = setTimeout(() => window.location.reload(), 700);
+    return () => clearTimeout(temporizador);
+  }, [bdPronta, recarregarSozinho]);
+
+  if (!pronto || recarregarSozinho) return null;
 
   if (erroBd) {
     // A causa (o erro original do SQLite) ajuda a perceber o que falhou.
@@ -90,6 +137,18 @@ export default function RootLayout() {
         <Text style={{ fontSize: 17, fontWeight: '600', color: cores.tinta }}>{t('Não foi possível preparar a base de dados.')}</Text>
         <Text style={{ fontSize: 14, color: cores.texto2 }}>{t('Feche a app e volte a abrir. Se continuar, os seus dados não foram apagados.')}</Text>
         <Text style={{ fontSize: 12, color: cores.texto3 }}>{causa ? `${erroBd.message} (${causa})` : erroBd.message}</Text>
+        {Platform.OS === 'web' ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              guardarTentativas(0);
+              window.location.reload();
+            }}
+            style={{ alignSelf: 'flex-start', marginTop: 8, minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 12, backgroundColor: cores.tinta }}
+          >
+            <Text style={{ fontSize: 15, fontWeight: '600', color: cores.sobreTinta }}>{t('Tentar outra vez')}</Text>
+          </Pressable>
+        ) : null}
       </View>
     );
   }

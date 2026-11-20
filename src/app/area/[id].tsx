@@ -42,7 +42,7 @@ export default function AreaEcra() {
 
   /** A área deixa de aparecer, mas o histórico fica guardado (e pode ser reposta nas definições). */
   function arquivar() {
-    if (comDesfazer(`“${area.nome}” arquivada`, () => arquivarArea(areaId), t('Não foi possível arquivar a área'))) router.back();
+    if (comDesfazer(t('“{nome}” arquivada', { nome: area.nome }), () => arquivarArea(areaId), t('Não foi possível arquivar a área'))) router.back();
   }
 
   function mudar(campos: Parameters<typeof atualizarArea>[1]) {

@@ -26,11 +26,41 @@ export type PlanoDaSemana = {
   semana: string;
   /** "por_planear" só acontece nas semanas que já passaram sem plano. */
   estado: EstadoDaSemana;
+  /** De onde veio: "passada" (cópia da anterior) ou "vazia" (a primeira de todas, ou limpa). */
+  origem: 'passada' | 'modelo' | 'vazia' | null;
   /** A semana copiada, se a semana veio de uma cópia. */
   origemSemana: string | null;
   /** Só se planeiam a semana atual e as seguintes. */
   podePlanear: boolean;
+  /** Há uma semana planeada antes desta (para "Refazer a partir da semana anterior"). */
+  temAnterior: boolean;
+  /**
+   * A semana anterior ganhou "Ocupado" ou tarefas únicas por fazer depois de esta ter sido criada (ou
+   * refeita): esta semana não os tem. Só nas semanas que ainda se planeiam.
+   */
+  desatualizada: boolean;
 };
+
+/** Ver PlanoDaSemana.desatualizada. `desde` é quando a semana foi criada, refeita ou limpa. */
+function semanaDesatualizada(anterior: string, desde: string): boolean {
+  const { desde: inicio, ate } = limitesDaSemana(anterior);
+  const ocupadoNovo = db
+    .select({ id: blocos.id })
+    .from(blocos)
+    .where(and(isNull(blocos.tarefaSemanaId), gte(blocos.inicio, inicio), lt(blocos.inicio, ate), gt(blocos.criadoEm, desde)))
+    .limit(1)
+    .get();
+  if (ocupadoNovo) return true;
+  const tarefaUnicaNova = db
+    .select({ id: tarefasSemana.id })
+    .from(tarefasSemana)
+    .innerJoin(tarefas, eq(tarefasSemana.tarefaId, tarefas.id))
+    .innerJoin(areas, eq(tarefas.areaId, areas.id))
+    .where(and(eq(tarefasSemana.semana, anterior), isNull(tarefas.recorrencia), ne(tarefasSemana.estado, 'feita'), eq(areas.arquivada, false), gt(tarefasSemana.criadoEm, desde)))
+    .limit(1)
+    .get();
+  return !!tarefaUnicaNova;
+}
 
 function ultimaPlaneadaAntes(bd: Bd, semana: string): string | null {
   return bd.select({ semana: semanas.semana }).from(semanas).where(lt(semanas.semana, semana)).orderBy(desc(semanas.semana)).limit(1).get()?.semana ?? null;
@@ -39,11 +69,16 @@ function ultimaPlaneadaAntes(bd: Bd, semana: string): string | null {
 /** O plano de uma semana. `hoje` é AAAA-MM-DD. */
 export function carregarPlanoDaSemana(semana: string, hoje: string): PlanoDaSemana {
   const linha = db.select().from(semanas).where(eq(semanas.semana, semana)).get();
+  const podePlanear = semana >= inicioDaSemana(deDataISO(hoje));
+  const anterior = ultimaPlaneadaAntes(db, semana);
   return {
     semana,
     estado: linha ? 'aceite' : 'por_planear',
+    origem: linha?.origem ?? null,
     origemSemana: linha?.origemSemana ?? null,
-    podePlanear: semana >= inicioDaSemana(deDataISO(hoje)),
+    podePlanear,
+    temAnterior: anterior !== null,
+    desatualizada: !!linha && podePlanear && anterior !== null && semanaDesatualizada(anterior, linha.atualizadoEm),
   };
 }
 
@@ -262,6 +297,20 @@ export function refazerSemana(semana: string, hoje: Date = new Date()): void {
     limpar(tx, semana);
     gerar(tx, semana, anterior, anterior);
     tx.update(semanas).set({ origem: 'passada', origemSemana: anterior, atualizadoEm: AGORA }).where(eq(semanas.semana, semana)).run();
+  });
+  garantirSemana(semana, hoje);
+}
+
+/**
+ * "Limpar esta semana": começa a semana do zero (ex.: férias). Saem os blocos por fazer e os "Ocupado";
+ * as tarefas ficam, por alocar, e o que já foi feito fica. Só para a semana atual e as seguintes.
+ */
+export function limparSemana(semana: string, hoje: Date = new Date()): void {
+  if (semana < inicioDaSemana(hoje)) throw new ErroDaApp(t('Só se limpam a semana atual e as seguintes.'));
+  db.transaction((tx) => {
+    if (!tx.select({ semana: semanas.semana }).from(semanas).where(eq(semanas.semana, semana)).get()) throw new ErroDaApp(t('Esta semana ainda não tem plano.'));
+    limpar(tx, semana);
+    tx.update(semanas).set({ origem: 'vazia', origemSemana: null, atualizadoEm: AGORA }).where(eq(semanas.semana, semana)).run();
   });
   garantirSemana(semana, hoje);
 }

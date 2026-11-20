@@ -3,6 +3,7 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 
 import { comDesfazer } from '@/components/AvisoTemporario';
 import { avisarErro } from '@/components/dialogos';
+import { CancelarNoCabecalho, useSairSemGuardar } from '@/components/SairSemGuardar';
 import { Botao, Opcao, Passo, Seccao } from '@/components/ui';
 import { consultaAreasAtivas } from '@/data/areas';
 import { useConsulta } from '@/data/consulta';
@@ -56,8 +57,17 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoF
   const [dias, setDias] = useState<number[]>(tarefa?.recorrencia?.tipo === 'dias' ? tarefa.recorrencia.dias : []);
   /** Dia de uma tarefa única sem duração (0 = segunda … 6 = domingo); null = qualquer dia. */
   const [diaUnico, setDiaUnico] = useState<number | null>(tarefa?.dia ?? null);
+
   const [metaId, setMetaId] = useState<number | null>(tarefa?.metaId ?? metaInicial ?? null);
   const [aGuardar, setAGuardar] = useState(false);
+  // O que estava no formulário ao abrir, para saber se há alterações por guardar.
+  const estadoAtual = JSON.stringify([nome, nomeCurto, areaId, semDuracao, duracaoMin, repeticao, vezes, dias, metaId, diaUnico]);
+  const [noInicio] = useState(estadoAtual);
+  const { fecharSemPerguntar } = useSairSemGuardar({
+    alterado: estadoAtual !== noInicio,
+    mensagem: tarefa ? t('As alterações a esta tarefa perdem-se.') : t('A tarefa não é criada.'),
+    aoFechar,
+  });
 
   // Com uma só área não há nada para escolher.
   const areaEscolhida = areaId ?? (listaAreas.length === 1 ? listaAreas[0].id : null);
@@ -97,7 +107,7 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoF
     try {
       if (tarefa) editarTarefa(tarefa.id, semana, dados);
       else criarTarefa(dados, semana);
-      aoFechar();
+      fecharSemPerguntar();
     } catch (erro) {
       avisarErro(tarefa ? t('Não foi possível guardar a tarefa') : t('Não foi possível criar a tarefa'), erro);
       setAGuardar(false);
@@ -106,11 +116,12 @@ export function FormularioTarefa({ semana, tarefa, areaInicial, metaInicial, aoF
 
   function apagar() {
     if (!tarefa) return;
-    if (comDesfazer(`“${tarefa.nome}” apagada`, () => apagarTarefa(tarefa.id, semana), t('Não foi possível apagar a tarefa'))) aoFechar();
+    if (comDesfazer(t('“{nome}” apagada', { nome: tarefa.nome }), () => apagarTarefa(tarefa.id, semana), t('Não foi possível apagar a tarefa'))) fecharSemPerguntar();
   }
 
   return (
     <ScrollView style={estilos.ecra} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+      <CancelarNoCabecalho />
       <Seccao titulo={t('Nome')}>
         <TextInput
           value={nome}

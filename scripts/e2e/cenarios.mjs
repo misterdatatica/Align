@@ -246,6 +246,20 @@ const cenarios = {
       await b.verTexto('6,5 h');
     });
 
+    await passo('cancelar uma tarefa com alterações pergunta antes de sair', async () => {
+      await b.clicar('Meditar');
+      await b.verTexto('Guardar alterações');
+      await b.clicar('Nome da tarefa');
+      await b.avaliar('document.activeElement.select()');
+      await b.escrever('Meditar mais');
+      const antes = b.dialogos.length;
+      await b.clicar('Cancelar');
+      for (let i = 0; i < 30 && !b.dialogos.slice(antes).some((d) => d.includes('Sair sem guardar?')); i++) await b.esperar(100);
+      if (!b.dialogos.slice(antes).some((d) => d.includes('Sair sem guardar?'))) throw new Error('não perguntou antes de sair');
+      await b.naoVerTexto('Guardar alterações');
+      await b.naoVerTexto('Meditar mais');
+    });
+
     await passo('a semana seguinte começa sozinha igual a esta, sem nada para aceitar', async () => {
       await b.clicar('Semana seguinte');
       await b.verTexto(descreverSemanaComAno(SEGUINTE));
@@ -264,9 +278,16 @@ const cenarios = {
       await b.clicar('Semana seguinte');
       await b.verTexto('Começou igual à semana passada.');
       await b.naoVerTexto('Comprar prenda');
+      await b.verTexto('A semana anterior mudou depois de esta ter sido criada');
       await b.clicar('Refazer a partir da semana anterior');
       await b.verTexto('Semana refeita a partir da semana anterior');
       await b.verTexto('Comprar prenda');
+      await b.naoVerTexto('A semana anterior mudou depois de esta ter sido criada');
+      await b.clicar('Limpar esta semana');
+      await b.verTexto('Semana limpa: as tarefas ficaram por alocar');
+      await b.verTexto('Esta semana foi limpa');
+      await b.clicar('Desfazer');
+      await b.verTexto('Começou igual à semana passada.');
       await b.verTexto('30 min · vem da semana passada');
       await b.clicar('Voltar a esta semana');
       await b.verTexto(descreverSemanaComAno(ESTA));
@@ -388,6 +409,8 @@ const cenarios = {
       await b.arrastar({ x: de.x + 12, y: de.y }, { x: bandeja.x, y: bandeja.y + 30 }, { passos: 24, segurar: 500 });
       await b.verTexto('Rever orçamento · 1 h');
       await naoHaBloco(b, 'Rever orçamento, quarta');
+      await b.verTexto('“Rever orçamento” voltou a “Por alocar”');
+      await b.clicar('Fechar aviso');
       await b.clicar('Semana', { indice: -1 });
       await b.verTexto('7/7');
       await b.verTexto('14 h');
@@ -643,9 +666,7 @@ const cenarios = {
     });
 
     await passo('uma app já usada não volta ao primeiro arranque', async () => {
-      // Sair primeiro da app e esperar: no navegador, a página anterior tem de largar a base de dados.
-      await b.enviar('Page.navigate', { url: 'about:blank' });
-      await b.esperar(1500);
+      // Recarregar logo: se a página anterior ainda tiver a base de dados presa, a app recarrega sozinha.
       await b.ir('/', 'NO CALENDÁRIO');
       await b.clicar('Áreas');
       await b.verTexto('2 de 7 recomendadas');
