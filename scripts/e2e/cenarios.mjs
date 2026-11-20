@@ -694,6 +694,44 @@ const cenarios = {
     });
   },
 
+  /** Modelos (Align Plus): no primeiro arranque e no separador Áreas, com "Desfazer". */
+  async modelos(b, passo) {
+    await passo('o primeiro arranque pode começar com um modelo', async () => {
+      await b.ir('/', 'Uma semana alinhada');
+      await b.clicar('Continuar');
+      await b.verTexto('OU COMECE COM UM MODELO');
+      await b.clicar('Estudante', { exato: false });
+      await b.clicar('Continuar');
+      await b.clicar('Começar');
+      // Uma tarefa sem duração de todos os dias: está no Hoje seja a que horas for.
+      await b.verTexto('Deitar antes da meia-noite');
+      await b.clicar('Áreas');
+      await b.verTexto('4 de 7 recomendadas');
+      await b.verTexto('Amigos e família');
+    });
+
+    await passo('os modelos mostram as tarefas, e usar um que já existe não repete nada', async () => {
+      await b.clicar('Modelos');
+      await b.verTexto('Vida equilibrada');
+      await b.clicar('Ver as tarefas de Estudante');
+      await b.verTexto('Rever a matéria da semana');
+      await b.verTexto('seg, ter, qua, qui, sex · 17:00 · 1,5 h');
+      await b.clicar('Usar o modelo Estudante');
+      for (let i = 0; i < 25 && !b.dialogos.some((d) => d.includes('Já tem este modelo')); i++) await b.esperar(200);
+      if (!b.dialogos.some((d) => d.includes('Já tem este modelo'))) throw new Error('não avisou que o modelo já existe');
+    });
+
+    await passo('outro modelo junta-se às áreas que já existem, e "Desfazer" tira-o', async () => {
+      await b.clicar('Usar o modelo Por conta própria');
+      await b.verTexto('Modelo “Por conta própria” aplicado');
+      await b.verTexto('8 de 7 recomendadas');
+      await b.verTexto('Vida pessoal');
+      await b.clicar('Desfazer');
+      await b.verTexto('4 de 7 recomendadas');
+      await b.naoVerTexto('Vida pessoal');
+    });
+  },
+
   /** Com o navegador em inglês, a app aparece toda em inglês (o resto dos cenários corre em pt-PT). */
   async ingles(b, passo) {
     await passo('primeiro arranque em inglês', async () => {

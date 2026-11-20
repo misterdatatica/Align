@@ -3,16 +3,21 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CartaoDoModelo } from '@/components/CartaoDoModelo';
 import { avisar, avisarErro } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
+import { EtiquetaPlus } from '@/components/Plus';
 import { Botao, Cartao, Opcao, Passo } from '@/components/ui';
 import { criarArea } from '@/data/areas';
 import { recarregarConsultas } from '@/data/consulta';
 import { DEFINICOES_INICIAIS, guardarDefinicoes } from '@/data/definicoes';
+import { aplicarModelo } from '@/data/modelos';
 import { garantirSemana } from '@/data/tarefas';
+import { MODELOS } from '@/domain/modelos';
 import { DIAS_DE_REVISAO } from '@/domain/revisao';
 import { formatarHora, inicioDaSemana } from '@/domain/semana';
 import { agendarLembrete, lembretesDisponiveis, pedirPermissaoDeLembrete } from '@/lembrete';
+import { usePlus } from '@/plus';
 import { SUGESTOES_DE_AREAS } from '@/sugestoes';
 import { fontes, useTema } from '@/theme';
 import { t } from '@/i18n';
@@ -28,21 +33,31 @@ const NIVEIS = () => [
 const DIAS = [1, 2, 3, 4, 5, 6, 0];
 
 /**
- * Primeiro arranque, em três passos: a ideia da app, as primeiras áreas, e o dia e a hora da revisão.
- * Só aparece enquanto não houver áreas nem definições guardadas (ver o ecrã das áreas).
+ * Primeiro arranque, em três passos: a ideia da app, as primeiras áreas (ou um modelo, com áreas e
+ * tarefas já com horário), e o dia e a hora da revisão. Só aparece enquanto não houver áreas nem
+ * definições guardadas (ver o ecrã das áreas).
  */
 export default function BoasVindasEcra() {
   const { cores, estilos, corDaArea } = useTema();
   const router = useRouter();
   const [passo, setPasso] = useState(0);
+  const plus = usePlus();
   const [escolhidas, setEscolhidas] = useState<string[]>([]);
+  // Um modelo em vez das áreas soltas: escolher um limpa o outro.
+  const [modelo, setModelo] = useState<string | null>(null);
   const [diaRevisao, setDiaRevisao] = useState(DEFINICOES_INICIAIS.diaRevisao);
   const [minutos, setMinutos] = useState(18 * 60);
   const [lembrete, setLembrete] = useState(false);
   const [aGuardar, setAGuardar] = useState(false);
 
   function alternar(nome: string) {
+    setModelo(null);
     setEscolhidas((atuais) => (atuais.includes(nome) ? atuais.filter((n) => n !== nome) : [...atuais, nome]));
+  }
+
+  function escolherModelo(id: string) {
+    setEscolhidas([]);
+    setModelo((atual) => (atual === id ? null : id));
   }
 
   async function ligarLembrete(ativo: boolean) {
@@ -56,8 +71,10 @@ export default function BoasVindasEcra() {
   async function comecar() {
     setAGuardar(true);
     try {
+      const escolhido = MODELOS().find((m) => m.id === modelo);
+      if (escolhido) aplicarModelo(escolhido);
       // Pela ordem das sugestões, para a lista ficar sempre igual.
-      for (const sugestao of SUGESTOES_DE_AREAS.filter((s) => escolhidas.includes(s.nome))) await criarArea({ ...sugestao, nome: t(sugestao.nome), missao: '' });
+      else for (const sugestao of SUGESTOES_DE_AREAS.filter((s) => escolhidas.includes(s.nome))) await criarArea({ ...sugestao, nome: t(sugestao.nome), missao: '' });
       const horaRevisao = formatarHora(minutos);
       guardarDefinicoes({ diaRevisao, horaRevisao, lembreteAtivo: lembrete });
       // A primeira semana não tem de onde copiar: começa já com plano.
@@ -132,6 +149,22 @@ export default function BoasVindasEcra() {
                 );
               })}
             </View>
+            {plus ? (
+              <View style={{ gap: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={estilos.rotulo} accessibilityRole="header">
+                    {t('Ou comece com um modelo').toUpperCase()}
+                  </Text>
+                  <EtiquetaPlus />
+                </View>
+                <Text style={estilos.pequeno}>{t('Áreas com missão e tarefas já com horário. Pode mudar tudo depois.')}</Text>
+                <View style={{ gap: 10 }} accessibilityRole="radiogroup" accessibilityLabel={t('Modelos')}>
+                  {MODELOS().map((m) => (
+                    <CartaoDoModelo key={m.id} modelo={m} escolhido={modelo === m.id} aoEscolher={() => escolherModelo(m.id)} />
+                  ))}
+                </View>
+              </View>
+            ) : null}
           </>
         ) : null}
 

@@ -8,6 +8,7 @@ import { AvisoDeSemana } from '@/components/AvisoDeSemana';
 import { avisarErro } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
 import { ListaDeAreas } from '@/components/ListaDeAreas';
+import { LigacaoPlus } from '@/components/Plus';
 import { Botao, BotaoIcone, Seccao, Titulo } from '@/components/ui';
 import { criarArea, reordenarAreas } from '@/data/areas';
 import { recarregarConsultas, useConsulta } from '@/data/consulta';
@@ -118,6 +119,12 @@ export default function AreasEcra() {
         {lista.length > 0 ? (
           <Botao titulo={t('Todas as metas')} icone="alvo" variante="contorno" accessibilityHint={t('Ativas, pausadas, concluídas e abandonadas, de todas as áreas')} onPress={() => router.push('/metas')} />
         ) : null}
+        <LigacaoPlus
+          icone="grelha"
+          titulo={t('Modelos')}
+          texto={t('Áreas com missão e tarefas já com horário, para não começar do zero.')}
+          onPress={() => router.push('/modelos')}
+        />
       </ScrollView>
     </SafeAreaView>
   );

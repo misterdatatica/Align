@@ -36,7 +36,8 @@ src/
     pesquisa.tsx         pesquisar áreas, metas e tarefas pelo nome (sem acentos nem maiúsculas)
     estatisticas.tsx     estatísticas e histórico do mês ou do ano (Align Plus)
     metas.tsx            "As minhas metas": todas as metas, por estado (ativas, pausadas, concluídas, abandonadas)
-    boas-vindas.tsx      primeiro arranque, em três passos
+    modelos.tsx          modelos de áreas e tarefas já com horário (Align Plus)
+    boas-vindas.tsx      primeiro arranque, em três passos (as áreas, ou um modelo)
   db/schema.ts           as entidades (Drizzle + SQLite), incluindo o histórico das metas e o plano das semanas
   db/client.ts           ligação à base de dados      db/preparar.ts   abre-a e aplica as migrações
   data/                  leituras e escritas usadas pelos ecrãs (metas, tarefas, semanas, calendário, revisão…)
@@ -113,6 +114,14 @@ scripts/e2e/             cenários de ponta a ponta e o condutor do Chrome
   notificações só chegam à hora certa com "Alarmes e lembretes" permitidos (`SCHEDULE_EXACT_ALARM`
   no `app.json`); as Definições mostram como permitir. Colunas `definicoes.avisos_blocos` e
   `minutos_antes` (migração 0008).
+- **Modelos** (`src/domain/modelos.ts`, aplicar em `src/data/modelos.ts`): Vida equilibrada, Estudante,
+  Família e trabalho e Por conta própria, cada um com áreas (cor, ícone, missão) e tarefas recorrentes
+  já com horário. Escolhem-se no primeiro arranque ou em Áreas → Modelos, com "Desfazer". Aplicar junta
+  ao que existe: uma área com o mesmo nome (sem ligar a maiúsculas nem a acentos) é essa área (a missão
+  só entra se estiver vazia) e uma tarefa que a área já tem não se repete. Quem começa a meio da semana
+  começa daí para a frente: nesta semana só entram as vezes que ainda estão para vir, e a semana
+  seguinte é criada logo com o modelo inteiro (as outras copiam-na). Os testes verificam que nenhum
+  modelo tem blocos sobrepostos e que os horários batem certo com as recorrências.
 - `definicoes.ultima_copia` guarda a data da última cópia de segurança; a revisão lembra de fazer
   uma quando passaram mais de 30 dias.
 - Mover ou retirar um bloco de uma tarefa recorrente pede um âmbito. "Só esta semana" guarda o

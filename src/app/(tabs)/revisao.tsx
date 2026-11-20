@@ -10,7 +10,7 @@ import { exportarCopia, ondeGuardarACopia } from '@/components/exportarCopia';
 import { Icone } from '@/components/Icone';
 import { AtualizarValor } from '@/components/metas/AtualizarValor';
 import { textoEstagnada, textoDoPrazo, textoDoProgresso } from '@/components/metas/textos';
-import { EtiquetaPlus } from '@/components/Plus';
+import { LigacaoPlus } from '@/components/Plus';
 import { BarraProgresso, Botao, BotaoIcone, Cartao, Seccao, Titulo } from '@/components/ui';
 import { useConsulta } from '@/data/consulta';
 import { mudarEstadoDaMeta, type MetaDetalhada } from '@/data/metas';
@@ -323,22 +323,7 @@ function Revisao({ revisao, hoje }: { revisao: RevisaoDaSemana; hoje: string }) 
           </>
         )}
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityHint={t('Horas por área, metas e reflexões ao longo dos meses')}
-          onPress={() => router.push('/estatisticas')}
-          style={({ pressed }) => [estilos.cartao, { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, opacity: pressed ? 0.7 : 1 }]}
-        >
-          <Icone nome="grafico" cor={cores.tinta} />
-          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={{ fontFamily: fontes.textoForte, fontSize: 15, lineHeight: 20, color: cores.tinta }}>{t('Estatísticas e histórico')}</Text>
-              <EtiquetaPlus />
-            </View>
-            <Text style={estilos.pequeno}>{t('Horas por área, metas e reflexões ao longo dos meses')}</Text>
-          </View>
-          <Icone nome="seta-direita" tamanho={18} cor={cores.texto3} espessura={2} />
-        </Pressable>
+        <LigacaoPlus icone="grafico" titulo={t('Estatísticas e histórico')} texto={t('Horas por área, metas e reflexões ao longo dos meses')} onPress={() => router.push('/estatisticas')} />
       </ScrollView>
     </SafeAreaView>
   );
