@@ -15,10 +15,12 @@ type Props = {
   /** Cor forte da área. */
   cor: string;
   aoAbrir: () => void;
+  /** A semana das contagens, no meio de uma frase: "esta semana", "na semana seguinte"… */
+  quando: string;
 };
 
 /** Uma meta no detalhe da área: progresso, prazo, dias que faltam e as tarefas ligadas. Tocar abre-a. */
-export function CartaoMeta({ meta, cor, aoAbrir }: Props) {
+export function CartaoMeta({ meta, cor, aoAbrir, quando }: Props) {
   const ativa = meta.estado === 'ativa';
   const progresso = textoDoProgresso(meta);
   const prazo = textoDoPrazo(meta);
@@ -62,7 +64,7 @@ export function CartaoMeta({ meta, cor, aoAbrir }: Props) {
       ) : (
         <View style={{ gap: 2 }}>
           {meta.tarefas.map((t) => {
-            const detalhe = [formatarDuracao(t.duracaoMin), descreverRecorrencia(t.recorrencia), t.total > 0 ? `${t.feitas}/${t.total} esta semana` : null].filter(Boolean).join(' · ');
+            const detalhe = [formatarDuracao(t.duracaoMin), descreverRecorrencia(t.recorrencia), t.total > 0 ? `${t.feitas}/${t.total} ${quando}` : null].filter(Boolean).join(' · ');
             return (
               <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Icone nome={t.recorrencia ? 'repetir' : 'certo'} tamanho={12} cor={cores.texto3} espessura={2} />

@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
+import { AvisoDeSemana } from '@/components/AvisoDeSemana';
 import { CampoAutoGuardado } from '@/components/CampoAutoGuardado';
 import { comDesfazer } from '@/components/AvisoTemporario';
 import { avisarErro } from '@/components/dialogos';
@@ -11,7 +12,8 @@ import { Botao, Cartao, Seccao, SeletorCor, SeletorIcone, estilos } from '@/comp
 import { arquivarArea, atualizarArea, carregarAreaNaSemana } from '@/data/areas';
 import { useConsulta } from '@/data/consulta';
 import { MAX_METAS_ATIVAS, podeAtivarMeta } from '@/domain/metas';
-import { useHoje, usePrepararSemana, useSemanaAtual } from '@/estado/semana';
+import { semanaNaFrase } from '@/domain/semana';
+import { useHoje, usePrepararSemana, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
 import { cores, corDaArea, fontes } from '@/theme';
 
 const TABELAS = ['areas', 'metas', 'metas_registos', 'tarefas', 'tarefas_semana', 'blocos'] as const;
@@ -20,7 +22,9 @@ export default function AreaEcra() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const areaId = Number(id);
   const router = useRouter();
-  const semana = useSemanaAtual();
+  // A semana que se está a planear (a do separador Semana), não necessariamente a atual.
+  const semana = useSemanaEscolhida();
+  const atual = useSemanaAtual();
   usePrepararSemana(semana);
   const hoje = useHoje();
   const dados = useConsulta(() => carregarAreaNaSemana(areaId, semana, hoje), TABELAS, `${areaId}|${semana}|${hoje}`);
@@ -82,7 +86,7 @@ export default function AreaEcra() {
         <Cartao>
           {ativas.map((m, i) => (
             <View key={m.id} style={i === 0 ? null : { borderTopWidth: 1, borderTopColor: cores.linhaSuave }}>
-              <CartaoMeta meta={m} cor={cor.forte} aoAbrir={() => abrirMeta(m.id)} />
+              <CartaoMeta meta={m} cor={cor.forte} aoAbrir={() => abrirMeta(m.id)} quando={semanaNaFrase(semana, atual, 'em')} />
             </View>
           ))}
           {ativas.length === 0 ? <Text style={[estilos.pequeno, { padding: 16, paddingBottom: 4 }]}>Onde quer chegar nesta área? Uma meta é um resultado com prazo, não uma atividade.</Text> : null}
@@ -102,14 +106,15 @@ export default function AreaEcra() {
           <Cartao style={{ marginTop: 4 }}>
             {outras.map((m, i) => (
               <View key={m.id} style={i === 0 ? null : { borderTopWidth: 1, borderTopColor: cores.linhaSuave }}>
-                <CartaoMeta meta={m} cor={cor.forte} aoAbrir={() => abrirMeta(m.id)} />
+                <CartaoMeta meta={m} cor={cor.forte} aoAbrir={() => abrirMeta(m.id)} quando={semanaNaFrase(semana, atual, 'em')} />
               </View>
             ))}
           </Cartao>
         ) : null}
       </Seccao>
 
-      <Seccao titulo="Tarefas desta semana">
+      <Seccao titulo={`Tarefas ${semanaNaFrase(semana, atual, 'de')}`}>
+        <AvisoDeSemana semana={semana} />
         <View style={[estilos.cartao, { overflow: 'hidden' }]}>
           {tarefas.map((t, i) => (
             <LinhaTarefa key={t.id} tarefa={t} semana={semana} porExtenso semLinha={i === 0} />

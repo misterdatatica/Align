@@ -70,6 +70,19 @@ export function descreverSemanaPorExtenso(semana: string): string {
   return `${ini.getDate()} a ${fim.getDate()} ${MESES[ini.getMonth()]}`;
 }
 
+/**
+ * A semana em relação à atual, para usar no meio de uma frase, com a preposição já contraída:
+ * `com: 'de'` → "desta semana", "da semana seguinte", "da semana de 30 nov a 6 dez";
+ * `com: 'em'` → "esta semana", "na semana seguinte", "na semana de 30 nov a 6 dez".
+ */
+export function semanaNaFrase(semana: string, atual: string, com: 'de' | 'em'): string {
+  const [esta, outra] = com === 'de' ? ['desta', 'da'] : ['esta', 'na'];
+  if (semana === atual) return `${esta} semana`;
+  if (semana === somarSemanas(atual, 1)) return `${outra} semana seguinte`;
+  if (semana === somarSemanas(atual, -1)) return `${outra} semana passada`;
+  return `${outra} semana de ${descreverSemanaPorExtenso(semana)}`;
+}
+
 /** "16 – 22 nov 2026": o seletor de semana mostra sempre o ano. */
 export function descreverSemanaComAno(semana: string): string {
   const ini = deDataISO(semana);

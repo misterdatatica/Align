@@ -4,6 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 
 import { comDesfazer } from '@/components/AvisoTemporario';
 import { avisarErro } from '@/components/dialogos';
+import { AvisoDeSemana } from '@/components/AvisoDeSemana';
 import { FormularioMeta } from '@/components/FormularioMeta';
 import { Icone } from '@/components/Icone';
 import { AtualizarValor } from '@/components/metas/AtualizarValor';
@@ -14,9 +15,9 @@ import { useConsulta } from '@/data/consulta';
 import { apagarMeta, apagarRegisto, carregarMeta, mudarEstadoDaMeta } from '@/data/metas';
 import { NOME_DO_ESTADO, formatarValor, pontosDaLinha, valorComUnidade, type EstadoMeta } from '@/domain/metas';
 import { descreverRecorrencia } from '@/domain/recorrencia';
-import { descreverData } from '@/domain/semana';
+import { descreverData, semanaNaFrase } from '@/domain/semana';
 import { formatarDuracao } from '@/domain/tarefas';
-import { useHoje, useSemanaAtual } from '@/estado/semana';
+import { useHoje, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
 import { cores, corDaArea, fontes } from '@/theme';
 
 const TABELAS = ['areas', 'metas', 'metas_registos', 'tarefas', 'tarefas_semana'] as const;
@@ -29,7 +30,9 @@ export default function MetaEcra() {
   const metaId = Number(id);
   const router = useRouter();
   const hoje = useHoje();
-  const semana = useSemanaAtual();
+  // A semana que se está a planear (a do separador Semana), não necessariamente a atual.
+  const semana = useSemanaEscolhida();
+  const atual = useSemanaAtual();
   const meta = useConsulta(() => carregarMeta(metaId, semana, hoje), TABELAS, `${metaId}|${semana}|${hoje}`);
   const [aAlterar, setAAlterar] = useState(false);
 
@@ -126,12 +129,13 @@ export default function MetaEcra() {
       </Seccao>
 
       <Seccao titulo="Tarefas ligadas">
+        <AvisoDeSemana semana={semana} />
         <Cartao style={{ overflow: 'hidden' }}>
           {meta.tarefas.map((t, i) => (
             <View key={t.id} style={{ paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: cores.linhaSuave }}>
               <Text style={{ fontFamily: fontes.textoMedio, fontSize: 15, lineHeight: 20, color: cores.tinta }}>{t.nome}</Text>
               <Text style={{ fontFamily: fontes.texto, fontSize: 12, lineHeight: 16, color: cores.texto3 }}>
-                {[formatarDuracao(t.duracaoMin) ?? 'sem duração', descreverRecorrencia(t.recorrencia) ?? 'não repete', t.total > 0 ? `${t.feitas}/${t.total} feitas esta semana` : null].filter(Boolean).join(' · ')}
+                {[formatarDuracao(t.duracaoMin) ?? 'sem duração', descreverRecorrencia(t.recorrencia) ?? 'não repete', t.total > 0 ? `${t.feitas}/${t.total} feitas ${semanaNaFrase(semana, atual, 'em')}` : null].filter(Boolean).join(' · ')}
               </Text>
             </View>
           ))}

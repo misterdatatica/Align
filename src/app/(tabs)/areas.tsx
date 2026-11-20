@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AvisoDeSemana } from '@/components/AvisoDeSemana';
 import { avisarErro } from '@/components/dialogos';
 import { Icone } from '@/components/Icone';
 import { ListaDeAreas } from '@/components/ListaDeAreas';
@@ -12,8 +13,8 @@ import { criarArea, reordenarAreas } from '@/data/areas';
 import { recarregarConsultas, useConsulta } from '@/data/consulta';
 import { carregarPlano } from '@/data/tarefas';
 import { MAX_AREAS, podeCriarArea } from '@/domain/regras';
-import { descreverSemanaPorExtenso } from '@/domain/semana';
-import { usePrepararSemana, useSemanaAtual } from '@/estado/semana';
+import { descreverSemanaPorExtenso, semanaNaFrase } from '@/domain/semana';
+import { usePrepararSemana, useSemanaAtual, useSemanaEscolhida } from '@/estado/semana';
 import { SUGESTOES_DE_AREAS } from '@/sugestoes';
 import { cores, corDaArea, fontes } from '@/theme';
 
@@ -21,7 +22,9 @@ const TABELAS = ['areas', 'tarefas', 'tarefas_semana', 'blocos'] as const;
 
 export default function AreasEcra() {
   const router = useRouter();
-  const semana = useSemanaAtual();
+  // As contagens são da semana que se está a planear (a do separador Semana).
+  const semana = useSemanaEscolhida();
+  const atual = useSemanaAtual();
   usePrepararSemana(semana);
   const plano = useConsulta(() => carregarPlano(semana), TABELAS, semana);
   const [aCriar, setACriar] = useState<string | null>(null);
@@ -51,8 +54,10 @@ export default function AreasEcra() {
         </View>
 
         <Seccao titulo="Áreas" direita={<Text style={estilos.pequeno}>{`${lista.length} de ${MAX_AREAS} no máximo`}</Text>}>
+          <AvisoDeSemana semana={semana} />
           <ListaDeAreas
             itens={lista}
+            quando={semanaNaFrase(semana, atual, 'em')}
             aoAbrir={(areaId) => router.push({ pathname: '/area/[id]', params: { id: String(areaId) } })}
             aoReordenar={(ids) => {
               try {

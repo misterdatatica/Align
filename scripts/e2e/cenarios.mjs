@@ -203,6 +203,22 @@ const cenarios = {
       await b.verTexto(descreverSemanaComAno(ESTA));
     });
 
+    await passo('as áreas e o detalhe da área seguem a semana que se está a planear', async () => {
+      await b.clicar('Semana seguinte');
+      await b.clicar('Áreas');
+      await b.verTexto(`A ver a semana de ${descreverSemanaPorExtenso(SEGUINTE)}.`);
+      await b.verTexto('na semana seguinte');
+      await b.clicar('Família');
+      await b.verTexto('TAREFAS DA SEMANA SEGUINTE');
+      await b.verTexto('Ligar aos avós'); // passou para a semana seguinte, por fazer
+      await b.clicar('Voltar a esta semana');
+      await b.verTexto('TAREFAS DESTA SEMANA');
+      await b.avaliar('history.back()');
+      await b.naoVerTexto('A ver a semana de');
+      await b.clicar('Semana');
+      await b.verTexto(descreverSemanaComAno(ESTA));
+    });
+
     await passo('apagar pelo formulário e a deslizar, sem confirmação mas com "Desfazer"', async () => {
       await b.clicar('Ligar aos avós');
       await b.clicar('Apagar tarefa');

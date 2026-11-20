@@ -5,13 +5,14 @@ import { Text, View } from 'react-native';
 import { FormularioTarefa } from '@/components/FormularioTarefa';
 import { Botao, estilos } from '@/components/ui';
 import { carregarTarefa } from '@/data/tarefas';
-import { useSemanaAtual } from '@/estado/semana';
+import { useSemanaEscolhida } from '@/estado/semana';
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function EditarTarefaEcra() {
   const { id, semana } = useLocalSearchParams<{ id: string; semana?: string }>();
-  const semanaAtual = useSemanaAtual();
+  // Sem semana nos parâmetros, vale a que se está a planear.
+  const semanaEscolhida = useSemanaEscolhida();
   const router = useRouter();
   // Lida uma vez: o formulário trabalha sobre uma cópia até se guardar.
   const [tarefa] = useState(() => carregarTarefa(Number(id)));
@@ -25,5 +26,5 @@ export default function EditarTarefaEcra() {
     );
   }
 
-  return <FormularioTarefa tarefa={tarefa} semana={semana && DATA_ISO.test(semana) ? semana : semanaAtual} aoFechar={() => router.back()} />;
+  return <FormularioTarefa tarefa={tarefa} semana={semana && DATA_ISO.test(semana) ? semana : semanaEscolhida} aoFechar={() => router.back()} />;
 }

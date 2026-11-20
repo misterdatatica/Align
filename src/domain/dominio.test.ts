@@ -20,7 +20,7 @@ import {
 } from './metas.ts';
 import { fimCopiado, lugaresACopiar, sobreposicoesDaSemana } from './proposta.ts';
 import { encaixarMeiaHora, formatarHoras, MAX_AREAS, podeCriarArea, progresso } from './regras.ts';
-import { descreverData, descreverSemana, diasDaSemana, inicioDaSemana, somarMeses, somarSemanas } from './semana.ts';
+import { descreverData, descreverSemana, diasDaSemana, inicioDaSemana, semanaNaFrase, somarMeses, somarSemanas } from './semana.ts';
 
 describe('semana', () => {
   it('começa à segunda-feira', () => {
@@ -52,6 +52,17 @@ describe('semana', () => {
     assert.equal(somarMeses('2026-11-16', 3), '2027-02-16');
     assert.equal(somarMeses('2027-01-31', 1), '2027-02-28');
     assert.equal(somarMeses('2026-11-30', 12), '2027-11-30');
+  });
+});
+
+describe('semana na frase', () => {
+  it('diz a semana em relação à atual, com a preposição contraída', () => {
+    const atual = '2026-11-16';
+    assert.equal(semanaNaFrase(atual, atual, 'de'), 'desta semana');
+    assert.equal(semanaNaFrase(atual, atual, 'em'), 'esta semana');
+    assert.equal(semanaNaFrase('2026-11-23', atual, 'de'), 'da semana seguinte');
+    assert.equal(semanaNaFrase('2026-11-09', atual, 'em'), 'na semana passada');
+    assert.equal(semanaNaFrase('2026-11-30', atual, 'em'), 'na semana de 30 nov a 6 dez');
   });
 });
 

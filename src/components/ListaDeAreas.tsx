@@ -20,6 +20,8 @@ type Props = {
   aoAbrir: (areaId: number) => void;
   /** Recebe os ids das áreas pela ordem nova. */
   aoReordenar: (ids: number[]) => void;
+  /** A semana mostrada, no meio de uma frase: "esta semana", "na semana seguinte"… */
+  quando: string;
 };
 
 /**
@@ -27,7 +29,7 @@ type Props = {
  * O cartão segue o dedo na thread da interface e os outros afastam-se para lhe dar lugar; a ordem
  * só é guardada quando se larga. Com leitor de ecrã, usam-se as ações "Mover para cima / baixo".
  */
-export function ListaDeAreas({ itens, aoAbrir, aoReordenar }: Props) {
+export function ListaDeAreas({ itens, aoAbrir, aoReordenar, quando }: Props) {
   const [alturas, setAlturas] = useState<Record<number, number>>({});
   /** Altura de cada cartão pela ordem da lista, para a thread da interface saber onde cai o arrasto. */
   const alturasNaOrdem = useSharedValue<number[]>([]);
@@ -68,6 +70,7 @@ export function ListaDeAreas({ itens, aoAbrir, aoReordenar }: Props) {
           aoMedir={(altura) => setAlturas((atuais) => (atuais[item.area.id] === altura ? atuais : { ...atuais, [item.area.id]: altura }))}
           aoAbrir={aoAbrir}
           aoMover={mover}
+          quando={quando}
         />
       ))}
     </View>
@@ -85,9 +88,10 @@ type CartaoProps = {
   aoMedir: (altura: number) => void;
   aoAbrir: (areaId: number) => void;
   aoMover: (de: number, para: number) => void;
+  quando: string;
 };
 
-function CartaoDeArea({ item, indice, total, alturasNaOrdem, ativo, destino, deslocamento, aoMedir, aoAbrir, aoMover }: CartaoProps) {
+function CartaoDeArea({ item, indice, total, alturasNaOrdem, ativo, destino, deslocamento, aoMedir, aoAbrir, aoMover, quando }: CartaoProps) {
   const { area, tarefas, minutosPlaneados } = item;
   const cor = corDaArea(area.cor);
   const n = tarefas.length;
@@ -147,7 +151,7 @@ function CartaoDeArea({ item, indice, total, alturasNaOrdem, ativo, destino, des
       <Animated.View style={estilo} onLayout={(e) => aoMedir(e.nativeEvent.layout.height)}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${area.nome}. ${area.missao || 'Sem missão'}. ${n === 0 ? 'Sem tarefas esta semana' : `${n} ${n === 1 ? 'tarefa' : 'tarefas'} esta semana`}`}
+          accessibilityLabel={`${area.nome}. ${area.missao || 'Sem missão'}. ${n === 0 ? `Sem tarefas ${quando}` : `${n} ${n === 1 ? 'tarefa' : 'tarefas'} ${quando}`}`}
           accessibilityHint="Abre a área. Mantenha premido e arraste para mudar a ordem."
           accessibilityActions={[
             ...(indice > 0 ? [{ name: 'subir', label: 'Mover para cima' }] : []),
@@ -169,7 +173,7 @@ function CartaoDeArea({ item, indice, total, alturasNaOrdem, ativo, destino, des
               {area.missao || 'Sem missão — toque para definir'}
             </Text>
             <Text style={[estilos.pequeno, { marginTop: 6 }]}>
-              {n === 0 ? 'Sem tarefas esta semana' : `${n} ${n === 1 ? 'tarefa' : 'tarefas'}${minutosPlaneados > 0 ? ` · ${formatarHoras(minutosPlaneados / 60)}` : ''} esta semana`}
+              {n === 0 ? `Sem tarefas ${quando}` : `${n} ${n === 1 ? 'tarefa' : 'tarefas'}${minutosPlaneados > 0 ? ` · ${formatarHoras(minutosPlaneados / 60)}` : ''} ${quando}`}
             </Text>
           </View>
           <Icone nome="seta-direita" tamanho={16} cor={cores.texto3} espessura={2} />
